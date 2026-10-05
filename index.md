@@ -1,3 +1,12 @@
+<style>
+  body {
+    background-image: url('Iv_0_20261005212854.gif') !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+    background-position: center !important;
+  }
+</style>
+
 # a51bfcts_wikipedia
 
 *Area 51 but find coils to survive*
