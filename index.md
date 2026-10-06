@@ -1,7 +1,7 @@
 <style>
   html, body {
-    background-color: #0b090f !important; /* Угольно-черный с легким фиолетовым отливом */
-    color: #e2daf0 !important; /* Делаем текст мягким светлым, чтобы не резал глаза */
+    background-color: #0b090f !important;
+    color: #e2daf0 !important;
   }
   .container-lg, main, .wrapper {
     background-color: #0b090f !important;
