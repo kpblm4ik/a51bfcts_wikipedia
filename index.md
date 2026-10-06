@@ -41,7 +41,7 @@
     background-size: cover !important; /* ТРЮК: мощно приближаем и растягиваем на весь слой */
     background-repeat: no-repeat !important;
     background-position: center top !important; /* Намертво фиксируем по центру верхней части */
-    filter: brightness(0.24) contrast(1.4) saturate(1.3) !important;
+    filter: brightness(0.60) contrast(1.4) saturate(1.3) !important;
     z-index: -1; opacity: 0.9;
   }
   a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
