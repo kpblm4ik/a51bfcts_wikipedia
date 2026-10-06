@@ -1,13 +1,41 @@
 <style>
-  html, body { background-color: #0b090f !important; color: #e2daf0 !important; }
-  .container-lg, main, .wrapper {
-    background-color: #0b090f !important;
-    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
-    border-radius: 8px; padding: 20px;
+  /* Создаем эффект увеличенного и затемненного фона */
+  html, body {
+    background-color: #050407 !important; /* Угольно-черный базовый цвет */
+    color: #e2daf0 !important;
+    position: relative;
+    min-height: 100vh;
   }
-  a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
+
+  /* Накладываем фоновую картинку через псевдоэлемент, чтобы применить к ней фильтр затемнения */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('bg_icon.png') !important;
+    background-size: cover !important; /* Увеличиваем и растягиваем картинку под любой экран */
+    background-position: center !important;
+    filter: brightness(0.12) contrast(1.1) !important; /* уменьшаем яркость до 12% (сильное затемнение) */
+    z-index: -1; /* Уводим фон на самый задний план, под текст */
+  }
+
+  /* Фиолетовая неоновая аура вокруг контента */
+  .container-lg, main, .wrapper {
+    background-color: rgba(11, 9, 15, 0.85) !important; /* Делаем подложку текста чуть прозрачной */
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
+    border-radius: 8px;
+    padding: 20px;
+    backdrop-filter: blur(4px); /* Слегка размываем фон за текстом ради стиля */
+  }
+
+  a {
+    color: #a066ff !important;
+    text-shadow: 0 0 5px rgba(160, 102, 255, 0.3);
+  }
   
-  /* Скрываем все языки по умолчанию, кроме русского */
   [lang="en"], [lang="es"] { display: none; }
 </style>
 
