@@ -10,7 +10,7 @@
     width: 120px; height: 120px;
     background-image: url('Screenshot_20261006_120319.jpg') !important;
     background-size: contain; background-repeat: no-repeat; background-position: center;
-    animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+    animation: spin 1s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
   }
   .intro-text {
     margin-top: 20px; font-family: monospace; font-size: 18px; color: #a066ff;
