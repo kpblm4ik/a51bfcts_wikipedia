@@ -1,91 +1,46 @@
 <style>
   /* ================= СТИЛЬ ЗАСТАВКИ (INTRO) ================= */
   #intro-screen {
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%;
-    background-color: #050407; /* Полностью черный экран на старте */
-    z-index: 9999; /* Поверх вообще всего сайта */
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center;
-    /* Анимация исчезновения: начнется через 2.5 секунды, длится 0.5 секунды */
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #050407; z-index: 9999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
     animation: fadeOut 0.5s ease-in-out 2.5s forwards;
   }
-
-  /* Анимированная пружинка по центру экрана */
   .intro-coil {
-    width: 120px; 
-    height: 120px;
-    background-image: url('Screenshot_20261006_120319.jpg') !important; /* катушка */
-    background-size: contain; 
-    background-repeat: no-repeat; 
-    background-position: center;
-    /* Анимация стремительного вращения на 360 градусов */
+    width: 120px; height: 120px;
+    background-image: url('Screenshot_20261005_180602.jpg') !important;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
     animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
   }
-
-  /* Фиолетовый текст под пружинкой */
   .intro-text {
-    margin-top: 20px; 
-    font-family: monospace; 
-    font-size: 18px; 
-    color: #a066ff;
-    text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); 
-    letter-spacing: 2px; 
-    text-align: center;
+    margin-top: 20px; font-family: monospace; font-size: 18px; color: #a066ff;
+    text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); letter-spacing: 2px; text-align: center;
   }
-
-  /* ТРАЕКТОРИИ АНИМАЦИЙ ИНТРО */
   @keyframes spin {
-    0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
-    100% { transform: rotate(360deg) scale(1); opacity: 1; }
+    0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
+    100% { transform: rotate(360deg); scale: 1; opacity: 1; }
   }
   @keyframes fadeOut {
     0% { opacity: 1; }
     100% { opacity: 0; visibility: hidden; }
   }
 
-  /* ================= ОБЩИЙ СТИЛЬ ОФОРМЛЕНИЯ ВИКИ ================= */
-  html, body { 
-    background-color: #050407 !important; 
-    color: #e2daf0 !important; 
-  }
-  
+  /* ================= ОБЩИЙ СТИЛЬ САЙТА ================= */
+  html, body { background-color: #050407 !important; color: #e2daf0 !important; }
   .container-lg, main, .wrapper {
-    position: relative; 
-    background-color: #0b090f !important;
+    position: relative; background-color: #0b090f !important;
     box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
-    border-radius: 8px; 
-    padding: 20px; 
-    z-index: 1; 
-    overflow: hidden;
+    border-radius: 8px; padding: 20px; z-index: 1; overflow: hidden;
   }
   
-  /* Обложка со спиралями проступает на чёрном слое контента */
+  /* Возвращаем лого игры на чёрный слой */
   .container-lg::before, main::before, .wrapper::before {
-    content: ""; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%;
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background-image: url('Screenshot_20261006_110338.jpg') !important;
-    background-size: cover !important; 
-    background-position: center !important;
-    filter: brightness(0.22) contrast(1.4) saturate(1.3) !important; 
-    z-index: -1; 
-    opacity: 0.9;
+    background-size: cover !important; background-position: center !important;
+    filter: brightness(0.22) contrast(1.4) saturate(1.3) !important; z-index: -1; opacity: 0.9;
   }
-  
-  a { 
-    color: #a066ff !important; 
-    text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); 
-  }
-  
+  a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
   [lang="en"], [lang="es"] { display: none; }
 </style>
 
@@ -148,7 +103,7 @@
   <small>Защищено лицензией CC BY-NC-ND 4.0</small>
 </p>
 
-<!-- СКРИПТ ПЕРЕВОДА И АВТОУДАЛЕНИЯ ЗАСТАВКИ -->
+<!-- ЧИСТЫЙ СКРИПТ ПЕРЕВОДА И АВТОУДАЛЕНИЯ ИНТРО -->
 <script>
 function changeLang(langCode) {
   const languages = ['ru', 'en', 'es'];
@@ -166,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function() {
   const savedLang = localStorage.getItem('wiki_language') || 'ru';
   changeLang(savedLang);
 
-  // Полностью удаляем заставку из памяти через 3 секунды, чтобы не блокировать клики по ссылкам
   setTimeout(() => {
     const intro = document.getElementById('intro-screen');
     if (intro) intro.remove();
