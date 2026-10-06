@@ -15,10 +15,10 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('bg_icon.png') !important;
+    background-image: url('Screenshot_20261006_110338.jpg') !important; /* ТОЧНОЕ ИМЯ КАРТИНКИ */
     background-size: cover !important; /* Увеличиваем и растягиваем картинку под любой экран */
     background-position: center !important;
-    filter: brightness(0.12) contrast(1.1) !important; /* уменьшаем яркость до 12% (сильное затемнение) */
+    filter: brightness(0.12) contrast(1.1) !important; /* Уменьшаем яркость до 12% (сильное затемнение) */
     z-index: -1; /* Уводим фон на самый задний план, под текст */
   }
 
