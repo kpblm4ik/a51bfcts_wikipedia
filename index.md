@@ -1,41 +1,44 @@
 <style>
-  /* Создаем эффект увеличенного и затемненного фона */
+  /* Общие настройки экрана */
   html, body {
-    background-color: #050407 !important; /* Угольно-черный базовый цвет */
+    background-color: #050407 !important; /* Внешний глубокий космос вокруг сайта */
     color: #e2daf0 !important;
-    position: relative;
-    min-height: 100vh;
   }
 
-  /* Накладываем фоновую картинку через псевдоэлемент, чтобы применить к ней фильтр затемнения */
-  body::before {
+  /* ГЛАВНЫЙ ЧЁРНЫЙ СЛОЙ: теперь картинка живёт здесь! */
+  .container-lg, main, .wrapper {
+    position: relative;
+    background-color: #0b090f !important; /* Базовый угольно-черный цвет */
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important; /* Наша фиолетовая аура */
+    border-radius: 8px;
+    padding: 20px;
+    z-index: 1;
+    overflow: hidden; /* Чтобы края увеличенной картинки не вылезали за рамку */
+  }
+
+  /* Накладываем затемнённый фон прямо ВНУТРЬ чёрного слоя под текст */
+  .container-lg::before, main::before, .wrapper::before {
     content: "";
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('Screenshot_20261006_110338.jpg') !important; /* ТОЧНОЕ ИМЯ КАРТИНКИ */
-    background-size: cover !important; /* Увеличиваем и растягиваем картинку под любой экран */
+    background-image: url('Screenshot_20261006_110338.jpg') !important; /* Файл обложки */
+    background-size: cover !important; /* Увеличиваем и растягиваем её */
     background-position: center !important;
-    filter: brightness(0.12) contrast(1.1) !important; /* Уменьшаем яркость до 12% (сильное затемнение) */
-    z-index: -1; /* Уводим фон на самый задний план, под текст */
+    filter: brightness(0.12) contrast(1.1) !important; /* Идеальное 12% затемнение */
+    z-index: -1; /* Прячем строго ПОД текст и картинки */
+    opacity: 0.9;
   }
 
-  /* Фиолетовая неоновая аура вокруг контента */
-  .container-lg, main, .wrapper {
-    background-color: rgba(11, 9, 15, 0.85) !important; /* Делаем подложку текста чуть прозрачной */
-    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
-    border-radius: 8px;
-    padding: 20px;
-    backdrop-filter: blur(4px); /* Слегка размываем фон за текстом ради стиля */
-  }
-
+  /* Фиолетовые светящиеся ссылки */
   a {
     color: #a066ff !important;
     text-shadow: 0 0 5px rgba(160, 102, 255, 0.3);
   }
   
+  /* Скрываем другие языки по умолчанию */
   [lang="en"], [lang="es"] { display: none; }
 </style>
 
@@ -44,11 +47,11 @@
   <h1>Вики a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
   <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
-  <h2>⚡ <a href="coils.md">Катушки</a></h2>
+  <h2>⚡ <a href="coils.html">Катушки</a></h2>
   <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
-  <h2>🪄 <a href="wands.md">Палочки</a></h2>
+  <h2>🪄 <a href="wands.html">Палочки</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
-  <h2>📦 <a href="other.md">Прочие предметы</a></h2>
+  <h2>📦 <a href="other.html">Прочие предметы</a></h2>
 </div>
 
 <!-- ================= АНГЛИЙСКИЙ ЯЗЫК ================= -->
@@ -56,11 +59,11 @@
   <h1>Wiki a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
   <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
-  <h2>⚡ <a href="coils.md">Coils</a></h2>
+  <h2>⚡ <a href="coils.html">Coils</a></h2>
   <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
-  <h2>🪄 <a href="wands.md">Wands</a></h2>
+  <h2>🪄 <a href="wands.html">Wands</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
-  <h2>📦 <a href="other.md">Other Items</a></h2>
+  <h2>📦 <a href="other.html">Other Items</a></h2>
 </div>
 
 <!-- ================= ИСПАНСКИЙ ЯЗЫК ================= -->
@@ -68,11 +71,11 @@
   <h1>Wiki a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
   <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
-  <h2>⚡ <a href="coils.md">Bobinas</a></h2>
+  <h2>⚡ <a href="coils.html">Bobinas</a></h2>
   <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
-  <h2>🪄 <a href="wands.md">Varitas</a></h2>
+  <h2>🪄 <a href="wands.html">Varitas</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
-  <h2>📦 <a href="other.md">Otros Objetos</a></h2>
+  <h2>📦 <a href="other.html">Otros Objetos</a></h2>
 </div>
 
 <br>
@@ -92,22 +95,25 @@
   <small>Защищено лицензией CC BY-NC-ND 4.0</small>
 </p>
 
-<!-- КРОШЕЧНЫЙ СКРИПТ ПЕРЕВОДА -->
+<!-- СКРИПТ ПЕРЕВОДА С ХРАНИЛИЩЕМ ПАМЯТИ -->
 <script>
 function changeLang(langCode) {
-  // Находим все блоки с языками
   const languages = ['ru', 'en', 'es'];
-  
   languages.forEach(lang => {
-    // Находим все элементы текущего языка
     const elements = document.querySelectorAll(`[lang="${lang}"]`);
     elements.forEach(el => {
       if (lang === langCode) {
-        el.style.display = 'block'; // Показываем выбранный язык
+        el.style.display = 'block';
       } else {
-        el.style.display = 'none'; // Скрываем остальные
+        el.style.display = 'none';
       }
     });
   });
+  localStorage.setItem('wiki_language', langCode);
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+  const savedLang = localStorage.getItem('wiki_language') || 'ru';
+  changeLang(savedLang);
+});
 </script>
