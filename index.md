@@ -27,7 +27,7 @@
     background-image: url('Screenshot_20261006_110338.jpg') !important; /* Файл обложки */
     background-size: cover !important; /* Увеличиваем и растягиваем её */
     background-position: center !important;
-    filter: brightness(0.32) contrast(1.4) !important; /* Идеальное 32% затемнение */
+    filter: brightness(0.60) contrast(1.4) !important; /* Идеальное 32% затемнение */
     z-index: -1; /* Прячем строго ПОД текст и картинки */
     opacity: 0.9;
   }
