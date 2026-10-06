@@ -4,15 +4,15 @@
 
 ![](Screenshot_20261005_180602.jpg)
 
-## [Катушки](coilsru.md)
+## ⚡ [Катушки](coils.md)
 
 ![](Screenshot_20261005_180545.jpg)
 
-## [Палочки](wandsru.md)
+## 🪄 [Палочки](wands.md)
 
 ![](Screenshot_20261005_180528.jpg)
 
-## [Прочие предметы](otherru.md)
+## 📦 [Прочие предметы](other.md)
 
 <br>
 <p align="center">
