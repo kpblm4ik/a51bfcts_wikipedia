@@ -41,7 +41,7 @@
     background-size: contain !important; /* Картинка полностью помещается и не обрезается */
     background-repeat: no-repeat !important; /* Убираем дублирование картинки */
     background-position: top center !important; /* Прижимаем неоновые буквы точно к верху страницы */
-    filter: brightness(0.25) contrast(1.4) saturate(1.3) !important; /* Сочный неоновый контраст */
+    filter: brightness(0.60) contrast(1.4) saturate(1.3) !important; /* Сочный неоновый контраст */
     z-index: -1; opacity: 0.9;
   }
   a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
