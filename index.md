@@ -1,46 +1,69 @@
+<!-- ПОДКЛЮЧАЕМ ДВИЖОК КАРТЫ (Leaflet.js) -->
+<link rel="stylesheet" href="https://unpkg.com" />
+<script src="https://unpkg.com"></script>
+
 <style>
-  /* Общие настройки экрана */
-  html, body {
-    background-color: #050407 !important; /* Внешний глубокий космос вокруг сайта */
-    color: #e2daf0 !important;
+  /* ================= СТИЛЬ ЗАСТАВКИ (INTRO) ================= */
+  #intro-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #050407; z-index: 9999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    animation: fadeOut 0.5s ease-in-out 2.5s forwards;
+  }
+  .intro-coil {
+    width: 120px; height: 120px;
+    background-image: url('Screenshot_20261005_180602.jpg') !important;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+  }
+  .intro-text {
+    margin-top: 20px; font-family: monospace; font-size: 18px; color: #a066ff;
+    text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); letter-spacing: 2px; text-align: center;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
+    100% { transform: rotate(360deg); scale: 1; opacity: 1; }
+  }
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; visibility: hidden; }
   }
 
-  /* ГЛАВНЫЙ ЧЁРНЫЙ СЛОЙ: теперь картинка живёт здесь! */
+  /* ================= ОБЩИЙ СТИЛЬ САЙТА ================= */
+  html, body { background-color: #050407 !important; color: #e2daf0 !important; }
   .container-lg, main, .wrapper {
-    position: relative;
-    background-color: #0b090f !important; /* Базовый угольно-черный цвет */
-    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important; /* Наша фиолетовая аура */
-    border-radius: 8px;
-    padding: 20px;
-    z-index: 1;
-    overflow: hidden; /* Чтобы края увеличенной картинки не вылезали за рамку */
+    position: relative; background-color: #0b090f !important;
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
+    border-radius: 8px; padding: 20px; z-index: 1; overflow: hidden;
   }
-
-  /* Накладываем затемнённый фон прямо ВНУТРЬ чёрного слоя под текст */
   .container-lg::before, main::before, .wrapper::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('Screenshot_20261006_110338.jpg') !important; /* Файл обложки */
-    background-size: cover !important; /* Увеличиваем и растягиваем её */
-    background-position: center !important;
-    filter: brightness(0.60) contrast(1.4) !important; /* Идеальное 32% затемнение */
-    z-index: -1; /* Прячем строго ПОД текст и картинки */
-    opacity: 0.9;
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: url('Screenshot_20261006_110338.jpg') !important;
+    background-size: cover !important; background-position: center !important;
+    filter: brightness(0.22) contrast(1.4) saturate(1.3) !important; z-index: -1; opacity: 0.9;
   }
-
-  /* Фиолетовые светящиеся ссылки */
-  a {
-    color: #a066ff !important;
-    text-shadow: 0 0 5px rgba(160, 102, 255, 0.3);
-  }
-  
-  /* Скрываем другие языки по умолчанию */
+  a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
   [lang="en"], [lang="es"] { display: none; }
+
+  /* ================= СТИЛЬ ИНТЕРАКТИВНОЙ КАРТЫ ================= */
+  #game-map {
+    width: 100%; height: 400px;
+    background-color: #000000;
+    border: 2px solid #a066ff;
+    box-shadow: 0 0 20px rgba(160, 102, 255, 0.4);
+    border-radius: 8px; margin: 25px 0;
+  }
+  .custom-marker {
+    background-color: #a066ff; border: 2px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 10px #a066ff, 0 0 20px #a066ff;
+  }
 </style>
+
+<!-- 🔥 ЭКРАН ЗАСТАВКИ -->
+<div id="intro-screen">
+  <div class="intro-coil"></div>
+  <div class="intro-text">AREA 51 BUT FIND COILS TO SURVIVE</div>
+</div>
 
 <!-- ================= РУССКИЙ ЯЗЫК ================= -->
 <div lang="ru">
@@ -52,6 +75,8 @@
   <h2>🪄 <a href="wands.html">Палочки</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Прочие предметы</a></h2>
+  <hr>
+  <h3>🗺️ Интерактивная Карта (Нажми на точку!)</h3>
 </div>
 
 <!-- ================= АНГЛИЙСКИЙ ЯЗЫК ================= -->
@@ -64,6 +89,8 @@
   <h2>🪄 <a href="wands.html">Wands</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Other Items</a></h2>
+  <hr>
+  <h3>🗺️ Interactive Map (Click the point!)</h3>
 </div>
 
 <!-- ================= ИСПАНСКИЙ ЯЗЫК ================= -->
@@ -76,7 +103,12 @@
   <h2>🪄 <a href="wands.html">Varitas</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Otros Objetos</a></h2>
+  <hr>
+  <h3>🗺️ Mapa Interactivo (¡Haz clic en el punto!)</h3>
 </div>
+
+<!-- КОНТЕЙНЕР ДЛЯ РИСОВАННОЙ КАРТЫ -->
+<div id="game-map"></div>
 
 <br>
 <hr>
@@ -95,18 +127,15 @@
   <small>Защищено лицензией CC BY-NC-ND 4.0</small>
 </p>
 
-<!-- СКРИПТ ПЕРЕВОДА С ХРАНИЛИЩЕМ ПАМЯТИ -->
+<!-- СКРИПТ УПРАВЛЕНИЯ ЯЗЫКАМИ И КАРТОЙ -->
 <script>
 function changeLang(langCode) {
   const languages = ['ru', 'en', 'es'];
   languages.forEach(lang => {
     const elements = document.querySelectorAll(`[lang="${lang}"]`);
     elements.forEach(el => {
-      if (lang === langCode) {
-        el.style.display = 'block';
-      } else {
-        el.style.display = 'none';
-      }
+      if (lang === langCode) el.style.display = 'block';
+      else el.style.display = 'none';
     });
   });
   localStorage.setItem('wiki_language', langCode);
@@ -115,5 +144,37 @@ function changeLang(langCode) {
 document.addEventListener("DOMContentLoaded", function() {
   const savedLang = localStorage.getItem('wiki_language') || 'ru';
   changeLang(savedLang);
+
+  setTimeout(() => {
+    const intro = document.getElementById('intro-screen');
+    if (intro) intro.remove();
+  }, 3000);
+
+  // ИНИЦИАЛИЗАЦИЯ КАРТЫ ИЗ IBISPAINT
+  var map = L.map('game-map', {
+    crs: L.CRS.Simple,
+    minZoom: -2,
+    maxZoom: 1
+  });
+
+  // Задаем виртуальные границы холста [высота, ширина]
+  var bounds = [[0, 0], [1000, 1000]];
+  // Подставляем твою карту со снайперским именем
+  var gameImage = L.imageOverlay('Screenshot_20261006_120319.jpg', bounds).addTo(map);
+  map.fitBounds(bounds);
+
+  // 🏗️ СВЕТЯЩИЙСЯ МАРКЕР ДЛЯ СТРОИТЕЛЬНОЙ КАТУШКИ
+  // Ставим ровно по центру холста [500, 500] (потом подкрутим куда надо!)
+  var coilMarker = L.marker([500, 500], {
+    icon: L.divIcon({className: 'custom-marker', iconSize: [16, 16]})
+  }).addTo(map);
+
+  // Подсказка на маркере
+  coilMarker.bindPopup("<b>Строительная катушка / Building Coil</b><br>Характеристики: Скорость 60, Прыжок 16.<br><i>Нажми, чтобы открыть статью!</i>");
+
+  // МАГИЯ РЕДИРЕКТА: при тапе по точке перекидывает на coils.html
+  coilMarker.on('click', function() {
+    window.location.href = 'coils.html';
+  });
 });
 </script>
