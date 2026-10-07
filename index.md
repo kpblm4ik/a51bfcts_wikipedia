@@ -8,7 +8,7 @@
   }
   .intro-coil {
     width: 120px; height: 120px;
-    background-image: url('image_vD8mGZ.png') !important; /* Желтая катушка в руке */
+    background-image: url('Screenshot_20261005_180602.jpg') !important; /* Пружинка на заставке */
     background-size: contain; background-repeat: no-repeat; background-position: center;
     animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
   }
@@ -52,9 +52,9 @@
 <div lang="ru">
   <h1>Вики a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
-  <p><img src="image_vD8mGZ.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
   <h2>⚡ <a href="coils.html">Катушки</a></h2>
-  <p><img src="image_tYlIOB.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
   <h2>🪄 <a href="wands.html">Палочки</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Прочие предметы</a></h2>
@@ -64,9 +64,9 @@
 <div lang="en">
   <h1>Wiki a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
-  <p><img src="image_vD8mGZ.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
   <h2>⚡ <a href="coils.html">Coils</a></h2>
-  <p><img src="image_tYlIOB.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
   <h2>🪄 <a href="wands.html">Wands</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Other Items</a></h2>
@@ -76,9 +76,9 @@
 <div lang="es">
   <h1>Wiki a51bfcts</h1>
   <p><em>Area 51 but find coils to survive</em></p>
-  <p><img src="image_vD8mGZ.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180602.jpg" alt=""></p>
   <h2>⚡ <a href="coils.html">Bobinas</a></h2>
-  <p><img src="image_tYlIOB.png" alt=""></p>
+  <p><img src="Screenshot_20261005_180545.jpg" alt=""></p>
   <h2>🪄 <a href="wands.html">Varitas</a></h2>
   <p><img src="Screenshot_20261005_180528.jpg" alt=""></p>
   <h2>📦 <a href="other.html">Otros Objetos</a></h2>
@@ -101,7 +101,7 @@
   <small>Защищено лицензией CC BY-NC-ND 4.0</small>
 </p>
 
-<!-- ЧИСТЫЙ СКРИПТ ПЕРЕВОДА И АВТОУДАЛЕНИЯ ИНТРО -->
+<!-- СКАЧИВАНИЕ И АВТОУДАЛЕНИЕ ИНТРО -->
 <script>
 function changeLang(langCode) {
   const languages = ['ru', 'en', 'es'];
