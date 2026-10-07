@@ -43,7 +43,7 @@
   <div class="items-grid">
     <!-- КАРТОЧКА 1: Катушка призыва (Кликабельная ссылка) -->
     <a href="summoncoil.html" class="item-card">
-      <img src="Screenshot_20261005_180602.jpg" alt="Катушка призыва">
+      <img src="Screenshot_20261006_083912.jpg" alt="Катушка призыва">
       <h3>Катушка призыва</h3>
       <p>🏃 Скорость: 60</p>
       <p>🦘 Прыжок: 16</p>
@@ -67,7 +67,7 @@
   
   <div class="items-grid">
     <a href="summoncoil.html" class="item-card">
-      <img src="Screenshot_20261005_180602.jpg" alt="Summon Coil">
+      <img src="Screenshot_20261006_083912.jpg" alt="Summon Coil">
       <h3>Summon Coil</h3>
       <p>🏃 Speed: 60</p>
       <p>🦘 Jump: 16</p>
@@ -90,7 +90,7 @@
   
   <div class="items-grid">
     <a href="summoncoil.html" class="item-card">
-      <img src="Screenshot_20261005_180602.jpg" alt="Bobina de Invocación">
+      <img src="Screenshot_20261006_083912.jpg" alt="Bobina de Invocación">
       <h3>Bobina de Invocación</h3>
       <p>🏃 Velocidad: 60</p>
       <p>🦘 Salto: 16</p>
