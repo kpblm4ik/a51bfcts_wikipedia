@@ -8,7 +8,7 @@
   }
   .intro-coil {
     width: 120px; height: 120px;
-    background-image: url('Screenshot_20261005_180602.jpg') !important; /* Пружинка на заставке */
+    background-image: url('Screenshot_20261006_120319.jpg') !important; /* Пружинка на заставке */
     background-size: contain; background-repeat: no-repeat; background-position: center;
     animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
   }
