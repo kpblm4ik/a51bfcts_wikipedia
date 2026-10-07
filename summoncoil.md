@@ -13,72 +13,66 @@
   }
   a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
   [lang="en"], [lang="es"] { display: none; }
+
+  /* Сетка для отображения двух скриншотов катушки в один ряд */
+  .photo-row {
+    display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0;
+  }
+  .photo-col {
+    flex: 1 1 calc(50% - 8px); min-width: 140px;
+  }
+  .photo-col img {
+    width: 100%; height: auto; border-radius: 6px; border: 1px solid rgba(160, 102, 255, 0.4);
+  }
 </style>
 
 <!-- ================= РУССКИЙ ================= -->
 <div lang="ru">
   <h1>🏗️ Катушка призыва (Summon Coil)</h1>
-  <p>Полное руководство по секретному артефакту лаборатории Зоны 51.</p>
-  <hr>
-  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Катушка призыва" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
-  <h3>📊 Игровые параметры:</h3>
-  <ul>
-    <li><strong>Скорость бега:</strong> 60 единиц (мощное ускорение персонажа)</li>
-    <li><strong>Высота прыжка:</strong> 16 единиц (позволяет запрыгивать на ящики)</li>
-  </ul>
+  <!-- Две фотографии в ряд по горизонтали -->
+  <div class="photo-row">
+    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Катушка призыва фото 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Катушка призыва фото 2"></div>
+  </div>
 
-  <h3>🔮 Особая способность:</h3>
-  <p>При активации катушки в руке персонаж произносит скрытое заклинание и **призывает случайные блоки**. По заявлению исследователей, эти блоки абсолютно бесполезны для прохождения, но идеально подходят для фана, создания баррикад от монстров или троллинга друзей на сервере!</p>
+  <h3>📋 Описание:</h3>
+  <p>Вызовите случайные и бесполезные блоки с заклинанием.</p>
 
-  <h3>🎵 Звуковое сопровождение (64 kbps):</h3>
-  <p align="center">
-    <audio controls style="width: 100%; max-width: 400px;">
-      <source src="block_magic.mp3" type="audio/mpeg">
-      Ваш браузер не поддерживает аудио.
-    </audio>
-  </p>
+  <h3>🏅 Получение:</h3>
+  <p>Чтобы разблокировать этот предмет, необходимо получить значок <strong>"Комплексная сила" (Complex Power)</strong>.</p>
 </div>
 
 <!-- ================= ENGLISH ================= -->
 <div lang="en">
   <h1>🏗️ Summon Coil</h1>
-  <p>Full guide to the secret artifact of the Area 51 laboratory.</p>
-  <hr>
-  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Summon Coil" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
-  <h3>📊 Item Stats:</h3>
-  <ul>
-    <li><strong>Speed:</strong> 60 units (powerful character boost)</li>
-    <li><strong>Jump Power:</strong> 16 units (allows you to climb on boxes)</li>
-  </ul>
+  <div class="photo-row">
+    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Summon Coil 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Summon Coil 2"></div>
+  </div>
 
-  <h3>🔮 Special Ability:</h3>
-  <p>When activated in hand, the character casts a hidden spell and **summons random blocks**. According to researchers, these blocks are completely useless for finishing the game, but perfect for having fun, trolling friends, or building funny barricades from monsters!</p>
+  <h3>📋 Description:</h3>
+  <p>Summon random and useless blocks with a spell.</p>
 
-  <h3>🎵 Item Audio (64 kbps):</h3>
-  <p align="center">
-    <audio controls style="width: 100%; max-width: 400px;">
-      <source src="block_magic.mp3" type="audio/mpeg">
-    </audio>
-  </p>
+  <h3>🏅 How to get:</h3>
+  <p>To unlock this item, you need to earn the badge <strong>"Complex Power"</strong>.</p>
 </div>
 
 <!-- ================= ESPAÑOL ================= -->
 <div lang="es">
   <h1>🏗️ Bobina de Invocación (Summon Coil)</h1>
-  <p>Guía completa del artefacto secreto del laboratorio de la Área 51.</p>
-  <hr>
-  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Bobina de Invocación" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
-  <h3>📊 Estadísticas:</h3>
-  <ul>
-    <li><strong>Velocidad:</strong> 60 unidades (gran impulso de personaje)</li>
-    <li><strong>Salto:</strong> 16 unidades (permite subir a las cajas)</li>
-  </ul>
+  <div class="photo-row">
+    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Bobina de Invocación 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Bobina de Invocación 2"></div>
+  </div>
 
-  <h3>🔮 Habilidad Especial:</h3>
-  <p>Cuando se activa en la mano, el personaje lanza un hechizo oculto и **invoca bloques aleatorios**. Según los investigadores, estos bloques son completamente inútiles para completar el juego, ¡pero perfectos para divertirse, trollear amigos o construir barricadas contra monstruos!</p>
+  <h3>📋 Descripción:</h3>
+  <p>Invoca bloques aleatorios e inútiles con un hechizo.</p>
+
+  <h3>🏅 Cómo conseguir:</h3>
+  <p>Для того чтобы разблокировать этот предмет, debes obtener el emblema <strong>"Complex Power"</strong>.</p>
 </div>
 
 <br>
