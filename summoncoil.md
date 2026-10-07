@@ -20,7 +20,7 @@
   <h1>🏗️ Катушка призыва (Summon Coil)</h1>
   <p>Полное руководство по секретному артефакту лаборатории Зоны 51.</p>
   <hr>
-  <p align="center"><img src="Screenshot_20261005_180602.jpg" alt="Катушка призыва" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
+  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Катушка призыва" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
   <h3>📊 Игровые параметры:</h3>
   <ul>
@@ -45,7 +45,7 @@
   <h1>🏗️ Summon Coil</h1>
   <p>Full guide to the secret artifact of the Area 51 laboratory.</p>
   <hr>
-  <p align="center"><img src="Screenshot_20261005_180602.jpg" alt="Summon Coil" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
+  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Summon Coil" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
   <h3>📊 Item Stats:</h3>
   <ul>
@@ -69,7 +69,7 @@
   <h1>🏗️ Bobina de Invocación (Summon Coil)</h1>
   <p>Guía completa del artefacto secreto del laboratorio de la Área 51.</p>
   <hr>
-  <p align="center"><img src="Screenshot_20261005_180602.jpg" alt="Bobina de Invocación" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
+  <p align="center"><img src="Screenshot_20261006_083912.jpg" alt="Bobina de Invocación" style="border-radius: 6px; max-width: 100%; height: auto; border: 1px solid #a066ff;"></p>
   
   <h3>📊 Estadísticas:</h3>
   <ul>
