@@ -14,7 +14,6 @@
   a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); }
   [lang="en"], [lang="es"] { display: none; }
 
-  /* Сетка для отображения двух скриншотов катушки в один ряд */
   .photo-row {
     display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0;
   }
@@ -30,14 +29,13 @@
 <div lang="ru">
   <h1>🏗️ Катушка призыва (Summon Coil)</h1>
   
-  <!-- Две фотографии в ряд по горизонтали -->
   <div class="photo-row">
-    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Катушка призыва фото 1"></div>
-    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Катушка призыва фото 2"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083912.jpg" alt="Катушка призыва фото 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt="Катушка призыва фото 2"></div>
   </div>
 
   <h3>📋 Описание:</h3>
-  <p>Вызовите случайные и бесполезные блоки с заклинанием.</p>
+  <p>Вызовите случайные и бесполезные blocks с заклинанием.</p>
 
   <h3>🏅 Получение:</h3>
   <p>Чтобы разблокировать этот предмет, необходимо получить значок <strong>"Комплексная сила" (Complex Power)</strong>.</p>
@@ -48,8 +46,8 @@
   <h1>🏗️ Summon Coil</h1>
   
   <div class="photo-row">
-    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Summon Coil 1"></div>
-    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Summon Coil 2"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083912.jpg" alt="Summon Coil 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt="Summon Coil 2"></div>
   </div>
 
   <h3>📋 Description:</h3>
@@ -64,15 +62,15 @@
   <h1>🏗️ Bobina de Invocación (Summon Coil)</h1>
   
   <div class="photo-row">
-    <div class="photo-col"><img src="Screenshot_20261006_083912.webp" alt="Bobina de Invocación 1"></div>
-    <div class="photo-col"><img src="Screenshot_20261006_083941.webp" alt="Bobina de Invocación 2"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083912.jpg" alt="Bobina de Invocación 1"></div>
+    <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt="Bobina de Invocación 2"></div>
   </div>
 
   <h3>📋 Descripción:</h3>
   <p>Invoca bloques aleatorios e inútiles con un hechizo.</p>
 
   <h3>🏅 Cómo conseguir:</h3>
-  <p>Для того чтобы разблокировать этот предмет, debes obtener el emblema <strong>"Complex Power"</strong>.</p>
+  <p>Debes obtener el emblema <strong>"Complex Power"</strong>.</p>
 </div>
 
 <br>
