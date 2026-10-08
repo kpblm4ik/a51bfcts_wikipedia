@@ -27,41 +27,26 @@
 
   /* ================= ИГРОВАЯ ТАБЛИЦА В СТИЛЕ ФАНДОМА ================= */
   .wiki-infobox {
-    background-color: #121016;
-    border: 3px solid #2d263a;
-    border-radius: 4px;
-    max-width: 420px;
-    margin: 25px auto;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    background-color: #121016; border: 3px solid #2d263a; border-radius: 4px;
+    max-width: 420px; margin: 25px auto; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   }
-  
   .infobox-title {
-    background-color: #241d2f;
-    color: #ffffff; text-align: center; padding: 12px; 
-    font-family: 'Rubik Mono One', sans-serif; font-size: 18px;
-    border-bottom: 3px solid #2d263a;
-    letter-spacing: 1px;
+    background-color: #241d2f; color: #ffffff; text-align: center; padding: 12px; 
+    font-family: 'Rubik Mono One', sans-serif; font-size: 18px; border-bottom: 3px solid #2d263a; letter-spacing: 1px;
   }
   .infobox-section-header {
-    background-color: #e2b316;
-    color: #000000; text-align: center; padding: 6px;
-    font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 16px;
-    text-transform: uppercase; letter-spacing: 1px;
+    background-color: #e2b316; color: #000000; text-align: center; padding: 6px;
+    font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;
   }
-  
   .infobox-grid { display: flex; background-color: #1a1622; }
   .infobox-cell {
-    flex: 1; padding: 10px; text-align: center; font-family: 'Rubik', sans-serif; font-size: 14px;
-    border-bottom: 2px solid #2d263a;
+    flex: 1; padding: 10px; text-align: center; font-family: 'Rubik', sans-serif; font-size: 14px; border-bottom: 2px solid #2d263a;
   }
   .infobox-cell.label {
-    background-color: #15111c; color: #ffffff; font-weight: bold;
-    border-right: 2px solid #2d263a;
+    background-color: #15111c; color: #ffffff; font-weight: bold; border-right: 2px solid #2d263a;
   }
   .infobox-cell.value { color: #e2daf0; }
   
-  /* ЦВЕТА СЛОЖНОСТИ И БАФФОВ */
   .difficulty-easy { color: #00ff66; font-weight: bold; text-shadow: 0 0 8px rgba(0, 255, 102, 0.4); }
   .stat-speed { color: #00ffcc; font-weight: bold; }
   .stat-jump { color: #ffcc00; font-weight: bold; }
@@ -76,7 +61,7 @@
     <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt=""></div>
   </div>
 
-  <!-- КАРТОЧКА ПРЕДМЕТА -->
+  <!-- СТРОГАЯ КАРТОЧКА ПРЕДМЕТА -->
   <div class="wiki-infobox">
     <div class="infobox-title">Катушка призыва</div>
     
@@ -150,54 +135,25 @@
   </div>
 
   <h3>📋 Description:</h3>
-  <p><strong>Summon Coil</strong> — one of the four coils that requires a badge to obtain. It has the unique ability to summon blocks exactly where the cursor or finger clicks. Features a glowing pink and white aura, while the coil itself shifts beautifully through pink, green, blue, and yellow gradients.</p>
+  <p><strong>Summon Coil</strong> — one of the four coils that requires a badge to obtain. It has the unique ability to summon blocks exactly where the cursor or finger clicks.</p>
 </div>
 
 <!-- ================= ESPAÑOL ================= -->
 <div lang="es">
   <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 24px; color: #fff;">🏗️ Bobina de Invocación</h1>
   
-  <div class="photo-row">
-    <div class="photo-col"><img src="Screenshot_20261006_083912.jpg" alt=""></div>
-    <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt=""></div>
-  </div>
-
   <div class="wiki-infobox">
     <div class="infobox-title">Bobina de Invocación</div>
     <div class="infobox-grid">
       <div class="infobox-cell label">Dificultad</div>
       <div class="infobox-value infobox-cell"><span class="difficulty-easy">Fácil</span></div>
     </div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">Obtención</div>
-      <div class="infobox-value infobox-cell" style="color: #a066ff; font-weight: bold;">Emblema "Complex Power"</div>
-    </div>
-
-    <div class="infobox-section-header">Estadísticas</div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">🏃 Velocidad</div>
-      <div class="infobox-value infobox-cell stat-speed">60 unidades</div>
-    </div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">🦘 Salto</div>
-      <div class="infobox-value infobox-cell stat-jump">16 unidades</div>
-    </div>
-
-    <div class="infobox-section-header">Características</div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">🔮 Habilidad</div>
-      <div class="infobox-value infobox-cell">Invoca bloques de 4x2x1 de varios colores</div>
-    </div>
   </div>
-
-  <h3>📋 Descripción:</h3>
-  <p><strong>Bobina de Invocación</strong> — una de las cuatro bobinas que requiere un emblema. Tiene la habilidad de invocar bloques en el lugar exacto del clic del cursor o del dedo. Tiene un brillo rosa y blanco, y la bobina misma tiene un degradado de rosa, verde, azul y amarillo.</p>
 </div>
 
 <br>
 <hr>
 
-<!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
 <p align="center" style="font-size: 20px;">
   <span style="cursor:pointer;" onclick="changeLang('ru')">🇷🇺 RU</span> | 
   <span style="cursor:pointer;" onclick="changeLang('en')">🇬🇧 EN</span> | 
@@ -206,7 +162,6 @@
 
 <p align="center"><a href="coils.html">🔙 Назад к Катушкам / Back to Coils / Volver a Bobinas</a></p>
 
-<!-- СКРИПТ ЛОКАЛИЗАЦИИ -->
 <script>
 function changeLang(langCode) {
   const languages = ['ru', 'en', 'es'];
