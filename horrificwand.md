@@ -53,10 +53,10 @@
   <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 24px; color: #ff3333; text-shadow: 0 0 10px #ff3333;">🩸 Палочка ho_rr&c wand</h1>
   
   <div class="photo-row">
-    <div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand в руках исследователя"></div>
+    <div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand"></div>
   </div>
 
-  <!-- КАРТОЧКА ПРЕДМЕТА ИЗ ФАНДОМА -->
+  <!-- СТРОГАЯ КАРТОЧКА ПРЕДМЕТА -->
   <div class="wiki-infobox">
     <div class="infobox-title">ho_rr&c wand</div>
     
@@ -65,8 +65,8 @@
       <div class="infobox-value infobox-cell"><span class="difficulty-insane">Адски сложно</span></div>
     </div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">🎵 Трек при экипировке</div>
-      <div class="infobox-value infobox-cell" style="font-style: italic; color: #ff9999;">Aekhloria - Darkness Looms</div>
+      <div class="infobox-cell label">🏅 Получение</div>
+      <div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">glitch wand + horrific coil</div>
     </div>
 
     <!-- РАЗДЕЛ ХАРАКТЕРИСТИКИ -->
@@ -88,7 +88,8 @@
   <p><strong>ho_rr&c wand</strong> — одна из самых засекреченных и изнурительных для получения палочек во всей игре. Для обычного игрока получить её практически невозможно, если не обладать избыточным любопытством исследовать дальние окраины карты.</p>
   <blockquote>⚠️ <strong>Секрет получения:</strong> Чтобы скрафтить эту палочку, необходимо отыскать легендарную <strong>Ужасную катушку (Horrific Coil)</strong>, скрытую глубоко в Старой Зоне 51 на невероятных координатах:<br>
   <span style="color: #ffcc00; font-family: monospace; font-size: 16px;"><b>X: -47296.59 | Y: 204.50 | Z: 3272.40</b></span><br>
-  Путь туда представляет собой бесконечный бег по пустому пространству, который занимает колоссально много времени даже с использованием самой быстрой катушки в игре!</blockquote>
+  <br>
+  🏃‍♂️ <strong>Внимание, рекорд исследования:</strong> Путь туда и обратно составляет рекордные <b>26.5 км (~95 000 шпилек/стадсов)</b> непрерывного бега по пустому пространству! Это изнурительно долго даже с использованием самой быстрой катушки в игре, что делает предмет практически недосягаемым для обычных геймеров.</blockquote>
 </div>
 
 <!-- ================= ENGLISH ================= -->
@@ -106,8 +107,8 @@
       <div class="infobox-value infobox-cell"><span class="difficulty-insane">Insane</span></div>
     </div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">🎵 Equipped Music</div>
-      <div class="infobox-value infobox-cell" style="font-style: italic; color: #ff9999;">Aekhloria - Darkness Looms</div>
+      <div class="infobox-cell label">Obtain</div>
+      <div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">glitch wand + horrific coil</div>
     </div>
 
     <div class="infobox-section-header">Stats</div>
@@ -125,9 +126,6 @@
 
   <h3>📋 Description & Guide:</h3>
   <p><strong>ho_rr&c wand</strong> is one of the most hidden and exhausting wands to obtain. It is virtually impossible for an ordinary player to get without an extreme curiosity to explore the outermost edges of the map.</p>
-  <blockquote>⚠️ <strong>How to obtain:</strong> To craft this wand, you must locate the mythical <strong>Horrific Coil</strong>, hidden deep within Old Area 51 at these insane coordinates:<br>
-  <span style="color: #ffcc00; font-family: monospace; font-size: 16px;"><b>X: -47296.59 | Y: 204.50 | Z: 3272.40</b></span><br>
-  The path there requires running endlessly through the void, which takes a massive amount of time even with the fastest coil equipped!</blockquote>
 </div>
 
 <!-- ================= ESPAÑOL ================= -->
@@ -145,31 +143,15 @@
       <div class="infobox-value infobox-cell"><span class="difficulty-insane">Infernal</span></div>
     </div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">🎵 Música</div>
-      <div class="infobox-value infobox-cell" style="font-style: italic; color: #ff9999;">Aekhloria - Darkness Looms</div>
-    </div>
-
-    <div class="infobox-section-header">Estadísticas</div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">⚔️ Habilidad</div>
-      <div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">Salto Infinito</div>
-    </div>
-
-    <div class="infobox-section-header">Características</div>
-    <div class="infobox-grid">
-      <div class="infobox-cell label">👁️ Efecto Visual</div>
-      <div class="infobox-value infobox-cell">Hoja pixelada masiva con una densa aura negra y sangrienta</div>
+      <div class="infobox-cell label">Obtención</div>
+      <div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">glitch wand + horrific coil</div>
     </div>
   </div>
-
-  <h3>📋 Descripción:</h3>
-  <p><strong>ho_rr&c wand</strong> es una de las varitas más ocultas y difíciles de obtener. Es prácticamente imposible de conseguir para un jugador común sin una curiosidad extrema por explorar los límites del mapa.</p>
 </div>
 
 <br>
 <hr>
 
-<!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
 <p align="center" style="font-size: 20px;">
   <span style="cursor:pointer;" onclick="changeLang('ru')">🇷🇺 RU</span> | 
   <span style="cursor:pointer;" onclick="changeLang('en')">🇬🇧 EN</span> | 
@@ -178,7 +160,6 @@
 
 <p align="center"><a href="wands.html">🔙 Назад к Палочкам / Back to Wands / Volver a Varitas</a></p>
 
-<!-- СКРИПТ ЛОКАЛИЗАЦИИ -->
 <script>
 function changeLang(langCode) {
   const languages = ['ru', 'en', 'es'];
