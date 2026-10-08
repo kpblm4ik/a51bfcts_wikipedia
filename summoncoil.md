@@ -36,7 +36,6 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   }
   
-  /* ТОТ САМЫЙ КРУТОЙ ШРИФТ В ЗАГОЛОВКАХ ПЛАШЕК */
   .infobox-title {
     background-color: #241d2f;
     color: #ffffff; text-align: center; padding: 12px; 
@@ -45,13 +44,12 @@
     letter-spacing: 1px;
   }
   .infobox-section-header {
-    background-color: #e2b316; /* Желтая плашка как на Фандоме */
+    background-color: #e2b316;
     color: #000000; text-align: center; padding: 6px;
     font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 16px;
     text-transform: uppercase; letter-spacing: 1px;
   }
   
-  /* СЕТКА ДЛЯ ДВУХСТОЛБЦОВЫХ СТРОК */
   .infobox-grid { display: flex; background-color: #1a1622; }
   .infobox-cell {
     flex: 1; padding: 10px; text-align: center; font-family: 'Rubik', sans-serif; font-size: 14px;
@@ -63,8 +61,8 @@
   }
   .infobox-cell.value { color: #e2daf0; }
   
-  /* ЦВЕТА РЕДКОСТЕЙ И БАФФОВ */
-  .rarity-mythical { color: #ff3366; font-weight: bold; text-shadow: 0 0 8px rgba(255, 51, 102, 0.4); }
+  /* ЦВЕТА СЛОЖНОСТИ И БАФФОВ */
+  .difficulty-easy { color: #00ff66; font-weight: bold; text-shadow: 0 0 8px rgba(0, 255, 102, 0.4); }
   .stat-speed { color: #00ffcc; font-weight: bold; }
   .stat-jump { color: #ffcc00; font-weight: bold; }
 </style>
@@ -78,16 +76,16 @@
     <div class="photo-col"><img src="Screenshot_20261006_083941.jpg" alt=""></div>
   </div>
 
-  <!-- КАРТОЧКА ПРЕДМЕТА ИЗ ФАНДОМА -->
+  <!-- КАРТОЧКА ПРЕДМЕТА -->
   <div class="wiki-infobox">
     <div class="infobox-title">Катушка призыва</div>
     
     <div class="infobox-grid">
-      <div class="infobox-cell label">Редкость</div>
-      <div class="infobox-value infobox-cell"><span class="rarity-mythical">Мифический</span></div>
+      <div class="infobox-cell label">Сложность получения</div>
+      <div class="infobox-value infobox-cell"><span class="difficulty-easy">Легко</span></div>
     </div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">Получение</div>
+      <div class="infobox-cell label">🏅 Получение</div>
       <div class="infobox-value infobox-cell" style="color: #a066ff; font-weight: bold;">Значок "Complex Power"</div>
     </div>
 
@@ -126,8 +124,8 @@
   <div class="wiki-infobox">
     <div class="infobox-title">Summon Coil</div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">Rarity</div>
-      <div class="infobox-value infobox-cell"><span class="rarity-mythical">Mythical</span></div>
+      <div class="infobox-cell label">Difficulty</div>
+      <div class="infobox-value infobox-cell"><span class="difficulty-easy">Easy</span></div>
     </div>
     <div class="infobox-grid">
       <div class="infobox-cell label">Obtain</div>
@@ -167,8 +165,8 @@
   <div class="wiki-infobox">
     <div class="infobox-title">Bobina de Invocación</div>
     <div class="infobox-grid">
-      <div class="infobox-cell label">Rareza</div>
-      <div class="infobox-value infobox-cell"><span class="rarity-mythical">Mítico</span></div>
+      <div class="infobox-cell label">Dificultad</div>
+      <div class="infobox-value infobox-cell"><span class="difficulty-easy">Fácil</span></div>
     </div>
     <div class="infobox-grid">
       <div class="infobox-cell label">Obtención</div>
