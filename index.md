@@ -1,5 +1,5 @@
 ---
-layout: layout.pug
+layout: layout
 ---
 
 # 🛸 Международный архив Зоны 51
