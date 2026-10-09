@@ -7,3 +7,5 @@ title = "Вики a51bfcts"
 [output.html]
 default-theme = "coal"
 preferred-dark-theme = "coal"
+
+additional-css = ["custom.css"]
