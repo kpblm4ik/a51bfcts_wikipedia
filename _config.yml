@@ -1,0 +1,2 @@
+# Отключаем дефолтные шаблоны Cayman, разрешая работать нашему default.html
+remote_theme: "pages-themes/minimal@v0.2.0"
