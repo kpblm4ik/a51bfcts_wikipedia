@@ -1,3 +1,0 @@
-# Отключаем встроенные темы, чтобы Гитхаб читал только папку _layouts
-theme: null
-remote_theme: null
