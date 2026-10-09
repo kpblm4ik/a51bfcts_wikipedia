@@ -8,28 +8,32 @@ html, body {
   margin: 0 !important;
   padding: 0 !important;
   font-family: sans-serif;
+  min-height: 100%;
 }
 
-/* Наш собственный элитный контейнер по центру экрана вместо темы Cayman */
+/* Наш собственный элитный контейнер по центру экрана с фиксированным фоном */
 .main-wrapper {
-  position: relative; 
-  background-color: #0b090f !important;
+  background-image: url('Screenshot_20261006_110338.jpg') !important;
+  background-size: cover !important; 
+  background-position: center top !important;
+  background-attachment: fixed !important; /* ТРЮК: фон намертво зафиксирован, текст крутится сверху */
+  background-color: rgba(11, 9, 15, 0.88) !important; /* Мягкое темное наложение поверх спиралей */
+  background-blend-mode: overlay; /* Смешивание для сочного контраста */
+  
   box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
   border-radius: 8px; 
-  max-width: 640px; /* Идеальная игровая ширина контента */
-  margin: 20px auto !important;
+  max-width: 600px; /* Идеальная игровая ширина для телефонов */
+  margin: 15px auto !important;
   padding: 20px !important; 
-  z-index: 1; 
-  overflow: hidden;
   box-sizing: border-box;
 }
 
-/* Огромная фоновая обложка со спиралями за текстом */
-.main-wrapper::before {
-  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background-image: url('Screenshot_20261006_110338.jpg') !important;
-  background-size: cover !important; background-position: center top !important;
-  filter: brightness(0.24) contrast(1.4) saturate(1.3) !important; z-index: -1; opacity: 0.9;
+/* Делаем картинки адаптивными, чтобы они не растягивали экран */
+.main-wrapper img, img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 6px;
+  margin: 10px 0;
 }
 
 a { 
@@ -44,6 +48,7 @@ a {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background-color: #050407; z-index: 9999;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
+  animation: fadeOut 0.5s ease-in-out 2.5s forwards;
 }
 .intro-coil {
   width: 120px; height: 120px;
@@ -58,6 +63,10 @@ a {
 @keyframes spin {
   0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
   100% { transform: rotate(360deg); scale: 1; opacity: 1; }
+}
+@keyframes fadeOut {
+  0% { opacity: 1; pointer-events: all; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 
 /* ================= 2. ДИЗАЙН ДЛЯ РАЗДЕЛОВ И КАРТОЧЕК (СЕТКА 2 В РЯД) ================= */
