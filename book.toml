@@ -1,0 +1,9 @@
+[book]
+authors = ["Kpblm4ik", "boonie144"]
+language = "ru"
+src = "."
+title = "Вики a51bfcts"
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"
