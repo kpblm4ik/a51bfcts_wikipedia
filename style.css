@@ -52,6 +52,24 @@ a {
 .item-card h3 { margin: 5px 0; color: #fff; font-size: 16px; }
 .item-card p { margin: 2px 0; font-size: 13px; color: #bcaada; }
 
+/* ================= УБИРАЕМ СИСТЕМНЫЙ МУСОР ТЕМЫ CAYMAN ================= */
+
+/* Полностью скрываем бирюзовую шапку сверху */
+.page-header {
+  display: none !important;
+}
+
+/* Полностью скрываем уродливый системный текст в самом низу страницы */
+.site-footer {
+  display: none !important;
+}
+
+/* Фикс для мобильных: убираем лишний отступ сверху, который остался от шапки */
+.main-content {
+  padding-top: 20px !important;
+}
+
+
 /* ================= 3. ДИЗАЙН ТАБЛИЦ ПО КОНКРЕТНЫМ ПРЕДМЕТАМ (ФАНДОМ СТИЛЬ) ================= */
 .wiki-infobox {
   background-color: #121016; border: 3px solid #2d263a; border-radius: 4px;
