@@ -121,16 +121,5 @@ function changeLang(langCode) {
       else el.style.display = 'none';
     });
   });
-  localStorage.setItem('wiki_language', langCode);
 }
-
-document.addEventListener("DOMContentLoaded", function() {
-  const savedLang = localStorage.getItem('wiki_language') || 'ru';
-  changeLang(savedLang);
-
-  setTimeout(() => {
-    const intro = document.getElementById('intro-screen');
-    if (intro) intro.remove();
-  }, 3000);
-});
 </script>
