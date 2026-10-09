@@ -5,27 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{ page.title | default: "Вики a51bfcts" }}</title>
   
-  <!-- ПОДКЛЮЧАЕМ ТОПОВЫЕ ИГРОВЫЕ ШРИФТЫ -->
   <link rel="preconnect" href="https://googleapis.com">
   <link rel="preconnect" href="https://gstatic.com" crossorigin>
   <link href="https://googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@900&display=swap" rel="stylesheet">
 
   <style>
-    /* ================= 🪐 НАШ ФИРМЕННЫЙ НЕОНОВЫЙ ДИЗАЙН ================= */
+    /* Намертво выжигаем любые остатки дефолтных стилей Гитхаба */
+    header, footer, .page-header, .site-footer { display: none !important; height: 0 !important; padding: 0 !important; margin: 0 !important; }
+
     html, body { 
       background-color: #050407 !important; color: #e2daf0 !important; 
       margin: 0 !important; padding: 0 !important; font-family: sans-serif;
+      min-height: 100%;
     }
     
-    /* Компактный игровой блок для контента Obsidian */
+    /* Наш компактный неоновый блок, который идеально встанет на любом телефоне */
     .wiki-content-box {
       position: relative; background-color: #0b090f !important;
       box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
       border-radius: 8px; padding: 20px !important; z-index: 1; overflow: hidden;
-      margin: 20px auto !important; max-width: 600px !important; box-sizing: border-box;
+      margin: 20px auto !important; max-width: 480px !important; box-sizing: border-box;
     }
     
-    /* Фоновые приближенные спирали */
+    /* Приближенный сочный логотип со спиралями намертво на заднем плане */
     .wiki-content-box::before {
       content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image: url('Screenshot_20261006_110338.jpg') !important;
@@ -36,16 +38,6 @@
     a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); text-decoration: none; }
     img { max-width: 100% !important; height: auto !important; border-radius: 6px; display: block; margin: 10px auto; }
     [lang="en"], [lang="es"] { display: none; }
-
-    /* 🛠️ ПЕРЕКРАШИВАЕМ БИРЮЗОВУЮ ШАПКУ И ПОДВАЛ В ЦВЕТА ИГРЫ */
-    .page-header {
-      background-image: none !important; background-color: #050407 !important; 
-      padding: 1.5rem 1rem !important; text-align: center !important; margin: 0 !important;
-    }
-    .project-name { font-family: 'Rubik Mono One', sans-serif; font-size: 2rem !important; color: #fff !important; text-shadow: 0 0 15px #a066ff !important; }
-    .project-tagline { color: #bcaada !important; font-size: 1rem !important; }
-    .site-footer, .btn { display: none !important; }
-    .main-content { padding: 0 !important; max-width: 100% !important; background: none !important; }
 
     /* ДИЗАЙН СЕТКИ ДЛЯ КАТАЛОГОВ (2 В РЯД) */
     .items-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
@@ -60,7 +52,7 @@
     .item-card h3 { margin: 5px 0; color: #fff; font-size: 16px; }
     .item-card p { margin: 2px 0; font-size: 13px; color: #bcaada; }
 
-    /* ДИЗАЙН ИГРОВЫХ ТАБЛИЦ В СТИЛЕ ФАНДОМА */
+    /* ДИЗАЙН ИГРОВЫХ ТАБЛИЦ ФАНДОМА */
     .wiki-infobox {
       background-color: #121016; border: 3px solid #2d263a; border-radius: 4px;
       max-width: 420px; margin: 25px auto; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
@@ -90,12 +82,12 @@
 </head>
 <body>
 
-  <!-- НАШЕ НОВОЕ БЕЗОПАСНОЕ ОКНО ДЛЯ МАРКДАУНА -->
+  <!-- КРИСТАЛЬНО ЧИСТЫЙ ВЫВОД ВАШЕГО МАРКДАУНА -->
   <div class="wiki-content-box">
     {{ content }}
   </div>
 
-  <!-- КНОПКИ ПЕРЕВОДА -->
+  <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ СНИЗУ -->
   <p align="center" style="font-size: 18px; margin-top: 30px; font-family: sans-serif;">
     <span style="cursor:pointer;" onclick="changeLang('ru')">🇷🇺 RU</span> | 
     <span style="cursor:pointer;" onclick="changeLang('en')">🇬🇧 EN</span> | 
