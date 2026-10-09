@@ -1,6 +1,3 @@
-# Включаем официальную пустую тему-заглушку Гитхаба
-theme: jekyll-theme-noop
-
-# Фиксируем правильную генерацию Markdown-страниц
-markdown: kramdown
-encoding: "utf-8"
+# Отключаем встроенные темы, чтобы Гитхаб читал только папку _layouts
+theme: null
+remote_theme: null
