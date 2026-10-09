@@ -1,0 +1,16 @@
+doctype html
+html(lang="ru")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title Вики a51bfcts
+    style.
+      /* Вставляем ваш фирменный хоррор-неоновый дизайн */
+      html, body { background-color: #050407; color: #e2daf0; font-family: sans-serif; }
+      h1, h2, h3 { color: #ffffff; text-shadow: 0 0 12px #a066ff, 0 0 4px rgba(138, 43, 226, 0.6); }
+      a { color: #a066ff; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); text-decoration: none; }
+      blockquote { background: rgba(138, 43, 226, 0.1); border-left: 4px solid #a066ff; padding: 12px; }
+  body
+    main
+      //- Сюда Eleventy автоматически вставит текст из вашего index.md
+      | !{content}
