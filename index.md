@@ -29,4 +29,3 @@ layout: layout.pug
 * ⚡ **[Sector: Bobinas](coils.html)** — artículos de velocidad y salto.
 * 🪄 **[Armería: Varitas](wands.html)** — armas secretas y artesanías.
 * 📦 **[Almacén: Otros Objetos](other.html)** — recursos de supervivencia.
-* 
