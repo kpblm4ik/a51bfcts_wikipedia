@@ -1,7 +1,26 @@
----
-layout: default
-title: Главная — Вики a51bfcts
----
+<style>
+/* Перебиваем стандартные переменные mdBook */
+:root, .theme-coal, .page, body, html {
+    --bg: #050407 !important;
+    --fg: #e2daf0 !important;
+    --sidebar-bg: #0b090f !important;
+    --links: #a066ff !important;
+    background-color: #050407 !important;
+    color: #e2daf0 !important;
+}
+
+/* Наш фирменный неоновый заголовок */
+h1, h2, h3 {
+    color: #ffffff !important;
+    text-shadow: 0 0 12px #a066ff, 0 0 4px rgba(138, 43, 226, 0.6) !important;
+}
+
+/* Фиолетовые ссылки */
+a {
+    color: #a066ff !important;
+    text-shadow: 0 0 5px rgba(160, 102, 255, 0.3) !important;
+}
+</style>
 
 # 🛸 Международный архив Зоны 51
 *Area 51 but find coils to survive — Энциклопедия предметов и гайдов*
