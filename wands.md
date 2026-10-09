@@ -22,9 +22,9 @@
     flex: 1 1 calc(50% - 8px); min-width: 140px;
     background-color: rgba(20, 16, 28, 0.7);
     border: 1px solid rgba(160, 102, 255, 0.3); border-radius: 6px;
-    padding: 10px; box-sizing: border-box;
-    display: flex; flex-direction: column; align-items: center; text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;
+    padding: 10px; box-sizing: border-box; text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center;
   }
   .item-card:hover {
     transform: scale(1.03);
@@ -32,87 +32,86 @@
     border-color: #a066ff;
   }
   .item-card img { width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px; }
-  .item-card h3 { margin: 5px 0; color: #fff; font-size: 16px; }
+  .item-card h3 { margin: 5px 0; font-size: 16px; color: #fff; }
   .item-card p { margin: 2px 0; font-size: 13px; color: #bcaada; }
+
+  /* ЖЕЛЕЗНОЕ СТЕРТИЕ БИРЮЗОВОЙ ПЛАШКИ КАЙМАНА ДЛЯ ЭТОЙ СТРАНИЦЫ */
+  .page-header, .site-footer { display: none !important; }
+  .main-content { padding: 0 !important; }
 </style>
 
-<!-- ================= РУССКИЙ ЯЗЫК ================= -->
-<div lang="ru">
-  <h1>🪄 Раздел: Палочки (Wands)</h1>
-  <p>Добро пожаловать в архивы магического оружия! Нажмите на карточку палочки, чтобы открыть секретное досье и координаты крафта.</p>
+<div class="main-wrapper">
   
-  <div class="items-grid">
-    <!-- КАРТОЧКА 1: Ужасная палочка (Кликабельная кнопка) -->
-    <a href="horrificwand.html" class="item-card">
-      <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
-      <h3 style="color: #ff3333;">ho_rr&c wand</h3>
-      <p>💀 Сложность: Адская</p>
-      <p style="font-size:11px; color:#ff3333; margin-top:5px;">🩸 Открыть секретный гайд...</p>
-    </a>
+  <!-- ================= РУССКИЙ ЯЗЫК ================= -->
+  <div lang="ru">
+    <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 22px; text-shadow: 0 0 10px #a066ff; text-align: center;">🪄 Раздел: Палочки (Wands)</h1>
+    <p style="text-align: center;">Здесь собраны все магические палочки. Выберите нужную для изучения свойств.</p>
+    
+    <div class="items-grid">
+      <!-- КАРТОЧКА 1: Ужасная палочка (Кликабельная кнопка) -->
+      <a href="horrificwand.html" class="item-card">
+        <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
+        <h3 style="color: #ff3333;">ho_rr&c wand</h3>
+        <p>💀 Сложность: Адская</p>
+        <p style="font-size:11px; color:#ff3333; margin-top:5px;">🩸 Секретное досье...</p>
+      </a>
 
-    <!-- КАРТОЧКА 2: Глитч палочка (Пока текст) -->
-    <div class="item-card">
-      <img src="image_LyAAv1.png" alt="glitch wand">
-      <h3>glitch wand</h3>
-      <p>👾 Сложность: ??</p>
-      <p style="font-size:11px; color:#a066ff; margin-top:5px;">🔍 Подробнее в будущем...</p>
+      <!-- КАРТОЧКА 2: Обычная палочка -->
+      <div class="item-card">
+        <img src="Screenshot_20261005_180528.jpg" alt="Wand">
+        <h3>Обычная палочка</h3>
+        <p>🔮 Урон: ??</p>
+        <p>⚡ Перезарядка: ??</p>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ================= ENGLISH ================= -->
-<div lang="en">
-  <h1>🪄 Section: Wands</h1>
-  <p>Welcome to the magic weapons archive! Click on a wand card to open the secret dossier and craft coordinates.</p>
-  
-  <div class="items-grid">
-    <a href="horrificwand.html" class="item-card">
-      <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
-      <h3 style="color: #ff3333;">ho_rr&c wand</h3>
-      <p>💀 Difficulty: Insane</p>
-      <p style="font-size:11px; color:#ff3333; margin-top:5px;">🩸 Open guide...</p>
-    </a>
-
-    <div class="item-card">
-      <img src="image_LyAAv1.png" alt="glitch wand">
-      <h3>glitch wand</h3>
-      <p>👾 Difficulty: ??</p>
+  <!-- ================= ENGLISH ================= -->
+  <div lang="en">
+    <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 22px; text-align: center;">🪄 Section: Wands</h1>
+    <p style="text-align: center;">All magic wands are collected here. Click to see details.</p>
+    
+    <div class="items-grid">
+      <a href="horrificwand.html" class="item-card">
+        <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
+        <h3 style="color: #ff3333;">ho_rr&c wand</h3>
+        <p>💀 Difficulty: Insane</p>
+      </a>
+      <div class="item-card">
+        <img src="Screenshot_20261005_180528.jpg" alt="Wand">
+        <h3>Regular Wand</h3>
+        <p>🔮 Damage: ??</p>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ================= ESPAÑOL ================= -->
-<div lang="es">
-  <h1>🪄 Sección: Varitas</h1>
-  <p>¡Bienvenido al archivo de armas mágicas! Haz clic en una tarjeta para abrir el expediente secreto.</p>
-  
-  <div class="items-grid">
-    <a href="horrificwand.html" class="item-card">
-      <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
-      <h3 style="color: #ff3333;">ho_rr&c wand</h3>
-      <p>💀 Dificultad: Infernal</p>
-      <p style="font-size:11px; color:#ff3333; margin-top:5px;">🩸 Ver guía...</p>
-    </a>
-
-    <div class="item-card">
-      <img src="image_LyAAv1.png" alt="glitch wand">
-      <h3>glitch wand</h3>
-      <p>👾 Dificultad: ??</p>
+  <!-- ================= ESPAÑOL ================= -->
+  <div lang="es">
+    <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 22px; text-align: center;">🪄 Sección: Varitas</h1>
+    
+    <div class="items-grid">
+      <a href="horrificwand.html" class="item-card">
+        <img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand">
+        <h3 style="color: #ff3333;">ho_rr&c wand</h3>
+      </a>
+      <div class="item-card">
+        <img src="Screenshot_20261005_180528.jpg" alt="Wand">
+        <h3>Varita Común</h3>
+      </div>
     </div>
   </div>
+
+  <br>
+  <hr>
+  
+  <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
+  <p align="center" style="font-size: 18px;">
+    <span style="cursor:pointer;" onclick="changeLang('ru')">🇷🇺 RU</span> | 
+    <span style="cursor:pointer;" onclick="changeLang('en')">🇬🇧 EN</span> | 
+    <span style="cursor:pointer;" onclick="changeLang('es')">🇪🇸 ES</span>
+  </p>
+  <p align="center"><a href="index.html">🔙 На Главную / Back to Main</a></p>
 </div>
-
-<br>
-<hr>
-
-<!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
-<p align="center" style="font-size: 20px;">
-  <span style="cursor:pointer;" onclick="changeLang('ru')">🇷🇺 RU</span> | 
-  <span style="cursor:pointer;" onclick="changeLang('en')">🇬🇧 EN</span> | 
-  <span style="cursor:pointer;" onclick="changeLang('es')">🇪🇸 ES</span>
-</p>
-
-<p align="center"><a href="index.html">🔙 На Главную / Back to Main / Volver al Inicio</a></p>
 
 <script>
 function changeLang(langCode) {
@@ -120,8 +119,8 @@ function changeLang(langCode) {
   languages.forEach(lang => {
     const elements = document.querySelectorAll(`[lang="${lang}"]`);
     elements.forEach(el => {
-      if (lang === langCode) el.style.display = 'block';
-      else el.style.display = 'none';
+      if (lang === langCode) el.style.setProperty('display', 'block', 'important');
+      else el.style.setProperty('display', 'none', 'important');
     });
   });
   localStorage.setItem('wiki_language', langCode);
