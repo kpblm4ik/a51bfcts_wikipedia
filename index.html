@@ -4,8 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Вики a51bfcts</title>
-  <!-- Напрямую подключаем наш единый файл стилей -->
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* ================= ИСПРАВЛЕННАЯ CSS АНИМАЦИЯ ИСПАРЕНИЯ ================= */
+    #intro-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: #050407; z-index: 9999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      /* Анимация начнется через 2.5 секунды, длится 0.5 секунды и фиксирует финальный кадр */
+      animation: fadeOut 0.5s ease-in-out 2.5s forwards;
+    }
+    .intro-coil {
+      width: 120px; height: 120px;
+      background-image: url('Screenshot_20261005_180602.jpg') !important;
+      background-size: contain; background-repeat: no-repeat; background-position: center;
+      animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+    }
+    .intro-text {
+      margin-top: 20px; font-family: monospace; font-size: 18px; color: #a066ff;
+      text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); letter-spacing: 2px; text-align: center;
+    }
+    
+    /* КЛЮЧЕВЫЕ КАДРЫ ВРАЩЕНИЯ И ИСЧЕЗНОВЕНИЯ */
+    @keyframes spin {
+      0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
+      100% { transform: rotate(360deg); scale: 1; opacity: 1; }
+    }
+    @keyframes fadeOut {
+      0% { opacity: 1; visible: background; }
+      100% { opacity: 0; visibility: hidden; pointer-events: none; }
+    }
+  </style>
 </head>
 <body>
 
@@ -73,7 +102,7 @@
     
   </div>
 
-  <!-- СКРИПТ ПЕРЕВОДА И АВТОУДАЛЕНИЯ ИНТРО -->
+  <!-- СКРИПТ ПЕРЕВОДА И ФИЗИЧЕСКОГО УДАЛЕНИЯ ЗАСТАВКИ -->
   <script>
   function changeLang(langCode) {
     const languages = ['ru', 'en', 'es'];
@@ -91,6 +120,7 @@
     const savedLang = localStorage.getItem('wiki_language') || 'ru';
     changeLang(savedLang);
 
+    // Ровно через 3 секунды полностью стираем черный экран из DOM-дерева браузера
     setTimeout(() => {
       const intro = document.getElementById('intro-screen');
       if (intro) intro.remove();
