@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "coal";
             const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex-f9348e89.js";
+            window.path_to_searchindex_js = "searchindex-5b8a85cf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-61a8a92a.js"></script>
@@ -175,9 +175,29 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <hr>
-<h2 id="layout-default-title-главная--вики-a51bfcts"><a class="header" href="#layout-default-title-главная--вики-a51bfcts">layout: default
-title: Главная — Вики a51bfcts</a></h2>
+                        <style>
+/* Перебиваем стандартные переменные mdBook */
+:root, .theme-coal, .page, body, html {
+    --bg: #050407 !important;
+    --fg: #e2daf0 !important;
+    --sidebar-bg: #0b090f !important;
+    --links: #a066ff !important;
+    background-color: #050407 !important;
+    color: #e2daf0 !important;
+}
+
+/* Наш фирменный неоновый заголовок */
+h1, h2, h3 {
+    color: #ffffff !important;
+    text-shadow: 0 0 12px #a066ff, 0 0 4px rgba(138, 43, 226, 0.6) !important;
+}
+
+/* Фиолетовые ссылки */
+a {
+    color: #a066ff !important;
+    text-shadow: 0 0 5px rgba(160, 102, 255, 0.3) !important;
+}
+</style>
 <h1 id="-международный-архив-зоны-51"><a class="header" href="#-международный-архив-зоны-51">🛸 Международный архив Зоны 51</a></h1>
 <p><em>Area 51 but find coils to survive — Энциклопедия предметов и гайдов</em></p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="Screenshot_20261005_180602.jpg" alt="Главная заставка"><span class="img-wrapper"><img src="Screenshot_20261005_180602.jpg" alt="Главная заставка"></span></label></p>
