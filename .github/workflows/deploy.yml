@@ -1,0 +1,29 @@
+name: Deploy Pug and Markdown
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Установка сборщика
+        run: npm install @11ty/eleventy jstransformer-pug --save-dev
+
+      - name: Сборка сайта
+        run: npx @11ty/eleventy --output=public
+
+      - name: Публикация
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
