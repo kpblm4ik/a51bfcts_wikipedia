@@ -1,6 +1,33 @@
 /* ПОДКЛЮЧАЕМ ТОПОВЫЙ ИГРОВОЙ ШРИФТ ИЗ GOOGLE FONTS */
 @import url('https://googleapis.com');
 
+/* ================= 🛑 УЛЬТИМАТИВНОЕ УНИЧТОЖЕНИЕ ШАПКИ И ПОДВАЛА CAYMAN ================= */
+header, .page-header, .site-header, [role="banner"], .btn {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+footer, .site-footer, [role="contentinfo"] {
+  display: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Убираем гигантские дефолтные отступы темы Cayman, расширяя контент */
+.main-content, section, .wrapper {
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+}
+
+/* ================= 1. БАЗОВЫЙ ДИЗАЙН И ФОН ДЛЯ ВСЕХ СТРАНИЦ ================= */
 html, body { 
   background-color: #050407 !important; 
   color: #e2daf0 !important; 
@@ -11,22 +38,23 @@ html, body {
 }
 
 /* Наш собственный элитный контейнер по центру экрана с зафиксированным фоном */
-.main-wrapper {
+.main-wrapper, .container-lg, main, .wrapper {
   background-image: url('Screenshot_20261006_110338.jpg') !important;
   background-size: cover !important; 
   background-position: center top !important;
-  background-attachment: fixed !important;
-  background-color: rgba(11, 9, 15, 0.88) !important;
-  background-blend-mode: overlay;
+  background-attachment: fixed !important; /* ТРЮК: фон намертво зафиксирован, текст крутится сверху */
+  background-color: rgba(11, 9, 15, 0.88) !important; /* Мягкое темное наложение поверх спиралей */
+  background-blend-mode: overlay; /* Смешивание для сочного контраста */
   
   box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
   border-radius: 8px; 
-  max-width: 480px; /* Идеальная компактная ширина под мобильные телефоны */
+  max-width: 600px; /* Идеальная игровая ширина для телефонов */
   margin: 15px auto !important;
   padding: 20px !important; 
   box-sizing: border-box;
 }
 
+/* Делаем картинки адаптивными, чтобы они не ломали масштаб */
 img {
   max-width: 100% !important;
   height: auto !important;
@@ -42,33 +70,7 @@ a {
 }
 [lang="en"], [lang="es"] { display: none; }
 
-/* ================= СТИЛЬ ЗАСТАВКИ (INTRO) ================= */
-#intro-screen {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background-color: #050407; z-index: 9999;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  animation: fadeOut 0.5s ease-in-out 2.5s forwards;
-}
-.intro-coil {
-  width: 120px; height: 120px;
-  background-image: url('Screenshot_20261005_180602.jpg') !important;
-  background-size: contain; background-repeat: no-repeat; background-position: center;
-  animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
-}
-.intro-text {
-  margin-top: 20px; font-family: monospace; font-size: 16px; color: #a066ff;
-  text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); letter-spacing: 2px; text-align: center;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
-  100% { transform: rotate(360deg); scale: 1; opacity: 1; }
-}
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  100% { opacity: 0; visibility: hidden; pointer-events: none; }
-}
-
-/* ================= ДИЗАЙН ДЛЯ РАЗДЕЛОВ И КАРТОЧЕК ================= */
+/* ================= 2. ДИЗАЙН ДЛЯ РАЗДЕЛОВ И КАРТОЧЕК (СЕТКА 2 В РЯД) ================= */
 .items-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
 .item-card {
   flex: 1 1 calc(50% - 8px); min-width: 140px;
@@ -85,7 +87,7 @@ a {
 .item-card h3 { margin: 5px 0; color: #fff; font-size: 16px; }
 .item-card p { margin: 2px 0; font-size: 13px; color: #bcaada; }
 
-/* ================= ДИЗАЙН ТАБЛИЦ ФАНДОМА ================= */
+/* ================= 3. ДИЗАЙН ТАБЛИЦ ПО КОНКРЕТНЫМ ПРЕДМЕТАМ (ФАНДОМ СТИЛЬ) ================= */
 .wiki-infobox {
   background-color: #121016; border: 3px solid #2d263a; border-radius: 4px;
   max-width: 420px; margin: 25px auto; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
