@@ -1,0 +1,856 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="coal sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Вики a51bfcts</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="custom-053f57d5.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "coal";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-f9348e89.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-61a8a92a.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Вики a51bfcts</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="-главная-страница"><a href="#-главная-страница" class="header">🛸 Главная страница</a></h1>
+<hr>
+<h2 id="layout-default-title-главная--вики-a51bfcts"><a class="header" href="#layout-default-title-главная--вики-a51bfcts">layout: default
+title: Главная — Вики a51bfcts</a></h2>
+<h1 id="-международный-архив-зоны-51"><a class="header" href="#-международный-архив-зоны-51">🛸 Международный архив Зоны 51</a></h1>
+<p><em>Area 51 but find coils to survive — Энциклопедия предметов и гайдов</em></p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="Screenshot_20261005_180602.jpg" alt="Главная заставка"><span class="img-wrapper"><img src="Screenshot_20261005_180602.jpg" alt="Главная заставка"></span></label></p>
+<p>Добро пожаловать в единую базу данных! Выберите интересующий вас сектор исследований ниже для получения точных координат, баффов и лога находок.</p>
+<hr>
+<h2 id="-навигация-ru"><a class="header" href="#-навигация-ru">🇷🇺 Навигация (RU)</a></h2>
+<ul>
+<li>⚡ <strong><a href="#-раздел-катушки">Сектор: Катушки</a></strong> — артефакты скорости и прыжков.</li>
+<li>🪄 <strong><a href="#-раздел-палочки">Оружейная: Палочки</a></strong> — секретное оружие и крафты.</li>
+<li>📦 <strong><a href="other.html">Склад: Прочие предметы</a></strong> — ресурсы для выживания.</li>
+</ul>
+<hr>
+<h2 id="-navigation-en"><a class="header" href="#-navigation-en">🇬🇧 Navigation (EN)</a></h2>
+<ul>
+<li>⚡ <strong><a href="#-раздел-катушки">Sector: Coils</a></strong> — speed and jump items.</li>
+<li>🪄 <strong><a href="#-раздел-палочки">Armory: Wands</a></strong> — secret weapons and crafts.</li>
+<li>📦 <strong><a href="other.html">Storage: Other Items</a></strong> — survival resources.</li>
+</ul>
+<hr>
+<h2 id="-navegación-es"><a class="header" href="#-navegación-es">🇪🇸 Navegación (ES)</a></h2>
+<ul>
+<li>⚡ <strong><a href="#-раздел-катушки">Sector: Bobinas</a></strong> — artículos de velocidad y salto.</li>
+<li>🪄 <strong><a href="#-раздел-палочки">Armería: Varitas</a></strong> — armas secretas y artesanías.</li>
+<li>📦 <strong><a href="other.html">Almacén: Otros Objetos</a></strong> — recursos de supervivencia.</li>
+<li></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="-раздел-катушки"><a href="#-раздел-катушки" class="header">⚡ Раздел: Катушки</a></h1>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Локально тушим остатки каймана для этой страницы */
+  .page-header, .site-footer { display: none !important; }
+  .main-content { padding: 0 !important; }
+</style>
+<div class="main-wrapper">
+  <!-- ================= РУССКИЙ ЯЗЫК ================= -->
+  
+<div lang="ru">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-shadow: 0 0 10px #a066ff; text-align: center;">⚡ Раздел: Катушки (Coils)</h1>
+
+    
+<p style="text-align: center;">Добро пожаловать в архив катушек! Нажмите на карточку предмета, чтобы открыть подробный гайд.</p>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;!-- КАРТОЧКА 1 (Исправлена ссылка на .html для Jekyll) --&gt;
+  &lt;a href="summoncoil.html" class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180602.jpg" alt="Summon Coil"&gt;
+    &lt;h3&gt;Катушка призыва&lt;/h3&gt;
+    &lt;p&gt;🏃 Скорость: 60&lt;/p&gt;
+    &lt;p&gt;🦘 Прыжок: 16&lt;/p&gt;
+    &lt;p style="font-size:11px; color:#a066ff; margin-top:5px;"&gt;🔮 Подробнее...&lt;/p&gt;
+  &lt;/a&gt;
+
+  &lt;!-- КАРТОЧКА 2 --&gt;
+  &lt;div class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180545.jpg" alt="Pixel Clicker"&gt;
+    &lt;h3&gt;Пиксельный кликер&lt;/h3&gt;
+    &lt;p&gt;🏃 Скорость: ??&lt;/p&gt;
+    &lt;p&gt;🦘 Прыжок: ??&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <!-- ================= ENGLISH ================= -->
+  
+<div lang="en">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-align: center;">⚡ Section: Coils</h1>
+
+    
+<p style="text-align: center;">Click on an item card to open a detailed guide.</p>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;a href="summoncoil.html" class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180602.jpg" alt="Summon Coil"&gt;
+    &lt;h3&gt;Summon Coil&lt;/h3&gt;
+    &lt;p&gt;🏃 Speed: 60&lt;/p&gt;
+    &lt;p&gt;🦘 Jump: 16&lt;/p&gt;
+  &lt;/a&gt;
+  &lt;div class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180545.jpg" alt="Pixel Clicker"&gt;
+    &lt;h3&gt;Pixel Clicker&lt;/h3&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <!-- ================= ESPAÑOL ================= -->
+  
+<div lang="es">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-align: center;">⚡ Sección: Bobinas</h1>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;a href="summoncoil.html" class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180602.jpg" alt="Summon Coil"&gt;
+    &lt;h3&gt;Bobina de Invocación&lt;/h3&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <br>
+  
+<hr>
+  <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
+  
+<p align="center" style="font-size: 18px;">
+    <span style="cursor:pointer;" onclick="changeLang(&#39;ru&#39;)">🇷🇺 RU</span> | 
+    <span style="cursor:pointer;" onclick="changeLang(&#39;en&#39;)">🇬🇧 EN</span> | 
+    <span style="cursor:pointer;" onclick="changeLang(&#39;es&#39;)">🇪🇸 ES</span>
+  </p>
+
+  <!-- Исправлена ссылка возврата на Главную -->
+  
+<p align="center"><a href="#-главная-страница">🔙 На Главную / Back to Main</a></p>
+
+</div>
+
+<script>
+function changeLang(langCode) {
+  const languages = ['ru', 'en', 'es'];
+  languages.forEach(lang => {
+    const elements = document.querySelectorAll(`[lang="${lang}"]`);
+    elements.forEach(el => {
+      if (lang === langCode) el.style.setProperty('display', 'block', 'important');
+      else el.style.setProperty('display', 'none', 'important');
+    });
+  });
+  localStorage.setItem('wiki_language', langCode);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  const savedLang = localStorage.getItem('wiki_language') || 'ru';
+  changeLang(savedLang);
+});
+</script>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="-катушка-призыва"><a href="#-катушка-призыва" class="header">🏗️ Катушка призыва</a></h1>
+
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Катушка призыва - Вики a51bfcts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+<div class="main-wrapper">
+<pre><code>&lt;!-- ================= РУССКИЙ ЯЗЫК ================= --&gt;
+&lt;div lang="ru"&gt;
+  &lt;h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 22px; color: #fff; text-shadow: 0 0 10px #a066ff; text-align: center;"&gt;🏗️ Катушка призыва&lt;/h1&gt;
+  
+  &lt;div class="photo-row"&gt;
+    &lt;div class="photo-col"&gt;&lt;img src="Screenshot_20261006_083912.jpg" alt=""&gt;&lt;/div&gt;
+    &lt;div class="photo-col"&gt;&lt;img src="Screenshot_20261006_083941.jpg" alt=""&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="wiki-infobox"&gt;
+    &lt;div class="infobox-title"&gt;Катушка призыва&lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;Сложность получения&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell"&gt;&lt;span class="difficulty-easy"&gt;Легко&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;🏅 Получение&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell" style="color: #a066ff; font-weight: bold;"&gt;Значок "Complex Power"&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="infobox-section-header"&gt;Характеристики&lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;🏃 Скорость&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell stat-speed"&gt;60 единиц&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;🦘 Сила прыжка&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell stat-jump"&gt;16 единиц&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="infobox-section-header"&gt;Особенности&lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;🔮 Способность&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell"&gt;Спавн блоков 4х2х1 разных цветов&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;h3&gt;📋 Описание предмета:&lt;/h3&gt;
+  &lt;p style="text-align: left;"&gt;&lt;strong&gt;Катушка призыва&lt;/strong&gt; — одна из четырёх катушек, для которой требуется получить значок, имеет способность призывать блоки по месту клика курсора/пальца. Имеет розово-белое свечение, сама катушка имеет розово-зелено-сине-желтый перелив.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- ================= ENGLISH ================= --&gt;
+&lt;div lang="en"&gt;
+  &lt;h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 22px; text-align: center;"&gt;🏗️ Summon Coil&lt;/h1&gt;
+  &lt;div class="wiki-infobox"&gt;
+    &lt;div class="infobox-title"&gt;Summon Coil&lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;Difficulty&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell"&gt;&lt;span class="difficulty-easy"&gt;Easy&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="infobox-grid"&gt;
+      &lt;div class="infobox-cell label"&gt;Obtain&lt;/div&gt;
+      &lt;div class="infobox-value infobox-cell" style="color: #a066ff; font-weight: bold;"&gt;"Complex Power" Badge&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;br&gt;
+&lt;hr&gt;
+
+&lt;!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ --&gt;
+&lt;p align="center" style="font-size: 18px;"&gt;
+  &lt;span style="cursor:pointer;" onclick="changeLang('ru')"&gt;🇷🇺 RU&lt;/span&gt; | 
+  &lt;span style="cursor:pointer;" onclick="changeLang('en')"&gt;🇬🇧 EN&lt;/span&gt; | 
+  &lt;span style="cursor:pointer;" onclick="changeLang('es')"&gt;🇪🇸 ES&lt;/span&gt;
+&lt;/p&gt;
+&lt;p align="center"&gt;&lt;a href="coils.html"&gt;🔙 Назад к Катушкам / Back to Coils&lt;/a&gt;&lt;/p&gt;
+</code></pre>
+  </div>
+
+  <script>
+  function changeLang(langCode) {
+    const languages = ['ru', 'en', 'es'];
+    languages.forEach(lang => {
+      const elements = document.querySelectorAll(`[lang="${lang}"]`);
+      elements.forEach(el => {
+        if (lang === langCode) el.style.setProperty('display', 'block', 'important');
+        else el.style.setProperty('display', 'none', 'important');
+      });
+    });
+    localStorage.setItem('wiki_language', langCode);
+  }
+  document.addEventListener("DOMContentLoaded", function() {
+    const savedLang = localStorage.getItem('wiki_language') || 'ru';
+    changeLang(savedLang);
+  });
+  </script>
+</body>
+</html>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="-раздел-палочки"><a href="#-раздел-палочки" class="header">🪄 Раздел: Палочки</a></h1>
+<style>
+  /* ================= ОБЩИЙ СТИЛЬ СТРАНИЦЫ ================= */
+  html, body { background-color: #050407 !important; color: #e2daf0 !important; }
+  .container-lg, main, .wrapper {
+    position: relative; background-color: #0b090f !important;
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
+    border-radius: 8px; padding: 20px; z-index: 1; overflow: hidden;
+  }
+  .container-lg::before, main::before, .wrapper::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: url('Screenshot_20261006_110338.jpg') !important;
+    background-size: cover !important; background-position: center top !important;
+    filter: brightness(0.24) contrast(1.4) saturate(1.3) !important; z-index: -1; opacity: 0.9;
+  }
+  a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); text-decoration: none; }
+  [lang="en"], [lang="es"] { display: none; }
+
+  /* СЕТКА ДЛЯ КАРТОЧЕК ПАЛОЧЕК (2 В РЯД) */
+  .items-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
+  
+  .item-card {
+    flex: 1 1 calc(50% - 8px); min-width: 140px;
+    background-color: rgba(20, 16, 28, 0.7);
+    border: 1px solid rgba(160, 102, 255, 0.3); border-radius: 6px;
+    padding: 10px; box-sizing: border-box; text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  }
+  .item-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 15px rgba(160, 102, 255, 0.6);
+    border-color: #a066ff;
+  }
+  .item-card img { width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px; }
+  .item-card h3 { margin: 5px 0; font-size: 16px; color: #fff; }
+  .item-card p { margin: 2px 0; font-size: 13px; color: #bcaada; }
+
+  /* ЖЕЛЕЗНОЕ СТЕРТИЕ БИРЮЗОВОЙ ПЛАШКИ КАЙМАНА ДЛЯ ЭТОЙ СТРАНИЦЫ */
+  .page-header, .site-footer { display: none !important; }
+  .main-content { padding: 0 !important; }
+</style>
+<div class="main-wrapper">
+  <!-- ================= РУССКИЙ ЯЗЫК ================= -->
+  
+<div lang="ru">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-shadow: 0 0 10px #a066ff; text-align: center;">🪄 Раздел: Палочки (Wands)</h1>
+
+    
+<p style="text-align: center;">Здесь собраны все магические палочки. Выберите нужную для изучения свойств.</p>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;!-- КАРТОЧКА 1: Ужасная палочка (Кликабельная кнопка) --&gt;
+  &lt;a href="horrificwand.html" class="item-card"&gt;
+    &lt;img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"&gt;
+    &lt;h3 style="color: #ff3333;"&gt;ho_rr&amp;c wand&lt;/h3&gt;
+    &lt;p&gt;💀 Сложность: Адская&lt;/p&gt;
+    &lt;p style="font-size:11px; color:#ff3333; margin-top:5px;"&gt;🩸 Секретное досье...&lt;/p&gt;
+  &lt;/a&gt;
+
+  &lt;!-- КАРТОЧКА 2: Обычная палочка --&gt;
+  &lt;div class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180528.jpg" alt="Wand"&gt;
+    &lt;h3&gt;Обычная палочка&lt;/h3&gt;
+    &lt;p&gt;🔮 Урон: ??&lt;/p&gt;
+    &lt;p&gt;⚡ Перезарядка: ??&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <!-- ================= ENGLISH ================= -->
+  
+<div lang="en">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-align: center;">🪄 Section: Wands</h1>
+
+    
+<p style="text-align: center;">All magic wands are collected here. Click to see details.</p>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;a href="horrificwand.html" class="item-card"&gt;
+    &lt;img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"&gt;
+    &lt;h3 style="color: #ff3333;"&gt;ho_rr&amp;c wand&lt;/h3&gt;
+    &lt;p&gt;💀 Difficulty: Insane&lt;/p&gt;
+  &lt;/a&gt;
+  &lt;div class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180528.jpg" alt="Wand"&gt;
+    &lt;h3&gt;Regular Wand&lt;/h3&gt;
+    &lt;p&gt;🔮 Damage: ??&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <!-- ================= ESPAÑOL ================= -->
+  
+<div lang="es">
+    
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 22px; text-align: center;">🪄 Sección: Varitas</h1>
+
+<pre><code>&lt;div class="items-grid"&gt;
+  &lt;a href="horrificwand.html" class="item-card"&gt;
+    &lt;img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"&gt;
+    &lt;h3 style="color: #ff3333;"&gt;ho_rr&amp;c wand&lt;/h3&gt;
+  &lt;/a&gt;
+  &lt;div class="item-card"&gt;
+    &lt;img src="Screenshot_20261005_180528.jpg" alt="Wand"&gt;
+    &lt;h3&gt;Varita Común&lt;/h3&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  <br>
+  
+<hr>
+  <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ЯЗЫКОВ -->
+  
+<p align="center" style="font-size: 18px;">
+    <span style="cursor:pointer;" onclick="changeLang(&#39;ru&#39;)">🇷🇺 RU</span> | 
+    <span style="cursor:pointer;" onclick="changeLang(&#39;en&#39;)">🇬🇧 EN</span> | 
+    <span style="cursor:pointer;" onclick="changeLang(&#39;es&#39;)">🇪🇸 ES</span>
+  </p>
+
+  
+<p align="center"><a href="#-главная-страница">🔙 На Главную / Back to Main</a></p>
+
+</div>
+
+<script>
+function changeLang(langCode) {
+  const languages = ['ru', 'en', 'es'];
+  languages.forEach(lang => {
+    const elements = document.querySelectorAll(`[lang="${lang}"]`);
+    elements.forEach(el => {
+      if (lang === langCode) el.style.setProperty('display', 'block', 'important');
+      else el.style.setProperty('display', 'none', 'important');
+    });
+  });
+  localStorage.setItem('wiki_language', langCode);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  const savedLang = localStorage.getItem('wiki_language') || 'ru';
+  changeLang(savedLang);
+});
+</script>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="-палочка-ho_rrc-wand"><a href="#-палочка-ho_rrc-wand" class="header">🩸 Палочка ho_rr&amp;c wand</a></h1>
+<!-- ПОДКЛЮЧАЕМ ТОПОВЫЙ ИГРОВОЙ ШРИФТ ИЗ GOOGLE FONTS -->
+<link rel="preconnect" href="https://googleapis.com">
+<link rel="preconnect" href="https://gstatic.com" crossorigin="">
+<link href="https://googleapis.com/css2?family=Rubik+Mono+One&amp;family=Rubik:wght@900&amp;display=swap" rel="stylesheet">
+<style>
+  /* ================= ОБЩИЙ СТИЛЬ СТРАНИЦЫ ================= */
+  html, body { background-color: #050407 !important; color: #e2daf0 !important; }
+  .container-lg, main, .wrapper {
+    position: relative; background-color: #0b090f !important;
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
+    border-radius: 8px; padding: 20px; z-index: 1; overflow: hidden;
+  }
+  .container-lg::before, main::before, .wrapper::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: url('Screenshot_20261006_110338.jpg') !important;
+    background-size: cover !important; background-position: center top !important;
+    filter: brightness(0.24) contrast(1.4) saturate(1.3) !important; z-index: -1; opacity: 0.9;
+  }
+  a { color: #a066ff !important; text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); text-decoration: none; }
+  [lang="en"], [lang="es"] { display: none; }
+
+  /* СЕТКА ДЛЯ СКРИНШОТОВ */
+  .photo-row { display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0; }
+  .photo-col { flex: 1 1 100%; max-width: 100%; }
+  .photo-col img { width: 100%; height: auto; border-radius: 6px; border: 1px solid rgba(255, 51, 51, 0.4); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
+
+  /* ================= ИГРОВАЯ ТАБЛИЦА В СТИЛЕ ФАНДОМА ================= */
+  .wiki-infobox {
+    background-color: #121016; border: 3px solid #3a2626; border-radius: 4px;
+    max-width: 420px; margin: 25px auto; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .infobox-title {
+    background-color: #2f1d1d; color: #ffffff; text-align: center; padding: 12px; 
+    font-family: 'Rubik Mono One', sans-serif; font-size: 18px; border-bottom: 3px solid #3a2626; letter-spacing: 1px;
+  }
+  .infobox-section-header {
+    background-color: #e2b316; color: #000000; text-align: center; padding: 6px;
+    font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .infobox-grid { display: flex; background-color: #1e1616; }
+  .infobox-cell {
+    flex: 1; padding: 10px; text-align: center; font-family: 'Rubik', sans-serif; font-size: 14px; border-bottom: 2px solid #3a2626;
+  }
+  .infobox-cell.label { background-color: #1c1111; color: #ffffff; font-weight: bold; border-right: 2px solid #3a2626; }
+  .infobox-cell.value { color: #e2daf0; }
+  
+  .difficulty-insane { color: #ff3333; font-weight: bold; text-shadow: 0 0 10px rgba(255, 51, 51, 0.6); text-transform: uppercase; }
+</style>
+<!-- ================= РУССКИЙ ЯЗЫК ================= -->
+<div lang="ru">
+  
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 24px; color: #ff3333; text-shadow: 0 0 10px #ff3333;">🩸 Палочка ho_rr&amp;c wand</h1>
+
+  
+<div class="photo-row">
+    
+<div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"></div>
+
+  </div>
+
+  <!-- СТРОГАЯ КАРТОЧКА ПРЕДМЕТА -->
+  
+<div class="wiki-infobox">
+    
+<div class="infobox-title">ho_rr&amp;c wand</div>
+
+<pre><code>&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;Сложность получения&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell"&gt;&lt;span class="difficulty-insane"&gt;Адски сложно&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;🏅 Получение&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;"&gt;glitch wand + horrific coil&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- РАЗДЕЛ ХАРАКТЕРИСТИКИ --&gt;
+&lt;div class="infobox-section-header"&gt;Характеристики&lt;/div&gt;
+&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;⚔️ Способность&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;"&gt;Бесконечный прыжок&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- РАЗДЕЛ ОСОБЕННОСТИ --&gt;
+&lt;div class="infobox-section-header"&gt;Особенности&lt;/div&gt;
+&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;👁️ Визуальный эффект&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell"&gt;Огромный пиксельный клинок с сочным кроваво-чёрным переливом (дымом)&lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  
+<h3>📋 Описание и Руководство:</h3>
+
+  
+<p><strong>ho_rr&amp;c wand</strong> — одна из самых засекреченных и изнурительных для получения палочек во всей игре. Для обычного игрока получить её практически невозможно, если не обладать избыточным любопытством исследовать дальние окраины карты.</p>
+
+  
+<blockquote>⚠️ <strong>Секрет получения:</strong> Чтобы скрафтить эту палочку, необходимо отыскать легендарную <strong>Ужасную катушку (Horrific Coil)</strong>, скрытую глубоко в Старой Зоне 51 на невероятных координатах:<br>
+  <span style="color: #ffcc00; font-family: monospace; font-size: 16px;"><b>X: -47296.59 | Y: 204.50 | Z: 3272.40</b></span><br>
+  <br>
+  🏃‍♂️ <strong>Внимание, рекорд исследования:</strong> Путь туда и обратно составляет рекордные <b>26.5 км (~95 000 шпилек/стадсов)</b> непрерывного бега по пустому пространству! Это изнурительно долго даже с использованием самой быстрой катушки в игре, что делает предмет практически недосягаемым для обычных геймеров.</blockquote>
+
+</div>
+
+<!-- ================= ENGLISH ================= -->
+<div lang="en">
+  
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 24px; color: #ff3333;">🩸 ho_rr&amp;c wand</h1>
+
+  
+<div class="photo-row">
+    
+<div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"></div>
+
+  </div>
+
+  
+<div class="wiki-infobox">
+    
+<div class="infobox-title">ho_rr&amp;c wand</div>
+
+    
+<div class="infobox-grid">
+      
+<div class="infobox-cell label">Difficulty</div>
+
+      
+<div class="infobox-value infobox-cell"><span class="difficulty-insane">Insane</span></div>
+
+    </div>
+
+    
+<div class="infobox-grid">
+      
+<div class="infobox-cell label">Obtain</div>
+
+      
+<div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">glitch wand + horrific coil</div>
+
+    </div>
+
+<pre><code>&lt;div class="infobox-section-header"&gt;Stats&lt;/div&gt;
+&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;⚔️ Ability&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;"&gt;Infinite Jump&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="infobox-section-header"&gt;Features&lt;/div&gt;
+&lt;div class="infobox-grid"&gt;
+  &lt;div class="infobox-cell label"&gt;👁️ Visual Effect&lt;/div&gt;
+  &lt;div class="infobox-value infobox-cell"&gt;Massive pixelated blade with a dark bloody-black aura (smoke)&lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+  </div>
+
+  
+<h3>📋 Description &amp; Guide:</h3>
+
+  
+<p><strong>ho_rr&amp;c wand</strong> is one of the most hidden and exhausting wands to obtain. It is virtually impossible for an ordinary player to get without an extreme curiosity to explore the outermost edges of the map.</p>
+
+</div>
+
+<!-- ================= ESPAÑOL ================= -->
+<div lang="es">
+  
+<h1 style="font-family: &#39;Rubik Mono One&#39;, sans-serif; font-size: 24px; color: #ff3333;">🩸 Varita ho_rr&amp;c</h1>
+
+  
+<div class="photo-row">
+    
+<div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&amp;c wand"></div>
+
+  </div>
+
+  
+<div class="wiki-infobox">
+    
+<div class="infobox-title">ho_rr&amp;c wand</div>
+
+    
+<div class="infobox-grid">
+      
+<div class="infobox-cell label">Dificultad</div>
+
+      
+<div class="infobox-value infobox-cell"><span class="difficulty-insane">Infernal</span></div>
+
+    </div>
+
+    
+<div class="infobox-grid">
+      
+<div class="infobox-cell label">Obtención</div>
+
+      
+<div class="infobox-value infobox-cell" style="color: #00ffcc; font-weight: bold;">glitch wand + horrific coil</div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<br>
+<hr>
+<p align="center" style="font-size: 20px;">
+  <span style="cursor:pointer;" onclick="changeLang(&#39;ru&#39;)">🇷🇺 RU</span> | 
+  <span style="cursor:pointer;" onclick="changeLang(&#39;en&#39;)">🇬🇧 EN</span> | 
+  <span style="cursor:pointer;" onclick="changeLang(&#39;es&#39;)">🇪🇸 ES</span>
+</p>
+
+<p align="center"><a href="#-раздел-палочки">🔙 Назад к Палочкам / Back to Wands / Volver a Varitas</a></p>
+
+<script>
+function changeLang(langCode) {
+  const languages = ['ru', 'en', 'es'];
+  languages.forEach(lang => {
+    const elements = document.querySelectorAll(`[lang="${lang}"]`);
+    elements.forEach(el => {
+      if (lang === langCode) el.style.display = 'block';
+      else el.style.display = 'none';
+    });
+  });
+  localStorage.setItem('wiki_language', langCode);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  const savedLang = localStorage.getItem('wiki_language') || 'ru';
+  changeLang(savedLang);
+});
+</script>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="-палочка-glitch-wand"><a class="header" href="#-палочка-glitch-wand">👾 Палочка glitch wand</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
