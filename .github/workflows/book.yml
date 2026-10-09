@@ -1,4 +1,4 @@
-name: Deploy Rust mdBook
+name: Deploy Markdown Site
 on:
   push:
     branches:
@@ -13,18 +13,22 @@ jobs:
       - name: Проверка репозитория
         uses: actions/checkout@v4
 
-      # ОФИЦИАЛЬНЫЙ СБОРЩИК MDBOOK
-      - name: Установка и настройка mdBook
-        uses: peaceiris/actions-mdbook@v2
-        with:
-          mdbook-version: 'latest'
+      - name: Установка Pandoc
+        run: sudo apt-get install -y pandoc
 
-      - name: Чистая сборка книги через Rust
-        run: mdbook build
+      - name: Сборка главной страницы из Markdown в HTML
+        run: |
+          mkdir -p public
+          # Превращаем ваш SUMMARY.md (или README.md) в главную страницу index.html
+          # и жестко вшиваем туда ваш custom.css
+          pandoc SUMMARY.md -s -c custom.css -o public/index.html
+          
+          # Копируем стили и картинку в готовую папку сайта
+          cp custom.css public/
+          cp Screenshot_20261006_110338.jpg public/ 2>/dev/null || true
 
-      # ПУБЛИКАЦИЯ С ОБНОВЛЕННОЙ ВЕРСИЕЙ ДО V4
       - name: Публикация на GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./book
+          publish_dir: ./public
