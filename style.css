@@ -1,28 +1,5 @@
-/* ПОДКЛЮЧАЕМ РЕАЛЬНЫЕ ИГРОВЫЕ ШРИФТЫ ИЗ GOOGLE FONTS */
+/* ПОДКЛЮЧАЕМ ТОПОВЫЙ ИГРОВОЙ ШРИФТ ИЗ GOOGLE FONTS */
 @import url('https://googleapis.com');
-
-/* ================= УБИРАЕМ ШАПКУ И ПОДВАЛ CAYMAN НАМЕРТВО ================= */
-header, .page-header, .site-header, [role="banner"] {
-  display: none !important;
-  height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  visibility: hidden !important;
-}
-
-footer, .site-footer, [role="contentinfo"] {
-  display: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Расширяем контейнер контента на максимум, убирая рамки темы */
-.main-content, section, .wrapper {
-  max-width: 100% !important;
-  padding: 10px !important;
-  margin: 0 auto !important;
-}
 
 /* ================= 1. БАЗОВЫЙ ДИЗАЙН И ФОН ДЛЯ ВСЕХ СТРАНИЦ ================= */
 html, body { 
@@ -30,22 +7,25 @@ html, body {
   color: #e2daf0 !important; 
   margin: 0 !important;
   padding: 0 !important;
-  font-family: 'Rubik', sans-serif !important; /* Включаем красивый шрифт */
+  font-family: sans-serif;
 }
 
-.container-lg, main, .wrapper {
+/* Наш собственный элитный контейнер по центру экрана вместо темы Cayman */
+.main-wrapper {
   position: relative; 
   background-color: #0b090f !important;
   box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
   border-radius: 8px; 
+  max-width: 640px; /* Идеальная игровая ширина контента */
+  margin: 20px auto !important;
   padding: 20px !important; 
   z-index: 1; 
   overflow: hidden;
-  margin: 15px auto !important;
-  max-width: 600px !important; /* Чтобы сайт не расползался сосиской на ПК */
+  box-sizing: border-box;
 }
 
-.container-lg::before, main::before, .wrapper::before {
+/* Огромная фоновая обложка со спиралями за текстом */
+.main-wrapper::before {
   content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   background-image: url('Screenshot_20261006_110338.jpg') !important;
   background-size: cover !important; background-position: center top !important;
@@ -57,14 +37,31 @@ a {
   text-shadow: 0 0 5px rgba(160, 102, 255, 0.3); 
   text-decoration: none; 
 }
+[lang="en"], [lang="es"] { display: none; }
+
+/* ================= СТИЛЬ ЗАСТАВКИ (INTRO) ================= */
+#intro-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-color: #050407; z-index: 9999;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+}
+.intro-coil {
+  width: 120px; height: 120px;
+  background-image: url('Screenshot_20261005_180602.jpg') !important;
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  animation: spin 1.5s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+}
+.intro-text {
+  margin-top: 20px; font-family: monospace; font-size: 18px; color: #a066ff;
+  text-shadow: 0 0 10px rgba(160, 102, 255, 0.7); letter-spacing: 2px; text-align: center;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); scale: 0.5; opacity: 0; }
+  100% { transform: rotate(360deg); scale: 1; opacity: 1; }
+}
 
 /* ================= 2. ДИЗАЙН ДЛЯ РАЗДЕЛОВ И КАРТОЧЕК (СЕТКА 2 В РЯД) ================= */
-.items-grid { 
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 15px; 
-  margin-top: 20px; 
-}
+.items-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
 .item-card {
   flex: 1 1 calc(50% - 8px); min-width: 140px;
   background-color: rgba(20, 16, 28, 0.7);
@@ -74,9 +71,7 @@ a {
   transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;
 }
 .item-card:hover {
-  transform: scale(1.03);
-  box-shadow: 0 0 15px rgba(160, 102, 255, 0.6);
-  border-color: #a066ff;
+  transform: scale(1.03); box-shadow: 0 0 15px rgba(160, 102, 255, 0.6); border-color: #a066ff;
 }
 .item-card img { width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px; }
 .item-card h3 { margin: 5px 0; color: #fff; font-size: 16px; }
@@ -114,12 +109,3 @@ a {
 .photo-col img { width: 100%; height: auto; border-radius: 6px; border: 1px solid rgba(160, 102, 255, 0.4); }
 .photo-col.full-width { flex: 1 1 100%; max-width: 100%; }
 .photo-col.full-width img { border-color: rgba(255, 51, 51, 0.4); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
-
-/* ================= 4. НАСТОЯЩИЙ МУЛЬТИЯЗЫЧНЫЙ ТРАНСФОРМЕР (Вместо скрытия) ================= */
-[data-lang-block] { display: none !important; }
-html[data-current-lang="ru"] [data-lang-block="ru"],
-html[data-current-lang="en"] [data-lang-block="en"],
-html[data-current-lang="es"] [data-lang-block="es"] { display: block !important; }
-html[data-current-lang="ru"] span[data-lang-block="ru"],
-html[data-current-lang="en"] span[data-lang-block="en"],
-html[data-current-lang="es"] span[data-lang-block="es"] { display: inline !important; }
