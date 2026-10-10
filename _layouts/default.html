@@ -1,5 +1,5 @@
     <style>
-                html, body {
+        html, body {
             color: #e2daf0 !important;
             font-family: sans-serif;
             margin: 0;
@@ -7,19 +7,23 @@
             min-height: 100vh;
         }
 
-        body {
-            /* Черный цвет оставляем как запасной, пока грузится картинка */
-            background-color: #050407; 
-            
-            /* Накладываем темную вуаль (60% темноты = 40% яркости) прямо ПОВЕРХ картинки */
+        /* Железобетонный и плавный фон без прыжков на смартфонах */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            /* Вуаль 60% темноты поверх картинки */
             background-image: 
                 linear-gradient(rgba(5, 4, 7, 0.6), rgba(5, 4, 7, 0.6)), 
                 url('{{ site.baseurl }}/Screenshot_20261006_110338.jpg');
-                
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            background-attachment: fixed; /* Чтобы фон красиво застыл при прокрутке */
+            z-index: -2; /* Убираем в самый низ */
+            pointer-events: none; /* Чтобы слой не мешал кликать по ссылкам */
         }
 
         .wrapper {
@@ -29,25 +33,35 @@
             box-shadow: 0 0 40px rgba(138, 43, 226, 0.4);
             border-radius: 8px;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
         
-        img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 10px auto;
-            border-radius: 6px;
+        img { 
+            max-width: 100%; 
+            height: auto; 
+            display: block; 
+            margin: 10px auto; 
+            border-radius: 6px; 
         }
-        a {
-            color: #a066ff !important;
-            text-decoration: none;
+
+        /* ТЕ САМЫЕ ССЫЛКИ, ОНИ ТУТ! */
+        a { 
+            color: #a066ff !important; 
+            text-decoration: none; 
         }
-        /* Стили для списков, чтобы они не слипались */
-        ul {
-            padding-left: 20px;
-            line-height: 1.6;
+
+        ul { 
+            padding-left: 20px; 
+            line-height: 1.6; 
         }
-        li {
-            margin-bottom: 8px;
+        
+        li { 
+            margin-bottom: 8px; 
         }
     </style>
+
+    <!-- Автоматическое подключение микростилей для конкретной страницы -->
+    {% if page.custom_css %}
+    <link rel="stylesheet" href="{{ page.custom_css | relative_url }}">
+    {% endif %}
