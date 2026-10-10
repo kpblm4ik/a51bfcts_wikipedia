@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Архивы Зоны 51</title>
     <style>
-        /* Общие стили для всего сайта, чтобы не дублировать их в каждой странице */
         html, body {
             background-color: #050407 !important;
             color: #e2daf0 !important;
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
             margin: 0;
             padding: 20px;
         }
@@ -21,30 +20,33 @@
             border-radius: 8px;
             padding: 20px;
         }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+            border-radius: 6px;
+        }
         a {
             color: #a066ff !important;
             text-decoration: none;
         }
-        a:hover {
-            text-shadow: 0 0 5px rgba(160, 102, 255, 0.6);
+        /* Стили для списков, чтобы они не слипались */
+        ul {
+            padding-left: 20px;
+            line-height: 1.6;
         }
-        img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 10px auto;
-    border-radius: 6px;
-        }   
+        li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
-
     <div class="wrapper">
-        <!-- Сюда будет автоматически подставляться контент из ваших .md файлов -->
+        <!-- Две скобки — стандарт для Eleventy (Liquid) -->
         
 # 🛸 Международный архив Зоны 51
 
     </div>
-
 </body>
 </html>
