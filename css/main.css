@@ -44,7 +44,8 @@ h1.site-title {
 
 /* Карточки разделов */
 .nav-card {
-    display: block;
+    display: flex;
+    flex-direction: column; /* Жестко заставляет текст идти НИЖЕ картинки */
     text-decoration: none;
     margin-bottom: 25px;
     background: rgba(20, 15, 30, 0.7);
@@ -53,33 +54,38 @@ h1.site-title {
     border: 2px solid #a066ff; 
     box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
     transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+    box-sizing: border-box;
 }
+
 .nav-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(160, 102, 255, 0.8); 
     border-color: #c199ff;
 }
 
+/* Картинка занимает ровно 100% ширины рамки без отступов */
 .nav-card img {
-    width: 100%;
-    height: auto;
-    max-height: 200px;
-    object-fit: cover;
-    display: block;
-    border: none;
-    border-radius: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 !important; /* Убираем любые авто-отступы, которые сжимали фото */
+    border-radius: 0 !important; /* Убираем внутреннее скругление, скругляется сама рамка .nav-card */
+    border: none !important; /* Убираем лишние обводки */
 }
 
+/* Блок текста строго под фото, без перечеркиваний */
 .nav-card-title {
-    display: block;
-    padding: 15px;
+    display: block !important;
+    padding: 15px 10px;
     text-align: center;
     font-size: 24px;
     color: #a066ff !important;
     text-transform: uppercase;
     letter-spacing: 1px;
     background: rgba(11, 9, 15, 0.9);
-    
-    /* МЫ УБРАЛИ КОВАРНУЮ ЛИНИЮ BORDER-TOP, КОТОРАЯ ПЕРЕЧЕРКИВАЛА ТЕКСТ */
-    box-sizing: border-box; 
+    border-top: 2px solid #a066ff; /* Красивая четкая линия СТРОГО МЕЖДУ фото и текстом */
+    box-sizing: border-box;
+    margin: 0 !important;
 }
