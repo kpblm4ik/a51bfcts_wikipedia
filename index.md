@@ -14,15 +14,15 @@ custom_css: /css/main.css
 
 <a href="{{ site.baseurl }}/coils.html" class="nav-card">
     <img src="{{ site.baseurl }}/Screenshot_20261005_180602.jpg" alt="Катушки">
-    <div class="nav-card-title">Катушки</div>
+    <span class="nav-card-title">Катушки</span>
 </a>
 
 <a href="{{ site.baseurl }}/wands.html" class="nav-card">
-    <img src="{{ site.baseurl }}/Screenshot_20261005_120036.jpg" alt="Палочки">
-    <div class="nav-card-title">Палочки</div>
+    <img src="{{ site.baseurl }}/Screenshot_20261005_180545.jpg" alt="Палочки">
+    <span class="nav-card-title">Палочки</span>
 </a>
 
 <a href="{{ site.baseurl }}/other.html" class="nav-card">
-    <img src="{{ site.baseurl }}/Screenshot_20261005_120129.jpg" alt="Прочие предметы">
-    <div class="nav-card-title">Прочие предметы</div>
+    <img src="{{ site.baseurl }}/Screenshot_20261005_180528.jpg" alt="Прочие предметы">
+    <span class="nav-card-title">Прочие предметы</span>
 </a>
