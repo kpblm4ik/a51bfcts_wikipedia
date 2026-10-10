@@ -1,5 +1,5 @@
-export default function(eleventyConfig) {
-    // Говорим Eleventy, что файлы .md нужно обрабатывать как Liquid + Markdown
+module.exports = function(eleventyConfig) {
+    // Настройки парсера Markdown
     eleventyConfig.setMarkdownOptions({
         html: true,
         breaks: true,
@@ -12,7 +12,7 @@ export default function(eleventyConfig) {
             includes: "_includes",
             output: "_site"
         },
-        // Силой назначаем layout.html главным шаблоном для ВСЕХ страниц по умолчанию
+        // Автоматически назначаем движок шаблонизатора
         markdownTemplateEngine: "liquid",
         htmlTemplateEngine: "liquid"
     };
