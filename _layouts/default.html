@@ -1,32 +1,28 @@
     <style>
-        html, body {
-            background-color: #050407 !important;
+                html, body {
             color: #e2daf0 !important;
             font-family: sans-serif;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
-            position: relative;
         }
-                /* Настройка фоновой картинки с яркостью 40% */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* Относительный путь БЕЗ косой черты в начале — так GitHub его не потеряет! */
-            background-image: url('Screenshot_20261006_110338.jpg'); 
+
+        body {
+            /* Черный цвет оставляем как запасной, пока грузится картинка */
+            background-color: #050407; 
+            
+            /* Накладываем темную вуаль (60% темноты = 40% яркости) прямо ПОВЕРХ картинки */
+            background-image: 
+                linear-gradient(rgba(5, 4, 7, 0.6), rgba(5, 4, 7, 0.6)), 
+                url('{{ site.baseurl }}/Screenshot_20261006_110338.jpg');
+                
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            filter: brightness(40%); /* Яркость ровно 40% */
-            z-index: -1; /* Уводит картинку под текст */
+            background-attachment: fixed; /* Чтобы фон красиво застыл при прокрутке */
         }
-        
+
         .wrapper {
-            position: relative; /* Чтобы контент был поверх размытого фона */
             max-width: 800px;
             margin: 0 auto;
             background-color: #0b090f !important;
@@ -34,6 +30,7 @@
             border-radius: 8px;
             padding: 20px;
         }
+        
         img {
             max-width: 100%;
             height: auto;
