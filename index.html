@@ -1,32 +1,50 @@
----
-layout: layout
-title: Главная — Архивы Зоны 51
----
-
-# 🛸 Международный архив Зоны 51
-*Area 51 but find coils to survive — Энциклопедия предметов и гайдов*
-
-![Главная заставка](Screenshot_20261005_180602.jpg)
-
-Добро пожаловать в единую базу данных! Выберите интересующий вас сектор исследований ниже для получения точных координат, баффов и лога находок.
-
----
-
-## 🇷🇺 Навигация (RU)
-* ⚡ **[Сектор: Катушки](coils.html)** — артефакты скорости и прыжков.
-* 🪄 **[Оружейная: Палочки](wands.html)** — секретное оружие и крафты.
-* 📦 **[Склад: Прочие предметы](other.html)** — ресурсы для выживания.
-
----
-
-## 🇬🇧 Navigation (EN)
-* ⚡ **[Sector: Coils](coils.html)** — speed and jump items.
-* 🪄 **[Armory: Wands](wands.html)** — secret weapons and crafts.
-* 📦 **[Storage: Other Items](other.html)** — survival resources.
-
----
-
-## 🇪🇸 Navegación (ES)
-* ⚡ **[Sector: Bobinas](coils.html)** — artículos de velocidad y salto.
-* 🪄 **[Armería: Varitas](wands.html)** — armas secretas y artesanías.
-* 📦 **[Almacén: Otros Objetos](other.html)** — recursos de supervivencia.
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Архивы Зоны 51</title>
+    <style>
+        html, body {
+            background-color: #050407 !important;
+            color: #e2daf0 !important;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #0b090f !important;
+            box-shadow: 0 0 40px rgba(138, 43, 226, 0.4);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+            border-radius: 6px;
+        }
+        a {
+            color: #a066ff !important;
+            text-decoration: none;
+        }
+        /* Стили для списков, чтобы они не слипались */
+        ul {
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Две скобки — стандарт для Eleventy (Liquid) -->
+        {{ content }}
+    </div>
+</body>
+</html>
