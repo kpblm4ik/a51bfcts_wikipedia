@@ -8,8 +8,7 @@
             min-height: 100vh;
             position: relative;
         }
-
-        /* Настройка фоновой картинки с яркостью 40% */
+                /* Настройка фоновой картинки с яркостью 40% */
         body::before {
             content: "";
             position: fixed;
@@ -17,15 +16,15 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* Путь к вашей картинке. Если она лежит в корне репозитория, оставляйте так */
-            background-image: url('/Screenshot_20261006_110338.jpg'); 
+            /* Относительный путь БЕЗ косой черты в начале — так GitHub его не потеряет! */
+            background-image: url('Screenshot_20261006_110338.jpg'); 
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            filter: brightness(40%); /* Уменьшаем яркость фона до 40% */
-            z-index: -1; /* Уводит картинку под текст и обертку */
+            filter: brightness(40%); /* Яркость ровно 40% */
+            z-index: -1; /* Уводит картинку под текст */
         }
-
+        
         .wrapper {
             position: relative; /* Чтобы контент был поверх размытого фона */
             max-width: 800px;
