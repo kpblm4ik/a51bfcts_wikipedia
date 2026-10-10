@@ -71,6 +71,7 @@ h1.site-title {
 }
 
 .nav-card-title {
+    display: block;
     padding: 15px;
     text-align: center;
     font-size: 24px;
@@ -78,5 +79,7 @@ h1.site-title {
     text-transform: uppercase;
     letter-spacing: 1px;
     background: rgba(11, 9, 15, 0.9);
-    border-top: 2px solid #a066ff;
+    
+    /* МЫ УБРАЛИ КОВАРНУЮ ЛИНИЮ BORDER-TOP, КОТОРАЯ ПЕРЕЧЕРКИВАЛА ТЕКСТ */
+    box-sizing: border-box; 
 }
