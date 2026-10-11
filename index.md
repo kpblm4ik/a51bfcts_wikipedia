@@ -1,31 +1,56 @@
 ---
 layout: default
-title: a51bfcts Вики
+title: Главная — a51bfcts Вики
 lang: ru
 custom_css: /css/main.css
 ---
 
-<div class="lang-switcher">
-    <a href="{{ site.baseurl }}/" class="lang-btn active">RU</a>
-    <a href="{{ site.baseurl }}/en/" class="lang-btn">EN</a>
+<p align="center">
+  <a href="#ru-section">🇷🇺 Русский</a> | <a href="#en-section">🇬🇧 English</a>
+</p>
+
+<div id="ru-section">
+
+# 🛸 Международный архив Зоны 51
+*Энциклопедия предметов, секретных координат и результатов датамайнинга*
+
+Добро пожаловать в центральный узел базы данных плейса **Area 51 but find coils to survive**. Здесь зафиксированы все тактические характеристики снаряжения, необходимого для выживания.
+
+---
+
+### ⚡ Сектора исследований:
+
+#### 🟢 [Сектор: Катушки](coils.html)
+> Базы данных по артефактам скорости и прыжков. Включает лог получения катушки призыва через значок *Complex Power* и скрытые параметры Пиксельного кликера.
+
+#### 🔴 [Оружейная: Палочки](wands.html)
+> Секретные чертежи крафта и аномальное вооружение. Внутри: полный отчёт о марафоне на **26.5 км** ради `ho_rr&c wand` и глитч-эффекты `glitch wand` на координатах `3479, 204, 4513`.
+
+#### ⚪ [Склад: Прочие предметы](other.html)
+> Архивы вспомогательных ресурсов, логов исследования и предметов экипировки Старой Зоны.
+
 </div>
 
-<h1 class="site-title">a51bfcts Вики</h1>
+---
 
-<!-- Карточка: Катушки -->
-<a href="{{ site.baseurl }}/coils.html" class="nav-card" style="display: flex; flex-direction: column;">
-    <img src="{{ site.baseurl }}/Screenshot_20261005_180602.jpg" alt="Катушки" style="width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 !important; border-radius: 0 !important; border: none !important;">
-    <span class="nav-card-title" style="display: block !important; padding: 15px 10px; text-align: center; font-size: 24px; color: #a066ff !important; text-transform: uppercase; letter-spacing: 1px; background: rgba(11, 9, 15, 0.9); border-top: 2px solid #a066ff; margin: 0 !important; box-sizing: border-box;">Катушки</span>
-</a>
+<div id="en-section">
 
-<!-- Карточка: Палочки -->
-<a href="{{ site.baseurl }}/wands.html" class="nav-card" style="display: flex; flex-direction: column;">
-    <img src="{{ site.baseurl }}/Screenshot_20261005_180545.jpg" alt="Палочки" style="width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 !important; border-radius: 0 !important; border: none !important;">
-    <span class="nav-card-title" style="display: block !important; padding: 15px 10px; text-align: center; font-size: 24px; color: #a066ff !important; text-transform: uppercase; letter-spacing: 1px; background: rgba(11, 9, 15, 0.9); border-top: 2px solid #a066ff; margin: 0 !important; box-sizing: border-box;">Палочки</span>
-</a>
+# 📡 Area 51 Intelligence Database
+*Item encyclopedia, secret coordinates, and datamining logs*
 
-<!-- Карточка: Прочие предметы -->
-<a href="{{ site.baseurl }}/other.html" class="nav-card" style="display: flex; flex-direction: column;">
-    <img src="{{ site.baseurl }}/Screenshot_20261005_180528.jpg" alt="Прочие предметы" style="width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 !important; border-radius: 0 !important; border: none !important;">
-    <span class="nav-card-title" style="display: block !important; padding: 15px 10px; text-align: center; font-size: 24px; color: #a066ff !important; text-transform: uppercase; letter-spacing: 1px; background: rgba(11, 9, 15, 0.9); border-top: 2px solid #a066ff; margin: 0 !important; box-sizing: border-box;">Прочие предметы</span>
-</a>
+Welcome to the central network node for **Area 51 but find coils to survive**. This archive contains tactical specifications for all gear required to survive the outbreak.
+
+---
+
+### ⚡ Research Sectors:
+
+#### 🟢 [Sector: Coils](coils.html)
+> Database on speed and jump artifacts. Contains the badge obtainment log for the Summon Coil via *Complex Power* and raw Pixel Clicker stats.
+
+#### 🔴 [Armory: Wands](wands.html)
+> Secret craft recipes and anomalous weaponry. Inside: the full 26.5 km marathon log for the `ho_rr&c wand` and coordinate data for the `glitch wand`.
+
+#### ⚪ [Storage: Other Items](other.html)
+> Archives of auxiliary resources, environmental logs, and survival equipment.
+
+</div>
