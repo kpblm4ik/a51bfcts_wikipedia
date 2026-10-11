@@ -1,6 +1,5 @@
-/* ================= 🪐 МИКРОСТИЛИ ДЛЯ ГЛАВНОЙ И РАЗДЕЛОВ В ИГРОВОМ СТИЛЕ ================= */
+/* ================= МИКРОСТИЛИ ДЛЯ ГЛАВНОЙ И РАЗДЕЛОВ В ИГРОВОМ СТИЛЕ ================= */
 
-/* Настройка главного заголовка с фиолетовым неоновым свечением */
 h1 {
     font-size: 26px !important;
     color: #ffffff !important;
@@ -10,7 +9,6 @@ h1 {
     margin-bottom: 5px !important;
 }
 
-/* Стилизация подзаголовков (Энциклопедия предметов...) */
 h1 + p em {
     display: block;
     text-align: center;
@@ -20,58 +18,59 @@ h1 + p em {
     text-shadow: 0 0 3px rgba(188, 170, 218, 0.3);
 }
 
-/* Сектора исследований: красивый неоновый заголовок */
-h3 {
+/* Красивое оформление блоков секторов */
+.main-sector-card {
+    background-color: rgba(20, 16, 28, 0.6) !important;
+    border: 1px solid rgba(160, 102, 255, 0.2) !important;
+    border-radius: 10px;
+    padding: 15px !important;
+    margin: 25px 0 !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 🔥 ТОНКИЕ ФИОЛЕТОВЫЕ НЕОНОВЫЕ РАМКИ ДЛЯ ФОТОГРАФИЙ */
+.sector-preview-img, img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    display: block;
+    margin: 10px auto 20px auto !important;
+    /* Тонкая фиолетовая граница + мягкое неоновое свечение наружу */
+    border: 1.5px solid rgba(160, 102, 255, 0.8) !important;
+    box-shadow: 0 0 12px rgba(160, 102, 255, 0.4), 0 4px 10px rgba(0, 0, 0, 0.6) !important;
+}
+
+.card-text {
+    text-align: left !important;
+}
+
+.card-text h4 {
     font-size: 18px !important;
-    color: #fff !important;
+    margin: 10px 0 !important;
     text-shadow: 0 0 8px rgba(160, 102, 255, 0.6) !important;
-    margin-top: 25px !important;
-    margin-bottom: 15px !important;
 }
 
-/* ================= 🎴 ХАК: ПРЕВРАЩАЕМ ССЫЛКИ В ИГРОВЫЕ КАРТОЧКИ С РАМКАМИ ================= */
-h4 {
-    margin: 20px 0 5px 0 !important;
-    padding: 0 !important;
-}
-
-/* Сама ссылка-карточка */
-h4 a {
-    display: block !important;
-    background-color: rgba(20, 16, 28, 0.7) !important;
-    border: 1px solid rgba(160, 102, 255, 0.3) !important;
-    border-radius: 8px;
-    padding: 12px 15px !important;
+.card-text h4 a {
     color: #ffffff !important;
-    font-size: 16px !important;
-    text-shadow: 0 0 5px rgba(160, 102, 255, 0.5) !important;
-    transition: all 0.2s ease-in-out !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    text-decoration: none !important;
 }
 
-/* Эффект при наведении/нажатии на карточку на телефоне */
-h4 a:hover, h4 a:active {
-    transform: scale(1.02);
-    border-color: #a066ff !important;
-    box-shadow: 0 0 15px rgba(160, 102, 255, 0.6) !important;
-    background-color: rgba(30, 24, 43, 0.8) !important;
+.card-text h4 a:hover {
+    color: #a066ff !important;
+    text-shadow: 0 0 12px #a066ff !important;
 }
 
-/* Стилизация описания под карточками (Базы данных по артефактам...) */
-h4 + p {
-    margin-top: 0 !important;
-    margin-bottom: 25px !important;
-    padding: 0 10px !important;
-    font-size: 13px;
-    line-height: 1.5;
+.card-text p {
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
     color: #bcaada !important;
+    margin: 5px 0 0 0 !important;
 }
 
-/* Делаем разделительную линию красивой фиолетовой неоновой нитью */
 hr {
     border: none;
     height: 1px;
     background: linear-gradient(90deg, transparent, #a066ff, transparent);
-    margin: 25px 0;
+    margin: 30px 0;
     box-shadow: 0 0 10px #a066ff;
 }
