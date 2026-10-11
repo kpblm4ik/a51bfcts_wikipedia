@@ -13,29 +13,29 @@ custom_css: /css/main.css
 
 ### ⚡ Сектора исследований:
 
-<!-- КАРТОЧКА 1: КАТУШКИ -->
-<a href="coils.html" class="main-sector-card card-coils">
-  <img src="Screenshot_20261005_180545.jpg" alt="Сектор Катушек">
+<!-- КАРТОЧКА 1: КАТУШКИ (Скриншот с катушками) -->
+<div class="main-sector-card">
+  <img src="Screenshot_20261005_180545.jpg" alt="Сектор Катушек" class="sector-preview-img">
   <div class="card-text">
-    <h4>⚡ Сектор: Катушки</h4>
+    <h4>⚡ <a href="coils.html">Сектор: Катушки</a></h4>
     <p>Базы данных по артефактам скорости и прыжков. Включает лог получения катушки призыва через значок Complex Power и скрытые параметры Пиксельного кликера.</p>
   </div>
-</a>
+</div>
 
-<!-- КАРТОЧКА 2: ПАЛОЧКИ -->
-<a href="wands.html" class="main-sector-card card-wands">
-  <img src="Screenshot_20261005_180528.jpg" alt="Оружейная Палочек">
+<!-- КАРТОЧКА 2: ПАЛОЧКИ (Скриншот с палочкой) -->
+<div class="main-sector-card">
+  <img src="Screenshot_20261005_180528.jpg" alt="Оружейная Палочек" class="sector-preview-img">
   <div class="card-text">
-    <h4>🪄 Оружейная: Палочки</h4>
+    <h4>🪄 <a href="wands.html">Оружейная: Палочки</a></h4>
     <p>Секретные чертежи крафта и аномальное вооружение. Внутри: полный отчёт о марафоне на 26.5 км ради ho_rr&c wand и глитч-эффекты glitch wand на координатах 3479, 204, 4513.</p>
   </div>
-</a>
+</div>
 
-<!-- КАРТОЧКА 3: СКЛАД -->
-<a href="other.html" class="main-sector-card card-storage">
-  <img src="Screenshot_20261005_180602.jpg" alt="Склад предметов">
+<!-- КАРТОЧКА 3: СКЛАД (Скриншот Дискорда boonie144 с прочими логами) -->
+<div class="main-sector-card">
+  <img src="Screenshot_20261005_180602.jpg" alt="Склад предметов" class="sector-preview-img">
   <div class="card-text">
-    <h4>📦 Склад: Прочие предметы</h4>
+    <h4>📦 <a href="other.html">Склад: Прочие предметы</a></h4>
     <p>Архивы вспомогательных ресурсов, логов исследования и предметов экипировки Старой Зоны.</p>
   </div>
-</a>
+</div>
