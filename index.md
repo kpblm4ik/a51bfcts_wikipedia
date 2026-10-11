@@ -24,7 +24,7 @@ custom_css: /css/main.css
 
 <!-- КАРТОЧКА 2: ПАЛОЧКИ -->
 <div class="main-sector-card">
-  <img src="Screenshot_20261005_180602.jpg" alt="Оружейная Палочек" class="sector-preview-img">
+  <img src="Screenshot_20261005_180545.jpg" alt="Оружейная Палочек" class="sector-preview-img">
   <div class="card-text">
     <h4>🪄 <a href="wands.html">Оружейная: Палочки</a></h4>
     <p>Секретные чертежи крафта и аномальное вооружение. Внутри: полный отчёт о марафоне на 26.5 км ради ho_rr&c wand и глитч-эффекты glitch wand на координатах 3479, 204, 4513.</p>
