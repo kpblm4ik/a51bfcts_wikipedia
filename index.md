@@ -15,7 +15,7 @@ custom_css: /css/main.css
 
 <!-- КАРТОЧКА 1: КАТУШКИ -->
 <div class="main-sector-card">
-  <img src="Screenshot_20261005_115835.jpg" alt="Сектор Катушек" class="sector-preview-img">
+  <img src="Screenshot_20261005_180602.jpg" alt="Сектор Катушек" class="sector-preview-img">
   <div class="card-text">
     <h4>⚡ <a href="coils.html">Сектор: Катушки</a></h4>
     <p>Базы данных по артефактам скорости и прыжков. Включает лог получения катушки призыва через значок Complex Power и скрытые параметры Пиксельного кликера.</p>
@@ -24,7 +24,7 @@ custom_css: /css/main.css
 
 <!-- КАРТОЧКА 2: ПАЛОЧКИ -->
 <div class="main-sector-card">
-  <img src="Screenshot_20261005_120036.jpg" alt="Оружейная Палочек" class="sector-preview-img">
+  <img src="Screenshot_20261005_180602.jpg" alt="Оружейная Палочек" class="sector-preview-img">
   <div class="card-text">
     <h4>🪄 <a href="wands.html">Оружейная: Палочки</a></h4>
     <p>Секретные чертежи крафта и аномальное вооружение. Внутри: полный отчёт о марафоне на 26.5 км ради ho_rr&c wand и глитч-эффекты glitch wand на координатах 3479, 204, 4513.</p>
@@ -33,7 +33,7 @@ custom_css: /css/main.css
 
 <!-- КАРТОЧКА 3: СКЛАД -->
 <div class="main-sector-card">
-  <img src="Screenshot_20261005_120129.jpg" alt="Склад предметов" class="sector-preview-img">
+  <img src="Screenshot_20261005_180528.jpg" alt="Склад предметов" class="sector-preview-img">
   <div class="card-text">
     <h4>📦 <a href="other.html">Склад: Прочие предметы</a></h4>
     <p>Архивы вспомогательных ресурсов, логов исследования и предметов экипировки Старой Зоны.</p>
