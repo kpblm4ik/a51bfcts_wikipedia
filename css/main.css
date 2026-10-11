@@ -1,91 +1,77 @@
-/* css/main.css — Стили только для главной страницы */
+/* ================= 🪐 МИКРОСТИЛИ ДЛЯ ГЛАВНОЙ И РАЗДЕЛОВ В ИГРОВОМ СТИЛЕ ================= */
 
-body {
-    color: #a066ff !important; /* Фиолетовый текст */
-    font-family: 'Impact', 'Arial Black', sans-serif;
-}
-
-/* Кнопки переключения языков */
-.lang-switcher {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.lang-btn {
-    color: #e2daf0 !important;
-    background: rgba(160, 102, 255, 0.2);
-    padding: 5px 10px;
-    border-radius: 4px;
-    border: 1px solid #a066ff;
-    font-size: 14px;
-    text-transform: uppercase;
-    text-decoration: none;
-}
-.lang-btn.active {
-    background: #a066ff;
-    color: #050407 !important;
-}
-
-/* Главный заголовок с обводкой */
-h1.site-title {
-    text-align: center;
-    font-size: 42px;
+/* Настройка главного заголовка с фиолетовым неоновым свечением */
+h1 {
+    font-size: 26px !important;
     color: #ffffff !important;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin: 10px 0 30px 0;
-    text-shadow: 
-        -2px -2px 0 #000,  
-         2px -2px 0 #000,
-        -2px  2px 0 #000,
-         2px  2px 0 #000,
-         0px  4px 10px rgba(0, 0, 0, 0.8);
-}
-
-/* Карточки разделов */
-.nav-card {
-    display: flex;
-    flex-direction: column; /* Жестко заставляет текст идти НИЖЕ картинки */
-    text-decoration: none;
-    margin-bottom: 25px;
-    background: rgba(20, 15, 30, 0.7);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 2px solid #a066ff; 
-    box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
-    transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.nav-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 25px rgba(160, 102, 255, 0.8); 
-    border-color: #c199ff;
-}
-
-/* Картинка занимает ровно 100% ширины рамки без отступов */
-.nav-card img {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    display: block !important;
-    margin: 0 !important; /* Убираем любые авто-отступы, которые сжимали фото */
-    border-radius: 0 !important; /* Убираем внутреннее скругление, скругляется сама рамка .nav-card */
-    border: none !important; /* Убираем лишние обводки */
-}
-
-/* Блок текста строго под фото, без перечеркиваний */
-.nav-card-title {
-    display: block !important;
-    padding: 15px 10px;
+    text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(138, 43, 226, 0.8) !important;
     text-align: center;
-    font-size: 24px;
-    color: #a066ff !important;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    background: rgba(11, 9, 15, 0.9);
-    border-top: 2px solid #a066ff; /* Красивая четкая линия СТРОГО МЕЖДУ фото и текстом */
-    box-sizing: border-box;
-    margin: 0 !important;
+    margin-top: 10px !important;
+    margin-bottom: 5px !important;
+}
+
+/* Стилизация подзаголовков (Энциклопедия предметов...) */
+h1 + p em {
+    display: block;
+    text-align: center;
+    color: #bcaada !important;
+    font-size: 14px;
+    margin-bottom: 25px;
+    text-shadow: 0 0 3px rgba(188, 170, 218, 0.3);
+}
+
+/* Сектора исследований: красивый неоновый заголовок */
+h3 {
+    font-size: 18px !important;
+    color: #fff !important;
+    text-shadow: 0 0 8px rgba(160, 102, 255, 0.6) !important;
+    margin-top: 25px !important;
+    margin-bottom: 15px !important;
+}
+
+/* ================= 🎴 ХАК: ПРЕВРАЩАЕМ ССЫЛКИ В ИГРОВЫЕ КАРТОЧКИ С РАМКАМИ ================= */
+h4 {
+    margin: 20px 0 5px 0 !important;
+    padding: 0 !important;
+}
+
+/* Сама ссылка-карточка */
+h4 a {
+    display: block !important;
+    background-color: rgba(20, 16, 28, 0.7) !important;
+    border: 1px solid rgba(160, 102, 255, 0.3) !important;
+    border-radius: 8px;
+    padding: 12px 15px !important;
+    color: #ffffff !important;
+    font-size: 16px !important;
+    text-shadow: 0 0 5px rgba(160, 102, 255, 0.5) !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Эффект при наведении/нажатии на карточку на телефоне */
+h4 a:hover, h4 a:active {
+    transform: scale(1.02);
+    border-color: #a066ff !important;
+    box-shadow: 0 0 15px rgba(160, 102, 255, 0.6) !important;
+    background-color: rgba(30, 24, 43, 0.8) !important;
+}
+
+/* Стилизация описания под карточками (Базы данных по артефактам...) */
+h4 + p {
+    margin-top: 0 !important;
+    margin-bottom: 25px !important;
+    padding: 0 10px !important;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #bcaada !important;
+}
+
+/* Делаем разделительную линию красивой фиолетовой неоновой нитью */
+hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #a066ff, transparent);
+    margin: 25px 0;
+    box-shadow: 0 0 10px #a066ff;
 }
