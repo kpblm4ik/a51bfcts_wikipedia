@@ -74,3 +74,12 @@ hr {
     margin: 30px 0;
     box-shadow: 0 0 10px #a066ff;
 }
+
+/* Полное обнуление неоновых рамок только для логотипа в футере */
+footer img, 
+.wrapper footer img {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    max-width: 260px !important;
+}
