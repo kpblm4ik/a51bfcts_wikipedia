@@ -81,5 +81,270 @@
   <p>Защищено лицензией CC-BY-NC-ND 4.0</p>
                 </footer>
     </div>
+    <!-- Кнопка вызова лупы в правом нижнем углу -->
+<button id="magnifier-toggle-btn" title="Включить лупу">🔍</button>
+
+<!-- Квадратная лупа (по умолчанию скрыта) -->
+<div id="screen-magnifier">
+  <!-- Область, за которую можно перетаскивать -->
+  <div id="magnifier-drag-handle">:: Лупа ::</div>
+  <!-- Контейнер для увеличенного контента -->
+  <div id="magnifier-viewer">
+    <div id="magnifier-content"></div>
+  </div>
+  <!-- Ползунок изменения размера в правом нижнем углу -->
+  <div id="magnifier-resize-handle"></div>
+</div>
+
+<style>
+  /* Стили кнопки переключения */
+  #magnifier-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #0b090f;
+    border: 2px solid #a066ff;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(160, 102, 255, 0.6);
+    transition: all 0.3s ease;
+  }
+  #magnifier-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(160, 102, 255, 0.9);
+  }
+  #magnifier-toggle-btn.active {
+    background-color: #a066ff;
+    color: #0b090f;
+    box-shadow: 0 0 25px #a066ff;
+  }
+
+  /* Стили окна лупы */
+  #screen-magnifier {
+    display: none; /* Скрыта по умолчанию */
+    position: fixed;
+    width: 200px;
+    height: 200px;
+    min-width: 100px;
+    min-height: 100px;
+    background-color: #050407;
+    border: 2px solid #a066ff;
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
+    border-radius: 4px;
+    z-index: 9998;
+    box-sizing: border-box;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  /* Ручка для перетаскивания */
+  #magnifier-drag-handle {
+    background: #0b090f;
+    border-bottom: 1px solid rgba(160, 102, 255, 0.4);
+    color: #bcaada;
+    font-size: 11px;
+    text-align: center;
+    padding: 3px 0;
+    cursor: move;
+    user-select: none;
+  }
+
+  /* Окно просмотра */
+  #magnifier-viewer {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Дубликат контента внутри лупы (увеличенный) */
+  #magnifier-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    transform-origin: top left;
+    transform: scale(2); /* Коэффициент увеличения (x2) */
+    pointer-events: none; /* Чтобы клики проходили сквозь контент лупы */
+  }
+
+  /* Уголок для изменения размера */
+  #magnifier-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 15px;
+    cursor: se-resize;
+    background: linear-gradient(135deg, transparent 50%, #a066ff 50%);
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("magnifier-toggle-btn");
+  const magnifier = document.getElementById("screen-magnifier");
+  const dragHandle = document.getElementById("magnifier-drag-handle");
+  const resizeHandle = document.getElementById("magnifier-resize-handle");
+  const magContent = document.getElementById("magnifier-content");
+
+  // Коэффициент увеличения лупы
+  const ZOOM_SCALE = 2;
+
+  // Исходные настройки (если лупа открывается впервые)
+  let magState = {
+    visible: false,
+    x: window.innerWidth / 2 - 100,
+    y: window.innerHeight / 2 - 100,
+    w: 200,
+    h: 200
+  };
+
+  // Функция синхронизации изображения внутри лупы
+  function updateMagnifierContent() {
+    if (!magState.visible) return;
+    
+    // Клонируем или обновляем HTML код страницы внутрь лупы
+    // Чтобы стили и картинки отображались корректно, копируем весь body
+    magContent.innerHTML = document.body.innerHTML;
+    
+    // Удаляем из копии саму лупу и кнопку, чтобы не было рекурсии
+    const cloneBtn = magContent.querySelector("#magnifier-toggle-btn");
+    const cloneMag = magContent.querySelector("#screen-magnifier");
+    if (cloneBtn) cloneBtn.remove();
+    if (cloneMag) cloneMag.remove();
+
+    // Сдвигаем контент внутри лупы в зависимости от положения окна на экране
+    // Добавляем учет внутренней ручки перетаскивания (около 18px)
+    const viewerRect = document.getElementById("magnifier-viewer").getBoundingClientRect();
+    magContent.style.left = `-${viewerRect.left * ZOOM_SCALE}px`;
+    magContent.style.top = `-${viewerRect.top * ZOOM_SCALE}px`;
+  }
+
+  // Обновление физических размеров и позиции окна лупы
+  function applyState() {
+    magnifier.style.left = `${magState.x}px`;
+    magnifier.style.top = `${magState.y}px`;
+    magnifier.style.width = `${magState.w}px`;
+    magnifier.style.height = `${magState.h}px`;
+    
+    if (magState.visible) {
+      magnifier.style.display = "flex";
+      toggleBtn.classList.add("active");
+      updateMagnifierContent();
+    } else {
+      magnifier.style.display = "none";
+      toggleBtn.classList.remove("active");
+    }
+  }
+
+  // Следим за скроллом страницы, чтобы картинка в лупе двигалась синхронно
+  window.addEventListener("scroll", () => {
+    if (magState.visible) updateMagnifierContent();
+  }, { passive: true });
+
+  // Клик по кнопке (Включить / Выключить)
+  toggleBtn.addEventListener("click", () => {
+    magState.visible = !magState.visible;
+    applyState();
+  });
+
+  // Логика перетаскивания (Drag)
+  let isDragging = false;
+  let startX, startY;
+
+  dragHandle.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    startX = e.clientX - magState.x;
+    startY = e.clientY - magState.y;
+    document.body.style.userSelect = "none";
+  });
+
+  // Поддержка тач-скринов для мобильных (Drag)
+  dragHandle.addEventListener("touchstart", (e) => {
+    isDragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX - magState.x;
+    startY = touch.clientY - magState.y;
+  }, { passive: true });
+
+  // Логика изменения размера (Resize)
+  let isResizing = false;
+  let startW, startH;
+
+  resizeHandle.addEventListener("mousedown", (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startW = magState.w;
+    startH = magState.h;
+    e.preventDefault();
+    document.body.style.userSelect = "none";
+  });
+
+  // Поддержка тач-скринов для мобильных (Resize)
+  resizeHandle.addEventListener("touchstart", (e) => {
+    isResizing = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startW = magState.w;
+    startH = magState.h;
+  }, { passive: true });
+
+  // Общий обработчик перемещения мыши / пальца
+  const moveHandler = (clientX, clientY) => {
+    if (isDragging) {
+      magState.x = clientX - startX;
+      magState.y = clientY - startY;
+      
+      // Ограничиваем, чтобы лупа не улетала за границы экрана
+      magState.x = Math.max(0, Math.min(window.innerWidth - magState.w, magState.x));
+      magState.y = Math.max(0, Math.min(window.innerHeight - magState.h, magState.y));
+      
+      magnifier.style.left = `${magState.x}px`;
+      magnifier.style.top = `${magState.y}px`;
+      updateMagnifierContent();
+    }
+    
+    if (isResizing) {
+      const dw = clientX - startX;
+      const dh = clientY - startY;
+      
+      magState.w = Math.max(100, startW + dw);
+      magState.h = Math.max(100, startH + dh);
+      
+      magnifier.style.width = `${magState.w}px`;
+      magnifier.style.height = `${magState.h}px`;
+      updateMagnifierContent();
+    }
+  };
+
+  window.addEventListener("mousemove", (e) => moveHandler(e.clientX, e.clientY));
+  window.addEventListener("touchmove", (e) => {
+    if (isDragging || isResizing) {
+      moveHandler(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  // Отпускание мыши / завершение тача
+  const stopHandler = () => {
+    isDragging = false;
+    isResizing = false;
+    document.body.style.userSelect = "";
+  };
+
+  window.addEventListener("mouseup", stopHandler);
+  window.addEventListener("touchend", stopHandler);
+});
+      </script>
 </body>
 </html>
