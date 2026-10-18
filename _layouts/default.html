@@ -180,7 +180,6 @@
     touch-action: none;
   }
 </style>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.getElementById("magnifier-toggle-btn");
@@ -297,10 +296,133 @@ document.addEventListener("DOMContentLoaded", () => {
 
     requestAnimationFrame(updateMirrorPosition);
   }
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("magnifier-toggle-btn");
+  const magnifier = document.getElementById("screen-magnifier");
+  const dragHandle = document.getElementById("magnifier-drag-handle");
+  const resizeHandle = document.getElementById("magnifier-resize-handle");
+  const mirror = document.getElementById("magnifier-mirror");
 
+  const ZOOM_SCALE = 2;
+  let isContentInitialized = false;
+
+  let magState = {
+    visible: false,
+    x: window.innerWidth / 2 - 110,
+    y: window.innerHeight / 2 - 110,
+    w: 220,
+    h: 220
+  };
+
+  // Копируем контент сайта один раз при активации лупы
+  function initMagnifierContent() {
+    const wrapper = document.querySelector(".wrapper");
+    if (wrapper) {
+      mirror.innerHTML = wrapper.outerHTML;
+      isContentInitialized = true;
+    }
+  }
+
+  // Магическая функция: рассчитывает точный сдвиг картинки под лупой
+  function updateMirrorPosition() {
+    if (!magState.visible) return;
+    const viewerRect = document.getElementById("magnifier-viewer").getBoundingClientRect();
+    
+    // Рассчитываем положение подложки с учетом скролла всей страницы
+    const computedLeft = -viewerRect.left * ZOOM_SCALE;
+    const computedTop = -viewerRect.top * ZOOM_SCALE;
+    
+    mirror.style.transform = `scale(${ZOOM_SCALE}) translate(${computedLeft / ZOOM_SCALE}px, ${computedTop / ZOOM_SCALE}px)`;
+  }
+
+  function applyState() {
+    magnifier.style.left = `${magState.x}px`;
+    magnifier.style.top = `${magState.y}px`;
+    magnifier.style.width = `${magState.w}px`;
+    magnifier.style.height = `${magState.h}px`;
+    
+    if (magState.visible) {
+      magnifier.style.display = "flex";
+      toggleBtn.classList.add("active");
+      if (!isContentInitialized) initMagnifierContent();
+      requestAnimationFrame(updateMirrorPosition);
+    } else {
+      magnifier.style.display = "none";
+      toggleBtn.classList.remove("active");
+    }
+  }
+
+  // Синхронизация при скролле
+  window.addEventListener("scroll", () => {
+    if (magState.visible) requestAnimationFrame(updateMirrorPosition);
+  }, { passive: true });
+
+  toggleBtn.addEventListener("click", () => {
+    magState.visible = !magState.visible;
+    applyState();
+  });
+
+  // Логика перемещения (Drag & Resize) с исправлением для мобильных телефонов
+  let activeAction = null;
+  let startPointerX, startPointerY;
+  let startX, startY, startW, startH;
+
+  function startAction(type, clientX, clientY) {
+    activeAction = type;
+    startPointerX = clientX;
+    startPointerY = clientY;
+    startX = magState.x;
+    startY = magState.y;
+    startW = magState.w;
+    startH = magState.h;
+    document.body.style.userSelect = "none";
+  }
+
+  // Мышь
+  dragHandle.addEventListener("mousedown", (e) => startAction('drag', e.clientX, e.clientY));
+  resizeHandle.addEventListener("mousedown", (e) => startAction('resize', e.clientX, e.clientY));
+
+  // Палец (Исправлено: берем координаты первого касания)
+  dragHandle.addEventListener("touchstart", (e) => {
+    if (e.touches.length > 0) startAction('drag', e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  resizeHandle.addEventListener("touchstart", (e) => {
+    if (e.touches.length > 0) startAction('resize', e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  function moveAction(clientX, clientY) {
+    if (!activeAction) return;
+
+    const deltaX = clientX - startPointerX;
+    const deltaY = clientY - startPointerY;
+
+    if (activeAction === 'drag') {
+      magState.x = startX + deltaX;
+      magState.y = startY + deltaY;
+      
+      // Не даем лупе уйти за края экрана
+      magState.x = Math.max(0, Math.min(window.innerWidth - magState.w, magState.x));
+      magState.y = Math.max(0, Math.min(window.innerHeight - magState.h, magState.y));
+      
+      magnifier.style.left = `${magState.x}px`;
+      magnifier.style.top = `${magState.y}px`;
+    } else if (activeAction === 'resize') {
+      magState.w = Math.max(120, startW + deltaX);
+      magState.h = Math.max(120, startH + deltaY);
+      
+      magnifier.style.width = `${magState.w}px`;
+      magnifier.style.height = `${magState.h}px`;
+    }
+
+    requestAnimationFrame(updateMirrorPosition);
+  }
+
+  // Слушатели перемещения
   window.addEventListener("mousemove", (e) => moveAction(e.clientX, e.clientY));
   window.addEventListener("touchmove", (e) => {
-    if (activeAction) {
+    if (activeAction && e.touches.length > 0) {
       moveAction(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, { passive: true });
