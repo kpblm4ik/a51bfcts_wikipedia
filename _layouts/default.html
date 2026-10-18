@@ -84,18 +84,19 @@
 <button id="magnifier-toggle-btn" style="position:fixed; bottom:20px; right:20px; z-index:999; padding:12px 16px; font-size:20px; background:#0b090f; border:2px solid #8a2be2; border-radius:50%; cursor:pointer; box-shadow:0 0 15px rgba(138,43,226,0.5);">🔍</button>
 
 <!-- Сам элемент экранной лупы -->
-<div id="screen-magnifier" style="display:none; position:fixed; border:3px solid #8a2be2; border-radius:8px; background:#0b090f; box-shadow:0 0 30px rgba(138,43,226,0.6); flex-direction:column; z-index:998; overflow:hidden;">
+<div id="screen-magnifier" style="display:none; position:fixed; border:3px solid #8a2be2; border-radius:8px; background:#0b090f; box-shadow:0 0 30px rgba(138,43,226,0.6); flex-direction:column; z-index:998; overflow:hidden; will-change: transform;">
   <!-- Шапка для перетаскивания -->
   <div id="magnifier-drag-handle" style="height:24px; background:#1a1524; cursor:move; display:flex; align-items:center; justify-content:center; font-size:10px; color:#8c829e; border-bottom:1px solid rgba(160,102,255,0.2);">⬤ ⬤ ⬤</div>
   <!-- Зона отображения увеличенного контента -->
   <div id="magnifier-viewer" style="flex:1; position:relative; overflow:hidden; background:#050407;">
-    <div id="magnifier-mirror" style="position:absolute; top:0; left:0; transform-origin:0 0; pointer-events:none;"></div>
+    <div id="magnifier-mirror" style="position:absolute; top:0; left:0; transform-origin:0 0; pointer-events:none; will-change: transform;"></div>
   </div>
   <!-- Уголок для изменения размера -->
   <div id="magnifier-resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; background:linear-gradient(135deg, transparent 50%, #8a2be2 50%); cursor:se-resize;"></div>
 </div> 
-    </div>
-    <script>
+</div>
+
+<script>
 document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.getElementById("magnifier-toggle-btn");
   const magnifier = document.getElementById("screen-magnifier");
@@ -105,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ZOOM_SCALE = 2;
   let isContentInitialized = false;
+  let isTicking = false;
 
   let magState = {
     visible: false,
@@ -114,30 +116,35 @@ document.addEventListener("DOMContentLoaded", () => {
     h: 220
   };
 
-  // Копируем контент сайта один раз при активации лупы
+  // Копируем контент БЕЗ самой лупы и кнопки (решает проблему "лупы в лупе")
   function initMagnifierContent() {
     const wrapper = document.querySelector(".wrapper");
     if (wrapper) {
-      mirror.innerHTML = wrapper.outerHTML;
+      const clone = wrapper.cloneNode(true);
+      const btn = clone.querySelector("#magnifier-toggle-btn");
+      const mag = clone.querySelector("#screen-magnifier");
+      if (btn) btn.remove();
+      if (mag) mag.remove();
+      
+      mirror.innerHTML = clone.innerHTML;
       isContentInitialized = true;
     }
   }
 
-  // Магическая функция: рассчитывает точный сдвиг картинки под лупой
+  // Расчёт позиции с аппаратным ускорением translate3d (убирает лаги)
   function updateMirrorPosition() {
     if (!magState.visible) return;
     const viewerRect = document.getElementById("magnifier-viewer").getBoundingClientRect();
     
-    // Рассчитываем положение подложки с учетом скролла всей страницы
+    // Рассчитываем точное смещение картинки
     const computedLeft = -viewerRect.left * ZOOM_SCALE;
     const computedTop = -viewerRect.top * ZOOM_SCALE;
     
-    mirror.style.transform = `scale(${ZOOM_SCALE}) translate(${computedLeft / ZOOM_SCALE}px, ${computedTop / ZOOM_SCALE}px)`;
+    mirror.style.transform = `scale(${ZOOM_SCALE}) translate3d(${computedLeft / ZOOM_SCALE}px, ${computedTop / ZOOM_SCALE}px, 0)`;
   }
 
   function applyState() {
-    magnifier.style.left = `${magState.x}px`;
-    magnifier.style.top = `${magState.y}px`;
+    magnifier.style.transform = `translate3d(${magState.x}px, ${magState.y}px, 0)`;
     magnifier.style.width = `${magState.w}px`;
     magnifier.style.height = `${magState.h}px`;
     
@@ -152,7 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Синхронизация при скролле
   window.addEventListener("scroll", () => {
     if (magState.visible) requestAnimationFrame(updateMirrorPosition);
   }, { passive: true });
@@ -162,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
     applyState();
   });
 
-  // Логика перемещения (Drag & Resize) с исправлением для мобильных телефонов
   let activeAction = null;
   let startPointerX, startPointerY;
   let startX, startY, startW, startH;
@@ -178,11 +183,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.style.userSelect = "none";
   }
 
-  // Мышь
   dragHandle.addEventListener("mousedown", (e) => startAction('drag', e.clientX, e.clientY));
   resizeHandle.addEventListener("mousedown", (e) => startAction('resize', e.clientX, e.clientY));
 
-  // Палец (Исправлено: берем координаты первого касания)
   dragHandle.addEventListener("touchstart", (e) => {
     if (e.touches.length > 0) startAction('drag', e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
@@ -200,25 +203,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeAction === 'drag') {
       magState.x = startX + deltaX;
       magState.y = startY + deltaY;
-      
-      // Не даем лупе уйти за края экрана
       magState.x = Math.max(0, Math.min(window.innerWidth - magState.w, magState.x));
       magState.y = Math.max(0, Math.min(window.innerHeight - magState.h, magState.y));
       
-      magnifier.style.left = `${magState.x}px`;
-      magnifier.style.top = `${magState.y}px`;
+      magnifier.style.transform = `translate3d(${magState.x}px, ${magState.y}px, 0)`;
     } else if (activeAction === 'resize') {
       magState.w = Math.max(120, startW + deltaX);
       magState.h = Math.max(120, startH + deltaY);
-      
       magnifier.style.width = `${magState.w}px`;
       magnifier.style.height = `${magState.h}px`;
     }
 
-    requestAnimationFrame(updateMirrorPosition);
+    // Защита от лагов через пропуск кадров
+    if (!isTicking) {
+      isTicking = true;
+      requestAnimationFrame(() => {
+        updateMirrorPosition();
+        isTicking = false;
+      });
+    }
   }
 
-  // Слушатели перемещения
   window.addEventListener("mousemove", (e) => moveAction(e.clientX, e.clientY));
   window.addEventListener("touchmove", (e) => {
     if (activeAction && e.touches.length > 0) {
@@ -234,6 +239,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("mouseup", endAction);
   window.addEventListener("touchend", endAction);
 });
-    </script>
+</script>
 </body>
 </html>
