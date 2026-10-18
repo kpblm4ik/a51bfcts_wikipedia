@@ -81,23 +81,20 @@
   <p>Защищено лицензией CC-BY-NC-ND 4.0</p>
                 </footer>
     </div>
-    <!-- Кнопка вызова лупы в правом нижнем углу -->
+    <!-- Кнопка вызова лупы -->
 <button id="magnifier-toggle-btn" title="Включить лупу">🔍</button>
 
-<!-- Квадратная лупа (по умолчанию скрыта) -->
+<!-- Окно лупы (сверхлегкая версия) -->
 <div id="screen-magnifier">
-  <!-- Область, за которую можно перетаскивать -->
   <div id="magnifier-drag-handle">:: Лупа ::</div>
-  <!-- Контейнер для увеличенного контента -->
   <div id="magnifier-viewer">
-    <div id="magnifier-content"></div>
+    <!-- Контейнер-зеркало страницы -->
+    <div id="magnifier-mirror"></div>
   </div>
-  <!-- Ползунок изменения размера в правом нижнем углу -->
   <div id="magnifier-resize-handle"></div>
 </div>
 
 <style>
-  /* Стили кнопки переключения */
   #magnifier-toggle-btn {
     position: fixed;
     bottom: 20px;
@@ -110,16 +107,13 @@
     color: #fff;
     font-size: 22px;
     cursor: pointer;
-    z-index: 9999;
+    z-index: 99999;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 0 15px rgba(160, 102, 255, 0.6);
-    transition: all 0.3s ease;
-  }
-  #magnifier-toggle-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px rgba(160, 102, 255, 0.9);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    touch-action: none;
   }
   #magnifier-toggle-btn.active {
     background-color: #a066ff;
@@ -127,64 +121,63 @@
     box-shadow: 0 0 25px #a066ff;
   }
 
-  /* Стили окна лупы */
   #screen-magnifier {
-    display: none; /* Скрыта по умолчанию */
+    display: none;
     position: fixed;
-    width: 200px;
-    height: 200px;
-    min-width: 100px;
-    min-height: 100px;
+    width: 220px;
+    height: 220px;
+    min-width: 120px;
+    min-height: 120px;
     background-color: #050407;
     border: 2px solid #a066ff;
-    box-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
-    border-radius: 4px;
-    z-index: 9998;
+    box-shadow: 0 0 35px rgba(138, 43, 226, 0.6);
+    border-radius: 8px;
+    z-index: 99998;
     box-sizing: border-box;
     overflow: hidden;
     flex-direction: column;
+    will-change: transform, left, top, width, height; /* Включает ускорение видеокарты */
   }
 
-  /* Ручка для перетаскивания */
   #magnifier-drag-handle {
     background: #0b090f;
     border-bottom: 1px solid rgba(160, 102, 255, 0.4);
     color: #bcaada;
     font-size: 11px;
     text-align: center;
-    padding: 3px 0;
+    padding: 5px 0;
     cursor: move;
     user-select: none;
+    touch-action: none;
   }
 
-  /* Окно просмотра */
   #magnifier-viewer {
     flex: 1;
     position: relative;
     overflow: hidden;
   }
 
-  /* Дубликат контента внутри лупы (увеличенный) */
-  #magnifier-content {
+  /* Вместо копирования кода используем CSS-изоляцию */
+  #magnifier-mirror {
     position: absolute;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     transform-origin: top left;
-    transform: scale(2); /* Коэффициент увеличения (x2) */
-    pointer-events: none; /* Чтобы клики проходили сквозь контент лупы */
+    transform: scale(2); /* Кратность увеличения (x2) */
+    pointer-events: none;
   }
 
-  /* Уголок для изменения размера */
   #magnifier-resize-handle {
     position: absolute;
     right: 0;
     bottom: 0;
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
     cursor: se-resize;
     background: linear-gradient(135deg, transparent 50%, #a066ff 50%);
+    touch-action: none;
   }
 </style>
 
@@ -194,42 +187,42 @@ document.addEventListener("DOMContentLoaded", () => {
   const magnifier = document.getElementById("screen-magnifier");
   const dragHandle = document.getElementById("magnifier-drag-handle");
   const resizeHandle = document.getElementById("magnifier-resize-handle");
-  const magContent = document.getElementById("magnifier-content");
+  const mirror = document.getElementById("magnifier-mirror");
 
-  // Коэффициент увеличения лупы
   const ZOOM_SCALE = 2;
+  let isContentInitialized = false;
 
-  // Исходные настройки (если лупа открывается впервые)
   let magState = {
     visible: false,
-    x: window.innerWidth / 2 - 100,
-    y: window.innerHeight / 2 - 100,
-    w: 200,
-    h: 200
+    x: window.innerWidth / 2 - 110,
+    y: window.innerHeight / 2 - 110,
+    w: 220,
+    h: 220
   };
 
-  // Функция синхронизации изображения внутри лупы
-  function updateMagnifierContent() {
-    if (!magState.visible) return;
-    
-    // Клонируем или обновляем HTML код страницы внутрь лупы
-    // Чтобы стили и картинки отображались корректно, копируем весь body
-    magContent.innerHTML = document.body.innerHTML;
-    
-    // Удаляем из копии саму лупу и кнопку, чтобы не было рекурсии
-    const cloneBtn = magContent.querySelector("#magnifier-toggle-btn");
-    const cloneMag = magContent.querySelector("#screen-magnifier");
-    if (cloneBtn) cloneBtn.remove();
-    if (cloneMag) cloneMag.remove();
-
-    // Сдвигаем контент внутри лупы в зависимости от положения окна на экране
-    // Добавляем учет внутренней ручки перетаскивания (около 18px)
-    const viewerRect = document.getElementById("magnifier-viewer").getBoundingClientRect();
-    magContent.style.left = `-${viewerRect.left * ZOOM_SCALE}px`;
-    magContent.style.top = `-${viewerRect.top * ZOOM_SCALE}px`;
+  // Инициализируем контент ЕДИНОЖДЫ при открытии, а не при каждом движении
+  function initMagnifierContent() {
+    // Клонируем только обертку с контентом сайта, игнорируя системные элементы скрипта
+    const wrapper = document.querySelector(".wrapper");
+    if (wrapper) {
+      mirror.innerHTML = wrapper.outerHTML;
+      isContentInitialized = true;
+    }
   }
 
-  // Обновление физических размеров и позиции окна лупы
+  function updateMirrorPosition() {
+    if (!magState.visible) return;
+    const viewerRect = document.getElementById("magnifier-viewer").getBoundingClientRect();
+    
+    // Плавный сдвиг с помощью аппаратного ускорения CSS (transformTranslate)
+    // Избавляет от микрофризов скролла
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+    
+    // Синхронизируем положение "подложки" внутри лупы
+    mirror.style.transform = `scale(${ZOOM_SCALE}) translate(${-viewerRect.left / ZOOM_SCALE}px, ${-viewerRect.top / ZOOM_SCALE}px)`;
+  }
+
   function applyState() {
     magnifier.style.left = `${magState.x}px`;
     magnifier.style.top = `${magState.y}px`;
@@ -239,112 +232,87 @@ document.addEventListener("DOMContentLoaded", () => {
     if (magState.visible) {
       magnifier.style.display = "flex";
       toggleBtn.classList.add("active");
-      updateMagnifierContent();
+      if (!isContentInitialized) initMagnifierContent();
+      // Используем requestAnimationFrame для синхронизации с частотой обновления экрана
+      requestAnimationFrame(updateMirrorPosition);
     } else {
       magnifier.style.display = "none";
       toggleBtn.classList.remove("active");
     }
   }
 
-  // Следим за скроллом страницы, чтобы картинка в лупе двигалась синхронно
+  // Оптимизированный слушатель скролла
   window.addEventListener("scroll", () => {
-    if (magState.visible) updateMagnifierContent();
+    if (magState.visible) requestAnimationFrame(updateMirrorPosition);
   }, { passive: true });
 
-  // Клик по кнопке (Включить / Выключить)
   toggleBtn.addEventListener("click", () => {
     magState.visible = !magState.visible;
     applyState();
   });
 
-  // Логика перетаскивания (Drag)
-  let isDragging = false;
-  let startX, startY;
+  // Логика перемещения и изменения размеров (универсальная для мыши и тача)
+  let activeAction = null; // 'drag', 'resize' или null
+  let startPointerX, startPointerY;
+  let startX, startY, startW, startH;
 
-  dragHandle.addEventListener("mousedown", (e) => {
-    isDragging = true;
-    startX = e.clientX - magState.x;
-    startY = e.clientY - magState.y;
-    document.body.style.userSelect = "none";
-  });
-
-  // Поддержка тач-скринов для мобильных (Drag)
-  dragHandle.addEventListener("touchstart", (e) => {
-    isDragging = true;
-    const touch = e.touches[0];
-    startX = touch.clientX - magState.x;
-    startY = touch.clientY - magState.y;
-  }, { passive: true });
-
-  // Логика изменения размера (Resize)
-  let isResizing = false;
-  let startW, startH;
-
-  resizeHandle.addEventListener("mousedown", (e) => {
-    isResizing = true;
-    startX = e.clientX;
-    startY = e.clientY;
+  function startAction(type, clientX, clientY, e) {
+    activeAction = type;
+    startPointerX = clientX;
+    startPointerY = clientY;
+    startX = magState.x;
+    startY = magState.y;
     startW = magState.w;
     startH = magState.h;
-    e.preventDefault();
     document.body.style.userSelect = "none";
-  });
+  }
 
-  // Поддержка тач-скринов для мобильных (Resize)
-  resizeHandle.addEventListener("touchstart", (e) => {
-    isResizing = true;
-    const touch = e.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    startW = magState.w;
-    startH = magState.h;
-  }, { passive: true });
+  dragHandle.addEventListener("mousedown", (e) => startAction('drag', e.clientX, e.clientY));
+  dragHandle.addEventListener("touchstart", (e) => startAction('drag', e.touches[0].clientX, e.touches[0].clientY));
 
-  // Общий обработчик перемещения мыши / пальца
-  const moveHandler = (clientX, clientY) => {
-    if (isDragging) {
-      magState.x = clientX - startX;
-      magState.y = clientY - startY;
-      
-      // Ограничиваем, чтобы лупа не улетала за границы экрана
+  resizeHandle.addEventListener("mousedown", (e) => startAction('resize', e.clientX, e.clientY));
+  resizeHandle.addEventListener("touchstart", (e) => startAction('resize', e.touches[0].clientX, e.touches[0].clientY));
+
+  function moveAction(clientX, clientY) {
+    if (!activeAction) return;
+
+    const deltaX = clientX - startPointerX;
+    const deltaY = clientY - startPointerY;
+
+    if (activeAction === 'drag') {
+      magState.x = startX + deltaX;
+      magState.y = startY + deltaY;
       magState.x = Math.max(0, Math.min(window.innerWidth - magState.w, magState.x));
       magState.y = Math.max(0, Math.min(window.innerHeight - magState.h, magState.y));
       
       magnifier.style.left = `${magState.x}px`;
       magnifier.style.top = `${magState.y}px`;
-      updateMagnifierContent();
-    }
-    
-    if (isResizing) {
-      const dw = clientX - startX;
-      const dh = clientY - startY;
-      
-      magState.w = Math.max(100, startW + dw);
-      magState.h = Math.max(100, startH + dh);
+    } else if (activeAction === 'resize') {
+      magState.w = Math.max(120, startW + deltaX);
+      magState.h = Math.max(120, startH + deltaY);
       
       magnifier.style.width = `${magState.w}px`;
       magnifier.style.height = `${magState.h}px`;
-      updateMagnifierContent();
     }
-  };
 
-  window.addEventListener("mousemove", (e) => moveHandler(e.clientX, e.clientY));
+    requestAnimationFrame(updateMirrorPosition);
+  }
+
+  window.addEventListener("mousemove", (e) => moveAction(e.clientX, e.clientY));
   window.addEventListener("touchmove", (e) => {
-    if (isDragging || isResizing) {
-      moveHandler(e.touches[0].clientX, e.touches[0].clientY);
+    if (activeAction) {
+      moveAction(e.touches[0].clientX, e.touches[0].clientY);
     }
-  }, { passive: false });
+  }, { passive: true });
 
-  // Отпускание мыши / завершение тача
-  const stopHandler = () => {
-    isDragging = false;
-    isResizing = false;
+  const endAction = () => {
+    activeAction = null;
     document.body.style.userSelect = "";
   };
 
-  window.addEventListener("mouseup", stopHandler);
-  window.addEventListener("touchend", stopHandler);
+  window.addEventListener("mouseup", endAction);
+  window.addEventListener("touchend", endAction);
 });
-      </script>
+</script>
 </body>
 </html>
