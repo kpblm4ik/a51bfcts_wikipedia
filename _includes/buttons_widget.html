@@ -153,11 +153,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Закрытие панели при клике в любое другое место экрана
-  document.addEventListener("click", (e) => {
-    if (isPanelOpen && !panel.contains(e.target) && e.target !== triggerBtn) {
-      closePanel();
-    }
-  });
+document.addEventListener("click", (e) => {
+  if (!isPanelOpen) return;
+
+  // Проверяем, кликнули ли мы НА саму панель или НА кнопку-триггер Ξ
+  const clickedInsidePanel = panel.contains(e.target);
+  const clickedTrigger = (e.target === triggerBtn || triggerBtn.contains(e.target));
+
+  // Если клик был за пределами панели И не по кнопке триггера — закрываем колбасу
+  if (!clickedInsidePanel && !clickedTrigger) {
+    closePanel();
+  }
+});
 
   // 2. УПРАВЛЕНИЕ РЕЖИМОМ УВЕЛИЧЕНИЯ ТЕКСТА (Aa)
   function toggleZoomMode() {
