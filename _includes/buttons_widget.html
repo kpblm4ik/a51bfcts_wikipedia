@@ -14,15 +14,110 @@
 </div>
 
 <style>
-/* 1. ФИКСИРОВАННАЯ КНОПКА-ТРИГГЕР И ВЫЛЕТАЮЩАЯ ПАНЕЛЬ */
+/* Круглая фиксированная кнопка в самом углу экрана */
 #widget-trigger-btn {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  /* (Стили для кнопки и панели управления интерфейсом виджета) */
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #0b090f;
+  border: 2px solid #a066ff;
+  color: #a066ff;
+  box-shadow: 0 0 12px rgba(160, 102, 255, 0.4);
+  cursor: pointer;
+  z-index: 9999999 !important; /* Поверх абсолютно всего на сайте */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: sans-serif;
+  font-size: 22px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Эффект при активации кнопки */
+#widget-trigger-btn.active {
+  background: #a066ff;
+  color: #0b090f;
+  box-shadow: 0 0 20px #a066ff;
+  transform: rotate(90deg); /* Красивый поворот иконки при клике */
+}
+/* Вылетающая вверх панель-колбаска */
+#neo-panel-widget {
+  position: fixed;
+  right: 20px;
+  bottom: 85px; /* Находится ровно над круглой кнопкой */
+  width: 60px;
+  background: rgba(11, 9, 15, 0.95);
+  border: 1px solid rgba(160, 102, 255, 0.6);
+  border-radius: 30px; /* Округлая форма колбаски */
+  padding: 15px 5px;
+  box-sizing: border-box;
+  z-index: 9999998 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  
+  /* Эффект испарения наоборот при появлении */
+  opacity: 0;
+  filter: blur(10px);
+  transform: translate3d(0, 20px, 0) scale(0.9);
+  pointer-events: none;
+  transition: 
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 20px rgba(160, 102, 255, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+/* Класс активации панели */
+#neo-panel-widget.show {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translate3d(0, 0, 0) scale(1);
+  pointer-events: auto;
+}
+
+/* Мелкий текст статуса внутри панели */
+.widget-status {
+  font-family: monospace;
+  font-size: 8px;
+  color: #bcaada;
+  text-align: center;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 4px rgba(188, 170, 218, 0.4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Кнопки внутри колбаски (например, Aa) */
+#widget-zoom-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #050407;
+  border: 1px solid #a066ff;
+  color: #a066ff;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#widget-zoom-btn.active {
+  background: #a066ff;
+  color: #050407;
+  box-shadow: 0 0 15px #a066ff;
 }
 </style>
-
+  
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const triggerBtn = document.getElementById("widget-trigger-btn");
