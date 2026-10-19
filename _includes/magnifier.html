@@ -140,31 +140,32 @@ document.addEventListener("DOMContentLoaded", () => {
         mirror.style.transform = `scale(${ZOOM}) translate3d(${tx}px, ${ty}px, 0)`;
     }
 
-    function initLensView() {
+        function initLensView() {
         const wrapper = document.querySelector(".wrapper");
         if (wrapper) {
-            // Берем только внутренний HTML контента, чтобы избежать рекурсии окон
-            const clone = wrapper.cloneNode(true);
-            clone.querySelector("#magnifier-toggle-btn")?.remove();
-            clone.querySelector("#screen-magnifier-lens")?.remove();
+            // ИСПРАВЛЕНО: Безопасное копирование через innerHTML без зависаний
+            mirror.innerHTML = wrapper.innerHTML;
+            
+            // Находим и удаляем элементы управления внутри зеркала, чтобы они не двоились
+            const mirrorBtn = mirror.querySelector("#magnifier-toggle-btn");
+            const mirrorLens = mirror.querySelector("#screen-magnifier-lens");
+            if (mirrorBtn) mirrorBtn.remove();
+            if (mirrorLens) mirrorLens.remove();
             
             // Жестко фиксируем ширину под оригинальный размер сайта
-            clone.style.width = wrapper.offsetWidth + "px";
-            clone.style.minWidth = wrapper.offsetWidth + "px";
-            clone.style.maxWidth = "none";
-            clone.style.margin = "0";
-            
-            mirror.innerHTML = '';
-            mirror.appendChild(clone);
+            mirror.style.width = wrapper.offsetWidth + "px";
+            mirror.style.minWidth = wrapper.offsetWidth + "px";
+            mirror.style.maxWidth = "none";
+            mirror.style.margin = "0";
         }
-    }
-
-    function applyState() {
+      }
+  
+        function applyState() {
         lens.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
         lens.style.width = lens.offsetWidth + "px";
         lens.style.height = lens.offsetHeight + "px";
 
-        if (state.visible || isActive) {
+        if (isActive) { // ИСПРАВЛЕНО: убрали state.visible, оставили только isActive
             lens.style.display = "block";
             btn.classList.add("active");
             initLensView();
@@ -174,8 +175,8 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.remove("active");
             mirror.innerHTML = '';
         }
-    }
-
+      }
+  
     btn.addEventListener("click", (e) => {
         e.preventDefault();
         isActive = !isActive;
