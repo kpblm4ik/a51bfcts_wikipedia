@@ -1,256 +1,40 @@
-<!-- Фиолетовые неоновые стили и элементы управления -->
+<!-- Стиль лупы: вся магия увеличения происходит в CSS -->
 <style>
-  /* Фиксированная кнопка включения лупы в углу */
-  #magnifier-toggle-btn {
-    position: fixed;
-    right: 20px;
-    bottom: 90px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #0b090f;
-    border: 2px solid #a066ff; /* Фиолетовый неон твоей Вики */
-    color: #a066ff;
-    box-shadow: 0 0 10px rgba(160, 102, 255, 0.4);
-    cursor: pointer;
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-  }
-  #magnifier-toggle-btn.active {
-    background: #a066ff;
-    color: #0b090f;
-    box-shadow: 0 0 20px #a066ff;
-  }
-  #magnifier-toggle-btn svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  /* Само перетаскиваемое и ресайзимое окно лупы */
-  #screen-magnifier-lens {
-    position: fixed;
-    border: 3px solid #a066ff;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.9), inset 0 0 15px rgba(160,102,255,0.2);
-    z-index: 99998;
-    overflow: hidden;
-    display: none;
-    background: #050407;
-    touch-action: none; /* Запрещает скроллить саму страницу при движении лупы */
-  }
-
-  /* Шапка лупы для стабильного перетаскивания (Драг) */
-  #lens-drag-handle {
-    width: 100%;
-    height: 28px;
-    background: rgba(160, 102, 255, 0.15);
-    border-bottom: 1px solid rgba(160, 102, 255, 0.3);
-    cursor: move;
-    display: flex;
-    align-items: center;
-    padding-left: 10px;
-    font-size: 11px;
-    color: #e2daf0;
-    font-family: monospace;
-    user-select: none;
-  }
-
-  /* Область вывода (Визуальный изолятор) */
-  #lens-viewer {
-    width: 100%;
-    height: calc(100% - 28px);
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Зеркало контента внутри линзы */
-  #lens-mirror {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: 0 0;
-  }
-
-  /* Уголок для изменения размеров окна лупы (Ресайз) */
-  #lens-resize-handle {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 18px;
-    height: 18px;
-    cursor: se-resize;
-    background: linear-gradient(135deg, transparent 50%, #a066ff 50%);
-    border-radius: 0 0 9px 0;
-    z-index: 100000;
-  }
+#super-simple-lens {
+  position: fixed;
+  width: 200px;
+  height: 150px;
+  border: 3px solid #a066ff; /* Ваш фиолетовый неон */
+  box-shadow: 0 0 20px rgba(160, 102, 255, 0.5);
+  border-radius: 8px;
+  pointer-events: none; /* Лупа «прозрачна» для кликов, можно нажимать на ссылки сквозь неё */
+  display: none;
+  z-index: 99999;
+  
+  /* Аппаратное увеличение всего, что находится под блоком */
+  backdrop-filter: blur(0px) scale(2); 
+  -webkit-backdrop-filter: blur(0px) scale(2);
+}
 </style>
 
-<!-- Кнопка-иконка -->
-<button id="magnifier-toggle-btn" title="Включить лупу для поиска пасхалок">
-  <svg viewBox="0 0 24 24">
-    <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-  </svg>
-</button>
+<!-- Элемент лупы -->
+<div id="super-simple-lens"></div>
 
-<!-- Конструкция лупы -->
-<div id="screen-magnifier-lens">
-  <div id="lens-drag-handle">LENS // X2 ZOOM</div>
-  <div id="lens-viewer">
-    <div id="lens-mirror"></div>
-  </div>
-  <div id="lens-resize-handle"></div>
-</div>
+<!-- Скрипт, который просто двигает её за курсором -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("magnifier-toggle-btn");
-    const lens = document.getElementById("screen-magnifier-lens");
-    const mirror = document.getElementById("lens-mirror");
-    const dragHandle = document.getElementById("lens-drag-handle");
-    const resizeHandle = document.getElementById("lens-resize-handle");
-    
-    if (!btn || !lens || !mirror) return;
-
-    const ZOOM = 2; // Кратность увеличения х2
-    let isActive = false;
-    
-    let state = {
-        x: window.innerWidth / 2 - 110,
-        y: window.innerHeight / 2 - 110
-    };
-
-    // Функция точного позиционирования контента внутри лупы
-    function updateMirrorView() {
-        if (!isActive) return;
-
-        const scrollX = window.scrollX || window.pageXOffset;
-        const scrollY = window.scrollY || window.pageYOffset;
-
-        // Координаты линзы (под шапкой 28px) относительно всего документа
-        const lensDocX = state.x + scrollX;
-        const lensDocY = state.y + 28 + scrollY;
-
-        // Сдвигаем внутреннее зеркало точно в противоход движению окна лупы
-        const tx = -lensDocX;
-        const ty = -lensDocY;
-
-        // scale(2) увеличивает, translate3d центрирует область строго ПОД лупой
-        mirror.style.transform = `scale(${ZOOM}) translate3d(${tx}px, ${ty}px, 0)`;
-    }
-
-        function initLensView() {
-        const wrapper = document.querySelector(".wrapper");
-        if (wrapper) {
-            // ИСПРАВЛЕНО: Безопасное копирование через innerHTML без зависаний
-            mirror.innerHTML = wrapper.innerHTML;
-            
-            // Находим и удаляем элементы управления внутри зеркала, чтобы они не двоились
-            const mirrorBtn = mirror.querySelector("#magnifier-toggle-btn");
-            const mirrorLens = mirror.querySelector("#screen-magnifier-lens");
-            if (mirrorBtn) mirrorBtn.remove();
-            if (mirrorLens) mirrorLens.remove();
-            
-            // Жестко фиксируем ширину под оригинальный размер сайта
-            mirror.style.width = wrapper.offsetWidth + "px";
-            mirror.style.minWidth = wrapper.offsetWidth + "px";
-            mirror.style.maxWidth = "none";
-            mirror.style.margin = "0";
-        }
-      }
+document.addEventListener('DOMContentLoaded', () => {
+  const lens = document.getElementById('super-simple-lens');
   
-        function applyState() {
-        lens.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
-        lens.style.width = lens.offsetWidth + "px";
-        lens.style.height = lens.offsetHeight + "px";
+  // Показываем лупу при движении мыши и прячем, если курсор ушел
+  document.addEventListener('mousemove', (e) => {
+    lens.style.display = 'block';
+    // Центрируем прямоугольник по курсору
+    lens.style.left = (e.clientX - 100) + 'px';
+    lens.style.top = (e.clientY - 75) + 'px';
+  });
 
-        if (isActive) { // ИСПРАВЛЕНО: убрали state.visible, оставили только isActive
-            lens.style.display = "block";
-            btn.classList.add("active");
-            initLensView();
-            requestAnimationFrame(updateMirrorView);
-        } else {
-            lens.style.display = "none";
-            btn.classList.remove("active");
-            mirror.innerHTML = '';
-        }
-      }
-  
-    btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        isActive = !isActive;
-        applyState();
-    });
-
-    window.addEventListener("scroll", () => {
-        if (isActive) requestAnimationFrame(updateMirrorView);
-    }, { passive: true });
-      // --- Логика перетаскивания (Drag) и изменения размеров (Resize) ---
-    let isDragging = false;
-    let activeAction = null;
-    let startX, startY, pointerStartX, pointerStartY, startW, startH;
-
-    function onStart(actionType, clientX, clientY) {
-        activeAction = actionType;
-        isDragging = true;
-        startX = state.x;
-        startY = state.y;
-        startW = lens.offsetWidth;
-        startH = lens.offsetHeight;
-        pointerStartX = clientX;
-        pointerStartY = clientY;
-        document.body.style.userSelect = "none";
-    }
-
-    function onMove(clientX, clientY) {
-        if (!isDragging || !activeAction) return;
-        const dX = clientX - pointerStartX;
-        const dY = clientY - pointerStartY;
-
-        if (activeAction === 'drag') {
-            // Перетаскивание всей лупы за шапку
-            state.x = Math.max(0, Math.min(window.innerWidth - lens.offsetWidth, startX + dX));
-            state.y = Math.max(0, Math.min(window.innerHeight - lens.offsetHeight, startY + dY));
-            lens.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
-        } else if (activeAction === 'resize') {
-            // Изменение размеров за уголок
-            const newW = Math.max(140, Math.min(window.innerWidth - state.x, startW + dX));
-            const newH = Math.max(140, Math.min(window.innerHeight - state.y, startH + dY));
-            lens.style.width = `${newW}px`;
-            lens.style.height = `${newH}px`;
-        }
-
-        requestAnimationFrame(updateMirrorView);
-    }
-
-    function onEnd() { 
-        isDragging = false; 
-        activeAction = null;
-        document.body.style.userSelect = "";
-    }
-
-    // Слушатели для ПК (Мышь)
-    dragHandle.addEventListener("mousedown", (e) => onStart('drag', e.clientX, e.clientY));
-    resizeHandle.addEventListener("mousedown", (e) => onStart('resize', e.clientX, e.clientY));
-    window.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
-    window.addEventListener("mouseup", onEnd);
-
-    // Слушатели для Мобилок (Тач-скрин)
-    dragHandle.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) onStart('drag', e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-    
-    resizeHandle.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) onStart('resize', e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-    
-    window.addEventListener("touchmove", (e) => {
-        if (isDragging && e.touches.length > 0) {
-            onMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    }, { passive: true });
-    
-    window.addEventListener("touchend", onEnd);
+  document.addEventListener('mouseleave', () => {
+    lens.style.display = 'none';
+  });
 });
 </script>
