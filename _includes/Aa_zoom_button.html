@@ -32,12 +32,27 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const zoomBtn = document.getElementById("widget-zoom-btn");
-  // Ищем статус-текст внутри панели виджета, если он там есть
-  const statusText = document.querySelector("#neo-panel-widget .widget-status");
+  let zoomBtn = null;
+  let statusText = null;
   let isZoomModeActive = false;
 
-  if (!zoomBtn) return; // Защита от ошибок, если виджет еще не загрузился
+  // Безопасная инициализация: ищем элементы, даже если они загрузились позже
+  function initZoom() {
+    zoomBtn = document.getElementById("widget-zoom-btn");
+    statusText = document.querySelector("#neo-panel-widget .widget-status");
+
+    // Если кнопки еще нет на экране, пробуем снова через 100 миллисекунд
+    if (!zoomBtn) {
+      setTimeout(initZoom, 100);
+      return;
+    }
+
+    // Как только нашли кнопку — вешаем на нее событие клика
+    zoomBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Защита от закрытия колбасы
+      toggleZoomMode();
+    });
+  }
 
   function toggleZoomMode() {
     isZoomModeActive = !isZoomModeActive;
@@ -56,32 +71,30 @@ document.addEventListener("DOMContentLoaded", () => {
         statusText.textContent = "СТАНДАРТ";
         statusText.style.color = "#bcaada";
       }
-      // Мгновенно и плавно сбрасываем все увеличенные строки текста
       document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
     }
   }
 
-  // Привязываем логику активации к кнопке Aa из основного виджета
-  zoomBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleZoomMode();
-  });
-
-  // Логика клика по строкам текста внутри .wrapper для изменения их размера
+  // Логика клика по тексту (вешаем на весь документ, чтобы работало ВСЕГДА)
   document.addEventListener("click", (e) => {
     if (!isZoomModeActive) return;
     
-    const textEl = e.target.closest(".wrapper p, .wrapper h1, .wrapper h4");
-    if (textEl) {
+    // Ищем, был ли клик по тексту внутри .wrapper
+    const textEl = e.target.closest("p, h1, h4");
+    
+    // Дополнительная проверка, чтобы клик случайно не сработал на кнопках меню
+    if (textEl && !e.target.closest("#neo-corner-widget")) {
       e.preventDefault();
       textEl.classList.toggle("zoomed-active");
     }
   });
 
-  // Экспортируем функцию сброса в глобальную видимость window, 
-  // чтобы скрипт виджета (при закрытии колбаски) мог автоматически выключать зум
+  // Экспорт функции сброса для первого файла
   window.widgetResetZoom = () => {
     if (isZoomModeActive) toggleZoomMode();
   };
+
+  // Запускаем поиск кнопки
+  initZoom();
 });
 </script>
