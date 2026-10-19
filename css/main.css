@@ -29,7 +29,7 @@ h1 + p em {
 }
 
 /* 🔥 ТОНКИЕ ФИОЛЕТОВЫЕ НЕОНОВЫЕ РАМКИ ДЛЯ ФОТОГРАФИЙ */
-.sector-preview-img, img {
+.sector-preview-img, .wrapper img {
     max-width: 100% !important;
     height: auto !important;
     border-radius: 8px !important;
