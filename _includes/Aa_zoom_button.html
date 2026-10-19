@@ -1,147 +1,87 @@
-<!-- Оптимизированные стили с аппаратным ускорением без фризов -->
 <style>
-  /* Фиксированная фиолетовая кнопка "Аа" в углу */
-  #text-zoom-btn {
-    position: fixed;
-    right: 20px;
-    bottom: 90px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #0b090f;
-    border: 2px solid #a066ff;
-    color: #a066ff;
-    box-shadow: 0 0 10px rgba(160, 102, 255, 0.4);
-    cursor: pointer;
-    z-index: 999999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: sans-serif;
-    font-weight: bold;
-    font-size: 18px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-tap-highlight-color: transparent;
-  }
-  #text-zoom-btn.active {
-    background: #a066ff;
-    color: #0b090f;
-    box-shadow: 0 0 20px #a066ff;
-  }
+/* Режим инспектора текста: включаем аппаратное сглаживание для плавной анимации */
+body.text-zoom-mode .wrapper p,
+body.text-zoom-mode .wrapper h1,
+body.text-zoom-mode .wrapper h4 {
+  cursor: pointer;
+  will-change: font-size, line-height;
+  transition: 
+    font-size 0.25s cubic-bezier(0.25, 1, 0.5, 1),
+    line-height 0.25s cubic-bezier(0.25, 1, 0.5, 1),
+    text-shadow 0.25s ease,
+    color 0.25s ease !important;
+}
 
-  /* Всплывающая подсказка слева от кнопки */
-  #text-zoom-tooltip {
-    position: fixed;
-    right: 80px;
-    bottom: 100px;
-    background: #0b090f;
-    border: 1px solid #a066ff;
-    color: #e2daf0;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: monospace;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-    z-index: 999999;
-    pointer-events: none;
-    opacity: 0;
-    transform: translate3d(20px, 0, 0);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-  }
-  #text-zoom-tooltip.show {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
+/* Плавное увеличение обычного абзаца по клику */
+body.text-zoom-mode .wrapper p.zoomed-active {
+  font-size: 45px !important;
+  line-height: 1.25 !important;
+  text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
+  color: #ffffff !important;
+}
 
-  /* Режим инспектора текста: включаем аппаратное сглаживание */
-  body.text-zoom-mode .wrapper p,
-  body.text-zoom-mode .wrapper h1,
-  body.text-zoom-mode .wrapper h4 {
-    cursor: pointer;
-    /* will-change задействует видеокарту смартфона, убирая любые лаги и фризы */
-    will-change: font-size, line-height;
-    transition: font-size 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
-                line-height 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
-                text-shadow 0.25s ease, 
-                color 0.25s ease !important;
-  }
-
-  /* Плавное увеличение обычного абзаца по клику в 3 раза */
-  body.text-zoom-mode .wrapper p.zoomed-active {
-    font-size: 45px !important; /* Оптимальный размер для мобильного экрана, чтобы не ломать верстку */
-    line-height: 1.25 !important;
-    text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
-    color: #ffffff !important;
-  }
-
-  /* Увеличение заголовков по клику */
-  body.text-zoom-mode .wrapper h1.zoomed-active,
-  body.text-zoom-mode .wrapper h4.zoomed-active {
-    font-size: 52px !important;
-    line-height: 1.2 !important;
-    text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
-    color: #ffffff !important;
-  }
+/* Увеличение заголовков по клику */
+body.text-zoom-mode .wrapper h1.zoomed-active,
+body.text-zoom-mode .wrapper h4.zoomed-active {
+  font-size: 52px !important;
+  line-height: 1.2 !important;
+  text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
+  color: #ffffff !important;
+}
 </style>
-
-<!-- Кнопка Аа -->
-<button id="text-zoom-btn">Аа</button>
-
-<!-- Подсказка (текст изменен под клики) -->
-<div id="text-zoom-tooltip">Нажмите на строку, чтобы увеличить или уменьшить её</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("text-zoom-btn");
-    const tooltip = document.getElementById("text-zoom-tooltip");
-    let isModeActive = false;
+  const zoomBtn = document.getElementById("widget-zoom-btn");
+  // Ищем статус-текст внутри панели виджета, если он там есть
+  const statusText = document.querySelector("#neo-panel-widget .widget-status");
+  let isZoomModeActive = false;
 
-    // Включение/выключение самого режима инспектора
-    btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        isModeActive = !isModeActive;
-        
-        if (isModeActive) {
-            btn.classList.add("active");
-            document.body.classList.add("text-zoom-mode");
-            tooltip.classList.add("show");
-            setTimeout(() => {
-                tooltip.classList.remove("show");
-            }, 4000);
-        } else {
-            btn.classList.remove("active");
-            document.body.classList.remove("text-zoom-mode");
-            tooltip.classList.remove("show");
-            
-            // ФИКС №3: Если текст был увеличен, но пользователь нажал на кнопку Аа,
-            // все элементы автоматически и плавно сбрасываются до стандарта!
-            document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
-        }
-    });
+  if (!zoomBtn) return; // Защита от ошибок, если виджет еще не загрузился
 
-    // ФИКС №2: Логика переключения по одиночному КЛИКУ вместо удержания
-    function handleTextClick(element) {
-        if (!isModeActive) return;
-        
-        // Если элемент уже увеличен — уменьшаем его, если нет — увеличиваем
-        if (element.classList.contains("zoomed-active")) {
-            element.classList.remove("zoomed-active");
-        } else {
-            element.classList.add("zoomed-active");
-        }
+  function toggleZoomMode() {
+    isZoomModeActive = !isZoomModeActive;
+    
+    if (isZoomModeActive) {
+      zoomBtn.classList.add("active");
+      document.body.classList.add("text-zoom-mode");
+      if (statusText) {
+        statusText.textContent = "ИНСПЕКТОР";
+        statusText.style.color = "#a066ff";
+      }
+    } else {
+      zoomBtn.classList.remove("active");
+      document.body.classList.remove("text-zoom-mode");
+      if (statusText) {
+        statusText.textContent = "СТАНДАРТ";
+        statusText.style.color = "#bcaada";
+      }
+      // Мгновенно и плавно сбрасываем все увеличенные строки текста
+      document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
     }
+  }
 
-    const textElements = document.querySelectorAll(".wrapper p, .wrapper h1, .wrapper h4");
+  // Привязываем логику активации к кнопке Aa из основного виджета
+  zoomBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleZoomMode();
+  });
 
-    textElements.forEach(el => {
-        // Используем универсальный клик (он отлично работает и на ПК, и на мобилках)
-        el.addEventListener("click", (e) => {
-            if (isModeActive) {
-                e.preventDefault(); // Предотвращает выделение текста при частых кликах
-                handleTextClick(el);
-            }
-        });
-    });
+  // Логика клика по строкам текста внутри .wrapper для изменения их размера
+  document.addEventListener("click", (e) => {
+    if (!isZoomModeActive) return;
+    
+    const textEl = e.target.closest(".wrapper p, .wrapper h1, .wrapper h4");
+    if (textEl) {
+      e.preventDefault();
+      textEl.classList.toggle("zoomed-active");
+    }
+  });
+
+  // Экспортируем функцию сброса в глобальную видимость window, 
+  // чтобы скрипт виджета (при закрытии колбаски) мог автоматически выключать зум
+  window.widgetResetZoom = () => {
+    if (isZoomModeActive) toggleZoomMode();
+  };
 });
 </script>
