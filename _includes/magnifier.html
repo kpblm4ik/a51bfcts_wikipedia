@@ -1,4 +1,4 @@
-<!-- Стили для адаптивного увеличения строк без наложения -->
+<!-- Оптимизированные стили с аппаратным ускорением без фризов -->
 <style>
   /* Фиксированная фиолетовая кнопка "Аа" в углу */
   #text-zoom-btn {
@@ -54,29 +54,31 @@
     transform: translate3d(0, 0, 0);
   }
 
-  /* Режим инспектора текста: включаем плавную анимацию для свойств размера */
+  /* Режим инспектора текста: включаем аппаратное сглаживание */
   body.text-zoom-mode .wrapper p,
   body.text-zoom-mode .wrapper h1,
   body.text-zoom-mode .wrapper h4 {
-    cursor: zoom-in;
-    /* Анимируем fontSize и lineHeight вместо transform, чтобы соседние блоки раздвигались */
-    transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                text-shadow 0.3s ease, 
-                color 0.3s ease !important;
+    cursor: pointer;
+    /* will-change задействует видеокарту смартфона, убирая любые лаги и фризы */
+    will-change: font-size, line-height;
+    transition: font-size 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                line-height 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                text-shadow 0.25s ease, 
+                color 0.25s ease !important;
   }
 
-  /* Эффект честного увеличения строки в 3 раза за счет размера шрифта */
+  /* Плавное увеличение обычного абзаца по клику в 3 раза */
   body.text-zoom-mode .wrapper p.zoomed-active {
-    font-size: 48px !important; /* Увеличиваем базовый текст (обычно 16px) ровно в 3 раза */
-    line-height: 1.2 !important;
+    font-size: 45px !important; /* Оптимальный размер для мобильного экрана, чтобы не ломать верстку */
+    line-height: 1.25 !important;
     text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
     color: #ffffff !important;
   }
 
+  /* Увеличение заголовков по клику */
   body.text-zoom-mode .wrapper h1.zoomed-active,
   body.text-zoom-mode .wrapper h4.zoomed-active {
-    font-size: 56px !important; /* Корректировка для заголовков */
+    font-size: 52px !important;
     line-height: 1.2 !important;
     text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
     color: #ffffff !important;
@@ -86,8 +88,8 @@
 <!-- Кнопка Аа -->
 <button id="text-zoom-btn">Аа</button>
 
-<!-- Подсказка -->
-<div id="text-zoom-tooltip">Удержите палец на строке, чтобы увеличить её</div>
+<!-- Подсказка (текст изменен под клики) -->
+<div id="text-zoom-tooltip">Нажмите на строку, чтобы увеличить или уменьшить её</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -95,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tooltip = document.getElementById("text-zoom-tooltip");
     let isModeActive = false;
 
+    // Включение/выключение самого режима инспектора
     btn.addEventListener("click", (e) => {
         e.preventDefault();
         isModeActive = !isModeActive;
@@ -110,31 +113,35 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.remove("active");
             document.body.classList.remove("text-zoom-mode");
             tooltip.classList.remove("show");
+            
+            // ФИКС №3: Если текст был увеличен, но пользователь нажал на кнопку Аа,
+            // все элементы автоматически и плавно сбрасываются до стандарта!
             document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
         }
     });
 
-    function zoomIn(element) {
+    // ФИКС №2: Логика переключения по одиночному КЛИКУ вместо удержания
+    function handleTextClick(element) {
         if (!isModeActive) return;
-        element.classList.add("zoomed-active");
-    }
-
-    function zoomOut(element) {
-        element.classList.remove("zoomed-active");
+        
+        // Если элемент уже увеличен — уменьшаем его, если нет — увеличиваем
+        if (element.classList.contains("zoomed-active")) {
+            element.classList.remove("zoomed-active");
+        } else {
+            element.classList.add("zoomed-active");
+        }
     }
 
     const textElements = document.querySelectorAll(".wrapper p, .wrapper h1, .wrapper h4");
 
     textElements.forEach(el => {
-        // Поддержка мобильных тач-скринов
-        el.addEventListener("touchstart", () => zoomIn(el), { passive: true });
-        el.addEventListener("touchend", () => zoomOut(el), { passive: true });
-        el.addEventListener("touchcancel", () => zoomOut(el), { passive: true });
-
-        // Поддержка мыши на ПК
-        el.addEventListener("mousedown", () => zoomIn(el));
-        el.addEventListener("mouseup", () => zoomOut(el));
-        el.addEventListener("mouseleave", () => zoomOut(el));
+        // Используем универсальный клик (он отлично работает и на ПК, и на мобилках)
+        el.addEventListener("click", (e) => {
+            if (isModeActive) {
+                e.preventDefault(); // Предотвращает выделение текста при частых кликах
+                handleTextClick(el);
+            }
+        });
     });
 });
 </script>
