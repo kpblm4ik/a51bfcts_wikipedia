@@ -1,160 +1,94 @@
-<!-- Верхняя неоновая панель виджета -->
-<div id="top-neo-widget">
-  <div class="widget-status">СИСТЕМА: СТАНДАРТ</div>
-  <div class="widget-buttons">
-    <button id="widget-zoom-btn" title="Режим инспектора текста">Aa</button>
-    <!-- Сюда в будущем будем докидывать новые кнопки -->
-  </div>
-</div>
-<style>
-/* Контейнер верхней панели с эффектом «сборки из испарения» */
-#top-neo-widget {
-  position: fixed;
-  top: 15px;
-  left: 50%;
-  transform: translate3d(-50%, -20px, 0); /* Смещение вверх для анимации */
-  width: calc(100% - 40px);
-  max-width: 560px;
-  background: rgba(11, 9, 15, 0.1); /* Сначала почти прозрачный */
-  border: 1px solid rgba(160, 102, 255, 0);
-  border-radius: 8px;
-  padding: 10px 16px;
-  box-sizing: border-box;
-  z-index: 999999;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+<!-- Главный контейнер виджета в правом нижнем углу -->
+<div id="neo-corner-widget">
   
-  /* Эффект материализации (испарение наоборот) */
-  opacity: 0;
-  filter: blur(15px); /* Сильное размытие на старте */
-  backdrop-filter: blur(0px);
-  pointer-events: none;
-  transition: 
-    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    filter 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    background 0.6s ease,
-    border 0.6s ease;
-}
+  <!-- Вылетающая вверх «колбаска» с кнопками -->
+  <div class="widget-menu-capsule">
+    <!-- Кнопка инспектора текста -->
+    <button id="widget-zoom-btn" class="capsule-btn" title="Режим инспектора текста">Aa</button>
+    <!-- Место для будущих кнопок (добавляй их сюда) -->
+  </div>
 
-/* Класс активации: виджет материализуется и обретает плотность */
-#top-neo-widget.show {
-  opacity: 1;
-  filter: blur(0px); /* Испарение исчезает, контуры четкие */
-  transform: translate3d(-50%, 0, 0); /* Встает на место */
-  background: rgba(11, 9, 15, 0.9); /* Проявляется плотный фон */
-  border: 1px solid rgba(160, 102, 255, 0.6); /* Проявляется неоновая рамка */
-  backdrop-filter: blur(8px);
-  box-shadow: 0 0 20px rgba(160, 102, 255, 0.25), inset 0 0 10px rgba(160, 102, 255, 0.1);
-  pointer-events: auto;
-}
+  <!-- Основная круглая кнопка-триггер -->
+  <button id="widget-trigger-btn" title="Открыть меню">Ξ</button>
+  
+</div>
 
-/* Текст статуса в виджете */
-.widget-status {
-  font-family: monospace;
-  font-size: 11px;
-  color: #bcaada;
-  letter-spacing: 1px;
-  text-shadow: 0 0 5px rgba(188, 170, 218, 0.5);
-}
-
-/* Стили для круглой игровой кнопки */
-#widget-zoom-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  background: #050407;
-  border: 1px solid #a066ff;
-  color: #a066ff;
-  font-family: sans-serif;
-  font-weight: bold;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
-  -webkit-tap-highlight-color: transparent;
-}
-
-#widget-zoom-btn.active {
-  background: #a066ff;
-  color: #050407;
-  box-shadow: 0 0 15px #a066ff;
-  text-shadow: none;
+<style>
+/* 1. ФИКСИРОВАННАЯ КНОПКА-ТРИГГЕР И ВЫЛЕТАЮЩАЯ ПАНЕЛЬ */
+#widget-trigger-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  /* (Стили для кнопки и панели управления интерфейсом виджета) */
 }
 </style>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const widget = document.getElementById("top-neo-widget");
+  const triggerBtn = document.getElementById("widget-trigger-btn");
+  const panel = document.getElementById("neo-panel-widget");
   const zoomBtn = document.getElementById("widget-zoom-btn");
-  const statusText = widget.querySelector(".widget-status");
+  const statusText = panel.querySelector(".widget-status");
   
-  let isWidgetVisible = false;
+  let isPanelOpen = false;
   let isZoomModeActive = false;
-  let pressTimer = null;
 
-  // --- ЛОГИКА ДОЛГОГО НАЖАТИЯ (ЛОНГТАП) ---
-  const startPress = (e) => {
-    // Игнорируем клики по кнопкам, ссылкам и интерактивным картам секторов
-    if (e.target.closest("button") || e.target.closest("a") || e.target.closest(".main-sector-card")) return;
+  // 1. ОТКРЫТИЕ И ЗАКРЫТИЕ ПАНЕЛИ «КОЛБАСКИ»
+  triggerBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    isPanelOpen = !isPanelOpen;
     
-    pressTimer = setTimeout(() => {
-      isWidgetVisible = !isWidgetVisible;
-      if (isWidgetVisible) {
-        widget.classList.add("show");
-      } else {
-        closeWidget();
-      }
-    }, 4000); // 400 миллисекунд (0.4 секунды) удержания
-  };
+    if (isPanelOpen) {
+      triggerBtn.classList.add("active");
+      panel.classList.add("show");
+    } else {
+      closePanel();
+    }
+  });
 
-  const cancelPress = () => {
-    if (pressTimer) clearTimeout(pressTimer);
-  };
-
-  // Слушатели для мобилок и ПК на весь документ
-  document.addEventListener("touchstart", startPress, { passive: true });
-  document.addEventListener("touchend", cancelPress, { passive: true });
-  document.addEventListener("mousedown", startPress);
-  document.addEventListener("mouseup", cancelPress);
-  document.addEventListener("mouseleave", cancelPress);
-
-  function closeWidget() {
-    isWidgetVisible = false;
-    widget.classList.remove("show");
-    // Если закрыли виджет — сбрасываем и режим увеличения текста
+  function closePanel() {
+    isPanelOpen = false;
+    triggerBtn.classList.remove("active");
+    panel.classList.remove("show");
+    // Если закрываем панель, то выключаем и лупу, чтобы не ломать логику
     if (isZoomModeActive) toggleZoomMode();
   }
 
-  // --- ЛОГИКА УВЕЛИЧЕНИЯ ТЕКСТА (Aa) ---
+  // Закрытие панели при клике в любое другое место экрана
+  document.addEventListener("click", (e) => {
+    if (isPanelOpen && !panel.contains(e.target) && e.target !== triggerBtn) {
+      closePanel();
+    }
+  });
+
+  // 2. УПРАВЛЕНИЕ РЕЖИМОМ УВЕЛИЧЕНИЯ ТЕКСТА (Aa)
   function toggleZoomMode() {
     isZoomModeActive = !isZoomModeActive;
     
     if (isZoomModeActive) {
       zoomBtn.classList.add("active");
       document.body.classList.add("text-zoom-mode");
-      statusText.textContent = "РЕЖИМ: ИНСПЕКТОР";
+      statusText.textContent = "ИНСПЕКТОР";
       statusText.style.color = "#a066ff";
     } else {
       zoomBtn.classList.remove("active");
       document.body.classList.remove("text-zoom-mode");
-      statusText.textContent = "СИСТЕМА: СТАНДАРТ";
+      statusText.textContent = "СТАНДАРТ";
       statusText.style.color = "#bcaada";
-      // Сбрасываем все увеличенные строки обратно к норме
+      // Возвращаем все увеличенные строки в исходный вид
       document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
     }
   }
 
   zoomBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Чтобы клик по кнопке не триггерил лонгтап
+    e.stopPropagation();
     toggleZoomMode();
   });
 
-  // Переключение размера конкретной строки текста по клику
+  // Логика клика по строкам текста для их увеличения
   document.addEventListener("click", (e) => {
     if (!isZoomModeActive) return;
     
-    // Проверяем, кликнул ли пользователь на абзац или заголовок внутри wrapper
     const textEl = e.target.closest(".wrapper p, .wrapper h1, .wrapper h4");
     if (textEl) {
       e.preventDefault();
@@ -162,4 +96,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-</script>
+ </script>
