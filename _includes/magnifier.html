@@ -38,23 +38,31 @@ document.addEventListener("DOMContentLoaded", () => {
         h: 220
     };
 
-    function initMagnifierContent() {
+        function initMagnifierContent() {
         const wrapper = document.querySelector(".wrapper");
         if (wrapper) {
             const clone = wrapper.cloneNode(true);
             clone.querySelector("#magnifier-toggle-btn")?.remove();
             clone.querySelector("#screen-magnifier")?.remove();
             
-            // Фиксируем ширину, чтобы верстка не сжималась
-            clone.style.width = wrapper.offsetWidth + "px";
+            // ЖЕСТКАЯ ФИКСАЦИЯ СЕТКИ И ВЕРСТКИ:
+            // Получаем реальную ширину оригинального контейнера в пикселях
+            const originalWidth = wrapper.getBoundingClientRect().width;
+            
+            // Запрещаем адаптивности сжимать контент внутри лупы
+            clone.style.width = originalWidth + "px";
+            clone.style.minWidth = originalWidth + "px";
             clone.style.maxWidth = "none";
             clone.style.margin = "0";
+            clone.style.position = "absolute";
+            clone.style.top = "0";
+            clone.style.left = "0";
             
             mirror.innerHTML = '';
             mirror.appendChild(clone);
         }
     }
-
+    
     function updateMirrorPosition() {
         if (!magState.visible) return;
 
