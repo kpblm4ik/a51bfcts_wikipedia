@@ -103,7 +103,6 @@
   </div>
   <div id="lens-resize-handle"></div>
 </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("magnifier-toggle-btn");
@@ -112,43 +111,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const dragHandle = document.getElementById("lens-drag-handle");
     const resizeHandle = document.getElementById("lens-resize-handle");
     
+    if (!btn || !lens || !mirror) return;
+
     const ZOOM = 2; // Кратность увеличения х2
+    let isActive = false;
     
     let state = {
-        visible: false,
-        x: window.innerWidth / 2 - 125,
-        y: window.innerHeight / 2 - 125,
-        w: 250,
-        h: 250
+        x: window.innerWidth / 2 - 110,
+        y: window.innerHeight / 2 - 110
     };
 
-    // Честное динамическое обновление позиции БЕЗ багов рекурсии
+    // Функция точного позиционирования контента внутри лупы
     function updateMirrorView() {
-        if (!state.visible) return;
+        if (!isActive) return;
 
         const scrollX = window.scrollX || window.pageXOffset;
         const scrollY = window.scrollY || window.pageYOffset;
 
-        // Рассчитываем положение линзы относительно документа
+        // Координаты линзы (под шапкой 28px) относительно всего документа
         const lensDocX = state.x + scrollX;
-        const lensDocY = state.y + 28 + scrollY; // 28px - высота шапки
+        const lensDocY = state.y + 28 + scrollY;
 
-        // Движение зеркала строго в противоход движению окна лупы
+        // Сдвигаем внутреннее зеркало точно в противоход движению окна лупы
         const tx = -lensDocX;
         const ty = -lensDocY;
 
+        // scale(2) увеличивает, translate3d центрирует область строго ПОД лупой
         mirror.style.transform = `scale(${ZOOM}) translate3d(${tx}px, ${ty}px, 0)`;
     }
 
     function initLensView() {
         const wrapper = document.querySelector(".wrapper");
         if (wrapper) {
-            // Клонируем только текстовый контент/картинки, принудительно обрезая саму лупу
+            // Берем только внутренний HTML контента, чтобы избежать рекурсии окон
             const clone = wrapper.cloneNode(true);
             clone.querySelector("#magnifier-toggle-btn")?.remove();
             clone.querySelector("#screen-magnifier-lens")?.remove();
             
-            // Жестко фиксируем сетку клона под размеры оригинального сайта
+            // Жестко фиксируем ширину под оригинальный размер сайта
             clone.style.width = wrapper.offsetWidth + "px";
             clone.style.minWidth = wrapper.offsetWidth + "px";
             clone.style.maxWidth = "none";
@@ -161,10 +161,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function applyState() {
         lens.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
-        lens.style.width = `${state.w}px`;
-        lens.style.height = `${state.h}px`;
+        lens.style.width = lens.offsetWidth + "px";
+        lens.style.height = lens.offsetHeight + "px";
 
-        if (state.visible) {
+        if (state.visible || isActive) {
             lens.style.display = "block";
             btn.classList.add("active");
             initLensView();
@@ -176,76 +176,80 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    btn.addEventListener("click", () => {
-        state.visible = !state.visible;
+    btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        isActive = !isActive;
         applyState();
     });
 
-    // Синхронизация при прокрутке экрана
     window.addEventListener("scroll", () => {
-        if (state.visible) requestAnimationFrame(updateMirrorView);
+        if (isActive) requestAnimationFrame(updateMirrorView);
     }, { passive: true });
-
-    // --- Логика перетаскивания и изменения размеров ---
+      // --- Логика перетаскивания (Drag) и изменения размеров (Resize) ---
+    let isDragging = false;
     let activeAction = null;
-    let startPointerX, startPointerY;
-    let startX, startY, startW, startH;
+    let startX, startY, pointerStartX, pointerStartY, startW, startH;
 
-    function startAction(type, clientX, clientY) {
-        activeAction = type;
-        startPointerX = clientX;
-        startPointerY = clientY;
+    function onStart(actionType, clientX, clientY) {
+        activeAction = actionType;
+        isDragging = true;
         startX = state.x;
         startY = state.y;
-        startW = state.w;
-        startH = state.h;
+        startW = lens.offsetWidth;
+        startH = lens.offsetHeight;
+        pointerStartX = clientX;
+        pointerStartY = clientY;
         document.body.style.userSelect = "none";
     }
 
-    // Поддержка ПК мыши
-    dragHandle.addEventListener("mousedown", (e) => startAction('drag', e.clientX, e.clientY));
-    resizeHandle.addEventListener("mousedown", (e) => startAction('resize', e.clientX, e.clientY));
-    
-    // Идеальная поддержка Тач-событий мобильных устройств
-    dragHandle.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) startAction('drag', e.touches[0].clientX, e.touches[0].clientY);
-    });
-    resizeHandle.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) startAction('resize', e.touches[0].clientX, e.touches[0].clientY);
-    });
-
-    function moveAction(clientX, clientY) {
-        if (!activeAction) return;
-
-        const deltaX = clientX - startPointerX;
-        const deltaY = clientY - startPointerY;
+    function onMove(clientX, clientY) {
+        if (!isDragging || !activeAction) return;
+        const dX = clientX - pointerStartX;
+        const dY = clientY - pointerStartY;
 
         if (activeAction === 'drag') {
-            state.x = Math.max(0, Math.min(window.innerWidth - state.w, startX + deltaX));
-            state.y = Math.max(0, Math.min(window.innerHeight - state.h, startY + deltaY));
+            // Перетаскивание всей лупы за шапку
+            state.x = Math.max(0, Math.min(window.innerWidth - lens.offsetWidth, startX + dX));
+            state.y = Math.max(0, Math.min(window.innerHeight - lens.offsetHeight, startY + dY));
             lens.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
         } else if (activeAction === 'resize') {
-            state.w = Math.max(140, Math.min(window.innerWidth - state.x, startW + deltaX));
-            state.h = Math.max(140, Math.min(window.innerHeight - state.y, startH + deltaY));
-            lens.style.width = `${state.w}px`;
-            lens.style.height = `${state.h}px`;
+            // Изменение размеров за уголок
+            const newW = Math.max(140, Math.min(window.innerWidth - state.x, startW + dX));
+            const newH = Math.max(140, Math.min(window.innerHeight - state.y, startH + dY));
+            lens.style.width = `${newW}px`;
+            lens.style.height = `${newH}px`;
         }
 
         requestAnimationFrame(updateMirrorView);
     }
 
-    window.addEventListener("mousemove", (e) => moveAction(e.clientX, e.clientY));
-    window.addEventListener("touchmove", (e) => {
-        if (activeAction && e.touches.length > 0) {
-            moveAction(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    }, { passive: false });
-
-    const endAction = () => {
+    function onEnd() { 
+        isDragging = false; 
         activeAction = null;
         document.body.style.userSelect = "";
-    };
-    window.addEventListener("mouseup", endAction);
-    window.addEventListener("touchend", endAction);
+    }
+
+    // Слушатели для ПК (Мышь)
+    dragHandle.addEventListener("mousedown", (e) => onStart('drag', e.clientX, e.clientY));
+    resizeHandle.addEventListener("mousedown", (e) => onStart('resize', e.clientX, e.clientY));
+    window.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
+    window.addEventListener("mouseup", onEnd);
+
+    // Слушатели для Мобилок (Тач-скрин)
+    dragHandle.addEventListener("touchstart", (e) => {
+        if (e.touches.length > 0) onStart('drag', e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    
+    resizeHandle.addEventListener("touchstart", (e) => {
+        if (e.touches.length > 0) onStart('resize', e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    
+    window.addEventListener("touchmove", (e) => {
+        if (isDragging && e.touches.length > 0) {
+            onMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: true });
+    
+    window.addEventListener("touchend", onEnd);
 });
 </script>
