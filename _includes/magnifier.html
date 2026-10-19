@@ -1,40 +1,142 @@
-<!-- Стиль лупы: вся магия увеличения происходит в CSS -->
+<!-- Стили для кнопки Аа, подсказки и эффекта увеличения строк -->
 <style>
-#super-simple-lens {
-  position: fixed;
-  width: 200px;
-  height: 150px;
-  border: 3px solid #a066ff; /* Ваш фиолетовый неон */
-  box-shadow: 0 0 20px rgba(160, 102, 255, 0.5);
-  border-radius: 8px;
-  pointer-events: none; /* Лупа «прозрачна» для кликов, можно нажимать на ссылки сквозь неё */
-  display: none;
-  z-index: 99999;
-  
-  /* Аппаратное увеличение всего, что находится под блоком */
-  backdrop-filter: blur(0px) scale(2); 
-  -webkit-backdrop-filter: blur(0px) scale(2);
-}
+  /* Фиксированная фиолетовая кнопка "Аа" в углу */
+  #text-zoom-btn {
+    position: fixed;
+    right: 20px;
+    bottom: 90px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #0b090f;
+    border: 2px solid #a066ff; /* Фирменный фиолетовый неон */
+    color: #a066ff;
+    box-shadow: 0 0 10px rgba(160, 102, 255, 0.4);
+    cursor: pointer;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 18px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  #text-zoom-btn.active {
+    background: #a066ff;
+    color: #0b090f;
+    box-shadow: 0 0 20px #a066ff;
+  }
+
+  /* Всплывающая подсказка слева от кнопки */
+  #text-zoom-tooltip {
+    position: fixed;
+    right: 80px;
+    bottom: 100px;
+    background: #0b090f;
+    border: 1px solid #a066ff;
+    color: #e2daf0;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: monospace;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    z-index: 999999;
+    pointer-events: none;
+    /* Анимация плавного появления */
+    opacity: 0;
+    transform: translate3d(20px, 0, 0);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+  #text-zoom-tooltip.show {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  /* Класс активации режима инспектора текста */
+  body.text-zoom-mode .wrapper p,
+  body.text-zoom-mode .wrapper h1,
+  body.text-zoom-mode .wrapper h4 {
+    cursor: zoom-in;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), text-shadow 0.25s ease, box-shadow 0.25s ease !important;
+    transform-origin: left center;
+  }
+
+  /* Эффект увеличения в 3 раза при удержании */
+  body.text-zoom-mode .wrapper p.zoomed-active,
+  body.text-zoom-mode .wrapper h1.zoomed-active,
+  body.text-zoom-mode .wrapper h4.zoomed-active {
+    transform: scale(3);
+    text-shadow: 0 0 10px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
+    color: #ffffff !important;
+    position: relative;
+    z-index: 9999;
+  }
 </style>
 
-<!-- Элемент лупы -->
-<div id="super-simple-lens"></div>
+<!-- Кнопка Аа -->
+<button id="text-zoom-btn">Аа</button>
 
-<!-- Скрипт, который просто двигает её за курсором -->
+<!-- Подсказка -->
+<div id="text-zoom-tooltip">Удержите палец на строке, чтобы увеличить её</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const lens = document.getElementById('super-simple-lens');
-  
-  // Показываем лупу при движении мыши и прячем, если курсор ушел
-  document.addEventListener('mousemove', (e) => {
-    lens.style.display = 'block';
-    // Центрируем прямоугольник по курсору
-    lens.style.left = (e.clientX - 100) + 'px';
-    lens.style.top = (e.clientY - 75) + 'px';
-  });
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("text-zoom-btn");
+    const tooltip = document.getElementById("text-zoom-tooltip");
+    let isModeActive = false;
 
-  document.addEventListener('mouseleave', () => {
-    lens.style.display = 'none';
-  });
+    // Включение/выключение режима по клику на "Аа"
+    btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        isModeActive = !isModeActive;
+        
+        if (isModeActive) {
+            btn.classList.add("active");
+            document.body.classList.add("text-zoom-mode");
+            
+            // Показываем подсказку
+            tooltip.classList.add("show");
+            // Автоматически прячем подсказку через 4 секунды, чтобы не мешала
+            setTimeout(() => {
+                tooltip.classList.remove("show");
+            }, 4000);
+        } else {
+            btn.classList.remove("active");
+            document.body.classList.remove("text-zoom-mode");
+            tooltip.classList.remove("show");
+            
+            // Сбрасываем активные увеличения, если режим выключили посреди удержания
+            document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
+        }
+    });
+
+    // Функция активации увеличения
+    function zoomIn(element) {
+        if (!isModeActive) return;
+        element.classList.add("zoomed-active");
+    }
+
+    // Функция сброса увеличения
+    function zoomOut(element) {
+        element.classList.remove("zoomed-active");
+    }
+
+    // Навешиваем события на все текстовые элементы внутри контента (.wrapper)
+    const textElements = document.querySelectorAll(".wrapper p, .wrapper h1, .wrapper h4");
+
+    textElements.forEach(el => {
+        // --- События для Мобилок (Тач-скрин) ---
+        el.addEventListener("touchstart", () => zoomIn(el), { passive: true });
+        el.addEventListener("touchend", () => zoomOut(el), { passive: true });
+        el.addEventListener("touchcancel", () => zoomOut(el), { passive: true });
+
+        // --- События для ПК (Мышь) ---
+        el.addEventListener("mousedown", () => zoomIn(el));
+        el.addEventListener("mouseup", () => zoomOut(el));
+        el.addEventListener("mouseleave", () => zoomOut(el));
+    });
 });
 </script>
