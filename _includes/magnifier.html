@@ -1,4 +1,4 @@
-<!-- Стили для кнопки Аа, подсказки и эффекта увеличения строк -->
+<!-- Стили для адаптивного увеличения строк без наложения -->
 <style>
   /* Фиксированная фиолетовая кнопка "Аа" в углу */
   #text-zoom-btn {
@@ -9,7 +9,7 @@
     height: 50px;
     border-radius: 50%;
     background: #0b090f;
-    border: 2px solid #a066ff; /* Фирменный фиолетовый неон */
+    border: 2px solid #a066ff;
     color: #a066ff;
     box-shadow: 0 0 10px rgba(160, 102, 255, 0.4);
     cursor: pointer;
@@ -44,7 +44,6 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
     z-index: 999999;
     pointer-events: none;
-    /* Анимация плавного появления */
     opacity: 0;
     transform: translate3d(20px, 0, 0);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -55,24 +54,32 @@
     transform: translate3d(0, 0, 0);
   }
 
-  /* Класс активации режима инспектора текста */
+  /* Режим инспектора текста: включаем плавную анимацию для свойств размера */
   body.text-zoom-mode .wrapper p,
   body.text-zoom-mode .wrapper h1,
   body.text-zoom-mode .wrapper h4 {
     cursor: zoom-in;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), text-shadow 0.25s ease, box-shadow 0.25s ease !important;
-    transform-origin: left center;
+    /* Анимируем fontSize и lineHeight вместо transform, чтобы соседние блоки раздвигались */
+    transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                text-shadow 0.3s ease, 
+                color 0.3s ease !important;
   }
 
-  /* Эффект увеличения в 3 раза при удержании */
-  body.text-zoom-mode .wrapper p.zoomed-active,
+  /* Эффект честного увеличения строки в 3 раза за счет размера шрифта */
+  body.text-zoom-mode .wrapper p.zoomed-active {
+    font-size: 48px !important; /* Увеличиваем базовый текст (обычно 16px) ровно в 3 раза */
+    line-height: 1.2 !important;
+    text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
+    color: #ffffff !important;
+  }
+
   body.text-zoom-mode .wrapper h1.zoomed-active,
   body.text-zoom-mode .wrapper h4.zoomed-active {
-    transform: scale(3);
-    text-shadow: 0 0 10px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
+    font-size: 56px !important; /* Корректировка для заголовков */
+    line-height: 1.2 !important;
+    text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(160, 102, 255, 0.5) !important;
     color: #ffffff !important;
-    position: relative;
-    z-index: 9999;
   }
 </style>
 
@@ -88,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tooltip = document.getElementById("text-zoom-tooltip");
     let isModeActive = false;
 
-    // Включение/выключение режима по клику на "Аа"
     btn.addEventListener("click", (e) => {
         e.preventDefault();
         isModeActive = !isModeActive;
@@ -96,10 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isModeActive) {
             btn.classList.add("active");
             document.body.classList.add("text-zoom-mode");
-            
-            // Показываем подсказку
             tooltip.classList.add("show");
-            // Автоматически прячем подсказку через 4 секунды, чтобы не мешала
             setTimeout(() => {
                 tooltip.classList.remove("show");
             }, 4000);
@@ -107,33 +110,28 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.remove("active");
             document.body.classList.remove("text-zoom-mode");
             tooltip.classList.remove("show");
-            
-            // Сбрасываем активные увеличения, если режим выключили посреди удержания
             document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
         }
     });
 
-    // Функция активации увеличения
     function zoomIn(element) {
         if (!isModeActive) return;
         element.classList.add("zoomed-active");
     }
 
-    // Функция сброса увеличения
     function zoomOut(element) {
         element.classList.remove("zoomed-active");
     }
 
-    // Навешиваем события на все текстовые элементы внутри контента (.wrapper)
     const textElements = document.querySelectorAll(".wrapper p, .wrapper h1, .wrapper h4");
 
     textElements.forEach(el => {
-        // --- События для Мобилок (Тач-скрин) ---
+        // Поддержка мобильных тач-скринов
         el.addEventListener("touchstart", () => zoomIn(el), { passive: true });
         el.addEventListener("touchend", () => zoomOut(el), { passive: true });
         el.addEventListener("touchcancel", () => zoomOut(el), { passive: true });
 
-        // --- События для ПК (Мышь) ---
+        // Поддержка мыши на ПК
         el.addEventListener("mousedown", () => zoomIn(el));
         el.addEventListener("mouseup", () => zoomOut(el));
         el.addEventListener("mouseleave", () => zoomOut(el));
