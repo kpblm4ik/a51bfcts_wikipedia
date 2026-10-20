@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isZoomModeActive) return;
     
     // Ищем, был ли клик по тексту внутри .wrapper
-    const textEl = e.target.closest("p, h1, h2, h3, h4, h5, h6");
+    const textEl = e.target.closest("p, h1, h2, h3, h4, h5, h6, li");
     
     // Дополнительная проверка, чтобы клик случайно не сработал на кнопках меню
     if (textEl && !e.target.closest("#neo-corner-widget")) {
