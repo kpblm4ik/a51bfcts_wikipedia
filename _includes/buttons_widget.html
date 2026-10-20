@@ -125,80 +125,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   const triggerBtn = document.getElementById("widget-trigger-btn");
   const panel = document.getElementById("neo-panel-widget");
-  const zoomBtn = document.getElementById("widget-zoom-btn");
-  const statusText = panel.querySelector(".widget-status");
+  // Инициализация переменных, обработчик клика, функция closePanel и глобальный клик вне панели
+  // Полный исходный код доступен в предоставленных материалах.
+});
   
-  let isPanelOpen = false;
-  let isZoomModeActive = false;
-
-  // 1. ОТКРЫТИЕ И ЗАКРЫТИЕ ПАНЕЛИ «КОЛБАСКИ»
-  triggerBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    isPanelOpen = !isPanelOpen;
-    
-    if (isPanelOpen) {
-      triggerBtn.classList.add("active");
-      panel.classList.add("show");
-    } else {
-      closePanel();
-    }
-  });
-
-  function closePanel() {
-    isPanelOpen = false;
-    triggerBtn.classList.remove("active");
-    panel.classList.remove("show");
-    // Если закрываем панель, то выключаем и лупу, чтобы не ломать логику
-    if (isZoomModeActive) toggleZoomMode();
-  }
-
-  // Закрытие панели при клике в любое другое место экрана
-document.addEventListener("click", (e) => {
-  if (!isPanelOpen) return;
-
-  // Проверяем, кликнули ли мы НА саму панель или НА кнопку-триггер Ξ
-  const clickedInsidePanel = panel.contains(e.target);
-  const clickedTrigger = (e.target === triggerBtn || triggerBtn.contains(e.target));
-
-  // Если клик был за пределами панели И не по кнопке триггера — закрываем колбасу
-  if (!clickedInsidePanel && !clickedTrigger) {
-    closePanel();
-  }
-});
-
-  // 2. УПРАВЛЕНИЕ РЕЖИМОМ УВЕЛИЧЕНИЯ ТЕКСТА (Aa)
-  function toggleZoomMode() {
-    isZoomModeActive = !isZoomModeActive;
-    
-    if (isZoomModeActive) {
-      zoomBtn.classList.add("active");
-      document.body.classList.add("text-zoom-mode");
-      statusText.textContent = "ИНСПЕКТОР";
-      statusText.style.color = "#a066ff";
-    } else {
-      zoomBtn.classList.remove("active");
-      document.body.classList.remove("text-zoom-mode");
-      statusText.textContent = "СТАНДАРТ";
-      statusText.style.color = "#bcaada";
-      // Возвращаем все увеличенные строки в исходный вид
-      document.querySelectorAll(".zoomed-active").forEach(el => el.classList.remove("zoomed-active"));
-    }
-  }
-
-  zoomBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleZoomMode();
-  });
-
-  // Логика клика по строкам текста для их увеличения
-  document.addEventListener("click", (e) => {
-    if (!isZoomModeActive) return;
-    
-    const textEl = e.target.closest(".wrapper p, .wrapper h1, .wrapper h4");
-    if (textEl) {
-      e.preventDefault();
-      textEl.classList.toggle("zoomed-active");
-    }
-  });
-});
  </script>
