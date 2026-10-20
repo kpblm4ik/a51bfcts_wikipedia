@@ -119,6 +119,22 @@
   color: #050407;
   box-shadow: 0 0 15px #a066ff;
 }
+
+  /* Включаем указатель-палец при наведении в режиме инспектора */
+body.text-zoom-mode .wrapper p,
+body.text-zoom-mode .wrapper h4 {
+  cursor: pointer !important;
+}
+
+/* Этот селектор жестко перебьет main.css и увеличит текст */
+body.text-zoom-mode .wrapper .main-sector-card .card-text .zoomed-active,
+body.text-zoom-mode .wrapper p.zoomed-active,
+body.text-zoom-mode .wrapper h4.zoomed-active {
+  font-size: 38px !important;
+  line-height: 1.25 !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 20px #a066ff, 0 0 8px rgba(160, 102, 255, 0.6) !important;
+}
 </style>
   
 <script>
