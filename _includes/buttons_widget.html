@@ -119,19 +119,24 @@
   color: #050407;
   box-shadow: 0 0 15px #a066ff;
 }
-
-  /* Включаем указатель-палец при наведении в режиме инспектора */
+  
+/* Делаем курсор-палец для абсолютно всех текстовых элементов в режиме инспектора */
+body.text-zoom-mode .wrapper h1,
+body.text-zoom-mode .wrapper h2,
+body.text-zoom-mode .wrapper h3,
+body.text-zoom-mode .wrapper h4,
 body.text-zoom-mode .wrapper p,
-body.text-zoom-mode .wrapper h4 {
+body.text-zoom-mode .wrapper li {
   cursor: pointer !important;
 }
 
-/* Этот селектор жестко перебьет main.css и увеличит текст */
-body.text-zoom-mode .wrapper .main-sector-card .card-text .zoomed-active,
+/* Абсолютно неуязвимый селектор: увеличит любой выбранный элемент внутри .wrapper, перебивая main.css */
+body.text-zoom-mode .wrapper .zoomed-active,
+body.text-zoom-mode .wrapper * .zoomed-active,
 body.text-zoom-mode .wrapper p.zoomed-active,
 body.text-zoom-mode .wrapper h4.zoomed-active {
-  font-size: 38px !important;
-  line-height: 1.25 !important;
+  font-size: 36px !important;
+  line-height: 1.3 !important;
   color: #ffffff !important;
   text-shadow: 0 0 20px #a066ff, 0 0 8px rgba(160, 102, 255, 0.6) !important;
 }
