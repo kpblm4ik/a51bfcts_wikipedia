@@ -123,6 +123,9 @@
   
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  const tBtn = document.getElementById("widget-trigger-btn");
+  const pnl = document.getElementById("neo-panel-widget");
+  if(tBtn && pnl) tBtn.onclick = (e) => { e.stopPropagation(); tBtn.classList.toggle("active"); pnl.classList.toggle("show"); };
   let zoomBtn = null;
   let statusText = null;
   let isZoomModeActive = false;
