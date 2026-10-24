@@ -8,6 +8,10 @@ custom_css: /css/main.css
 Добро пожаловать в архив катушек!
 
 <div class="items-grid">
-  <!-- Карточки катушки призыва и пиксельного кликера с их параметрами -->
-  <!-- Полный HTML-код доступен в исходных материалах -->
+    <a href="summoncoil.html" class="item-card">
+    <img src="Screenshot_20261005_180602.jpg" alt="Summon Coil">
+    <h3>Катушка призыва</h3>
+    <p>🏃 Скорость: 60</p>
+    <p>🦘 Прыжок: 16</p>
+  </a>
 </div>
