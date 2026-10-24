@@ -1,4 +1,5 @@
 ---
+layout: default
 title: Главная — a51bfcts Вики
 custom_css: /css/main.css
 ---
@@ -15,3 +16,10 @@ custom_css: /css/main.css
     <p>🦘 Прыжок: 16</p>
   </a>
 </div>
+  <div class="item-card">
+    <img src="Screenshot_20261005_180545.jpg" alt="Pixel Clicker">
+    <h3>Пиксельный кликер</h3>
+    <p>🏃 Скорость: ??</p>
+    <p>🦘 Прыжок: ??</p>
+  </div>
+  
