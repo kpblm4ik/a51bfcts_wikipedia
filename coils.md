@@ -1,12 +1,8 @@
-<link rel="stylesheet" href="style.css">
-
-<style>
-  /* Локально тушим остатки каймана для этой страницы */
-  .page-header, .site-footer { display: none !important; }
-  .main-content { padding: 0 !important; }
-</style>
-
-<div class="main-wrapper">
+---
+layout: default
+title: Главная — a51bfcts Вики
+custom_css: /css/main.css
+---
   
   <!-- ================= РУССКИЙ ЯЗЫК ================= -->
   <div lang="ru">
