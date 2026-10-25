@@ -1,27 +1,38 @@
 <!-- Главный контейнер виджета в правом нижнем углу -->
 <div id="neo-corner-widget">
   
-  <!-- Вылетающая вверх «колбаска» с кнопками (вернули правильный ID) -->
+  <!-- Основная круглая кнопка-триггер (теперь первая в коде для правильной работы Flexbox) -->
+  <button id="widget-trigger-btn" title="Открыть меню">Ξ</button>
+
+  <!-- Вылетающая вверх «колбаска» с кнопками -->
   <div id="neo-panel-widget">
     <!-- Текст статуса для инспектора (нужен для JS) -->
     <div class="widget-status">СТАНДАРТ</div>
     
     <!-- Кнопка инспектора текста -->
     <button id="widget-zoom-btn" title="Режим инспектора текста">Aa</button>
-    
-    <!-- Сюда в будущем будем докидывать новые кнопки -->
-  </div>
 
-  <!-- Основная круглая кнопка-триггер -->
-  <button id="widget-trigger-btn" title="Открыть меню">Ξ</button>
+    <!-- Кнопка поиска -->
+    <button id="widget-search-btn" title="Поиск по Вики">⌕</button>
+  </div>
 </div>
 
 <style>
-/* Круглая фиксированная кнопка в самом углу экрана */
-#widget-trigger-btn {
+/* Общий контейнер, который теперь контролирует положение и рост меню снизу вверх */
+#neo-corner-widget {
   position: fixed;
   right: 20px;
   bottom: 20px;
+  display: flex;
+  flex-direction: column-reverse; /* Разворачивает элементы: триггер снизу, панель растет вверх */
+  align-items: center;
+  gap: 15px; /* Задает точный отступ между круглой кнопкой и выезжающей панелью */
+  z-index: 9999999 !important;
+}
+
+/* Круглая фиксированная кнопка */
+#widget-trigger-btn {
+  position: relative; /* Убрали fixed, так как родитель уже зафиксирован */
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -30,7 +41,6 @@
   color: #a066ff;
   box-shadow: 0 0 12px rgba(160, 102, 255, 0.4);
   cursor: pointer;
-  z-index: 9999999 !important; /* Поверх абсолютно всего на сайте */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,29 +55,28 @@
   background: #a066ff;
   color: #0b090f;
   box-shadow: 0 0 20px #a066ff;
-  transform: rotate(90deg); /* Красивый поворот иконки при клике */
+  transform: rotate(90deg);
 }
+
 /* Вылетающая вверх панель-колбаска */
 #neo-panel-widget {
-  position: fixed;
-  right: 20px;
-  bottom: 85px; /* Находится ровно над круглой кнопкой */
+  position: relative; /* Убрали fixed и жесткий bottom: 85px */
   width: 60px;
   background: rgba(11, 9, 15, 0.95);
   border: 1px solid rgba(160, 102, 255, 0.6);
-  border-radius: 30px; /* Округлая форма колбаски */
+  border-radius: 30px;
   padding: 15px 5px;
   box-sizing: border-box;
-  z-index: 9999998 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   
-  /* Эффект испарения наоборот при появлении */
+  /* Эффект выезжания: точка трансформации теперь строго внизу панели */
   opacity: 0;
   filter: blur(10px);
-  transform: translate3d(0, 20px, 0) scale(0.9);
+  transform: translateY(30px) scale(0.5); /* Панель сжата и утоплена внутрь кнопки */
+  transform-origin: bottom center; /* Анимация идет от нижней точки */
   pointer-events: none;
   transition: 
     opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -81,7 +90,7 @@
 #neo-panel-widget.show {
   opacity: 1;
   filter: blur(0px);
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translateY(0) scale(1); /* Плавно вытягивается вверх */
   pointer-events: auto;
 }
 
@@ -97,7 +106,7 @@
   margin-bottom: 4px;
 }
 
-/* Кнопки внутри колбаски (например, Aa) */
+/* Кнопки внутри колбаски (Aa) */
 #widget-zoom-btn {
   width: 40px;
   height: 40px;
@@ -120,7 +129,7 @@
   box-shadow: 0 0 15px #a066ff;
 }
   
-/* Делаем курсор-палец для абсолютно всех текстовых элементов в режиме инспектора */
+/* Инспектор текста */
 body.text-zoom-mode .wrapper h1,
 body.text-zoom-mode .wrapper h2,
 body.text-zoom-mode .wrapper h3,
@@ -130,7 +139,6 @@ body.text-zoom-mode .wrapper li {
   cursor: pointer !important;
 }
 
-/* Абсолютно неуязвимый селектор: увеличит любой выбранный элемент внутри .wrapper, перебивая main.css */
 body.text-zoom-mode .wrapper .zoomed-active,
 body.text-zoom-mode .wrapper * .zoomed-active,
 body.text-zoom-mode .wrapper p.zoomed-active,
@@ -139,6 +147,28 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   line-height: 1.3 !important;
   color: #ffffff !important;
   text-shadow: 0 0 20px #a066ff, 0 0 8px rgba(160, 102, 255, 0.6) !important;
+}
+
+/* Стили Поиска (поправлен баг с пробелом в transition) */
+#widget-search-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #050407;
+  border: 1px solid #a066ff;
+  color: #a066ff;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease; /* Убран лишний пробел */
+  box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#widget-search-btn:hover {
+  background: rgba(160, 102, 255, 0.2);
+  box-shadow: 0 0 12px #a066ff;
 }
 </style>
   
