@@ -25,3 +25,10 @@ custom_css: /css/main.css
 <div style="text-align: center; margin-top: 20px;">
   <a href="index.html" class="lang-btn"> На Главную</a>
 </div>
+
+<style>
+  .items-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+</style>
