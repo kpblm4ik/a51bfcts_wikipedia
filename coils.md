@@ -27,8 +27,31 @@ custom_css: /css/main.css
 </div>
 
 <style>
+/* Делаем так, чтобы бирюзовая вспышка при тапе аккуратно скруглялась по форме карточки */
+.item-card {
+  border-radius: 12px !important;
+}
+
+/* Делаем картинки крупнее и удерживаем квадратные пропорции 1:1 */
+.item-card img {
+  max-width: 100% !important; 
+  width: 100% !important;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* Сетка по 2 в ряд для мобильных и планшетов (до 1024px) */
+@media (max-width: 1024px) {
   .items-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+/* На совсем крошечных экранах (до 360px) возвращаем в 1 колонку */
+@media (max-width: 360px) {
+  .items-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 </style>
