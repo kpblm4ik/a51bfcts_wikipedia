@@ -8,5 +8,5 @@ custom_css: /css/main.css
 
 <div class="item-card">
 <img src="Screenshot_20261006_083912.jpg" alt="Summon Coil">
-<img src="Screenshot_20261006_083941.jpg
+<img src="Screenshot_20261006_083941.jpg"
 alt="Summon Coil">
