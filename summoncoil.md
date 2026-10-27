@@ -16,7 +16,7 @@ custom_css: /css/main.css
     <h3 style="color: #ffffff; text-align: center; text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(138, 43, 226, 0.8); margin-bottom: 20px;">
         🎨 База цветов кубиков
     </h3>
-    <canvas id="coilsCanvas" width="600" style="display: block; margin: 0 auto; max-width: 100%;"></canvas>
+    <canvas id="coilsCanvas" width="600" style="display: block; margin: 0 auto; max-width: 100%; height: auto;"></canvas>
 </div>
 
 <script>
@@ -69,9 +69,8 @@ const PAD_Y = 50;
 const totalRows = Math.ceil(COIL_COLORS.length / COLS);
 canvas.height = totalRows * (BRICK_H + PAD_Y + TEXT_SPACE) + PAD_Y;
 
-// Белый фон внутри канваса
-ctx.fillStyle = "#FFFFFF";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+// Полная очистка холста (делает его прозрачным под цвет сайта)
+ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 COIL_COLORS.forEach((item, idx) => {
     const col = idx % COLS;
@@ -87,7 +86,7 @@ COIL_COLORS.forEach((item, idx) => {
     ctx.lineWidth = 3;
     ctx.strokeRect(bx, by, BRICK_W, BRICK_H);
     
-            // Плоские вдавленные ячейки с мягкими тенями и бликами (как на первом фото)
+    // Плоские вдавленные ячейки со светотенями
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 2; c++) {
             const cx = bx + c * STUD + STUD / 2;
@@ -98,35 +97,36 @@ COIL_COLORS.forEach((item, idx) => {
             const ry = cy - size / 2;
             const radius = 6; // Скругление углов
 
-            ctx.save(); // Сохраняем состояние для теней
+            ctx.save();
 
-            // 1. Рисуем белую подложку (светлая фаска снизу и справа)
+            // 1. Белая фаска-блик (снизу и справа)
             ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(rx + 1, ry + 1, size, size, radius);
             else ctx.rect(rx + 1, ry + 1, size, size);
             ctx.fill();
 
-            // 2. Накладываем основную темную ячейку с размытой черной тенью
-            ctx.shadowColor = "rgba(0, 0, 0, 0.65)"; // Черная размазанная тень
-            ctx.shadowBlur = 4;                       // Степень размытия
-            ctx.shadowOffsetX = 1.5;                  // Смещение вправо
-            ctx.shadowOffsetY = 1.5;                  // Смещение вниз
+            // 2. Черная размытая внутренняя тень (сверху и слева)
+            ctx.shadowColor = "rgba(0, 0, 0, 0.7)"; 
+            ctx.shadowBlur = 4;                       
+            ctx.shadowOffsetX = 1.5;                  
+            ctx.shadowOffsetY = 1.5;                  
             
-            // Цвет самого дна ячейки (чуть темнее кубика)
+            // Дно вдавленной ячейки
             ctx.fillStyle = adjustColor(item.hex, 0.75);
             ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(rx, ry, size, size, radius);
             else ctx.rect(rx, ry, size, size);
             ctx.fill();
 
-            ctx.restore(); // Сбрасываем тени, чтобы они не портили другие элементы
+            ctx.restore(); 
         }
     }
     
-        // Подписи под кубиками в стиле main.css
+    // Подписи под кубиками в стиле main.css
     ctx.fillStyle = "#bcaada";
     ctx.font = "14px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(item.name, bx + BRICK_W / 2, by + BRICK_H + 25);
+});
 </script>
