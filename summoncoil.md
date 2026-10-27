@@ -85,7 +85,7 @@ COIL_COLORS.forEach((item, idx) => {
     ctx.lineWidth = 3;
     ctx.strokeRect(bx, by, BRICK_W, BRICK_H);
     
-        // Вдавленные ячейки (эффект шоколадки с фото)
+            // Плоские вдавленные ячейки с мягкими тенями и бликами (как на первом фото)
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 2; c++) {
             const cx = bx + c * STUD + STUD / 2;
@@ -96,18 +96,29 @@ COIL_COLORS.forEach((item, idx) => {
             const ry = cy - size / 2;
             const radius = 6; // Скругление углов
 
-            // 1. Рисуем внутреннюю тень ячейки (вдавленный эффект)
-            ctx.fillStyle = adjustColor(item.hex, 0.65);
+            ctx.save(); // Сохраняем состояние для теней
+
+            // 1. Рисуем белую подложку (светлая фаска снизу и справа)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.beginPath();
-            ctx.roundRect ? ctx.roundRect(rx, ry, size, size, radius) : ctx.rect(rx, ry, size, size);
+            if (ctx.roundRect) ctx.roundRect(rx + 1, ry + 1, size, size, radius);
+            else ctx.rect(rx + 1, ry + 1, size, size);
             ctx.fill();
 
-            // 2. Рисуем светлую фаску (блик) на дне для объема
-            ctx.strokeStyle = adjustColor(item.hex, 1.3);
-            ctx.lineWidth = 2;
+            // 2. Накладываем основную темную ячейку с размытой черной тенью
+            ctx.shadowColor = "rgba(0, 0, 0, 0.65)"; // Черная размазанная тень
+            ctx.shadowBlur = 4;                       // Степень размытия
+            ctx.shadowOffsetX = 1.5;                  // Смещение вправо
+            ctx.shadowOffsetY = 1.5;                  // Смещение вниз
+            
+            // Цвет самого дна ячейки (чуть темнее кубика)
+            ctx.fillStyle = adjustColor(item.hex, 0.75);
             ctx.beginPath();
-            ctx.roundRect ? ctx.roundRect(rx + 1, ry + 1, size - 2, size - 2, radius - 1) : ctx.rect(rx + 1, ry + 1, size - 2, size - 2);
-            ctx.stroke();
+            if (ctx.roundRect) ctx.roundRect(rx, ry, size, size, radius);
+            else ctx.rect(rx, ry, size, size);
+            ctx.fill();
+
+            ctx.restore(); // Сбрасываем тени, чтобы они не портили другие элементы
         }
     }
     
