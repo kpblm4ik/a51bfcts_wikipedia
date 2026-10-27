@@ -12,9 +12,11 @@ custom_css: /css/main.css
 </div>
 
 <!-- Блок генератора в фиолетовой рамке -->
-<div style="border: 3px solid #6B1F8A; border-radius: 12px; padding: 20px; margin-top: 30px; background-color: rgba(107, 31, 138, 0.05); text-align: center;">
-    <h3 style="color: #6B1F8A; margin-top: 0; font-family: sans-serif;">🎨 База цветов кубиков</h3>
-    <canvas id="coilsCanvas" width="1200" height="450" style="max-width: 100%; height: auto; border-radius: 6px; background-color: #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></canvas>
+<div class="main-sector-card">
+    <h3 style="color: #ffffff; text-align: center; text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(138, 43, 226, 0.8); margin-bottom: 20px;">
+        🎨 База цветов кубиков
+    </h3>
+    <canvas id="coilsCanvas" width="600" style="display: block; margin: 0 auto; max-width: 100%;"></canvas>
 </div>
 
 <script>
@@ -122,11 +124,9 @@ COIL_COLORS.forEach((item, idx) => {
         }
     }
     
-    // Подписи под кубиками
-    ctx.fillStyle = "#1A1A1A";
-    ctx.font = "bold 20px sans-serif";
+        // Подписи под кубиками в стиле main.css
+    ctx.fillStyle = "#bcaada";
+    ctx.font = "14px sans-serif";
     ctx.textAlign = "center";
-    // Выводим название цвета по центру под кубиком
-    ctx.fillText(item.name, bx + BRICK_W / 2, by + BRICK_H + 28);
-});
+    ctx.fillText(item.name, bx + BRICK_W / 2, by + BRICK_H + 25);
 </script>
