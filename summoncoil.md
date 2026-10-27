@@ -85,17 +85,29 @@ COIL_COLORS.forEach((item, idx) => {
     ctx.lineWidth = 3;
     ctx.strokeRect(bx, by, BRICK_W, BRICK_H);
     
-    // Пины (студы)
+        // Вдавленные ячейки (эффект шоколадки с фото)
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 2; c++) {
             const cx = bx + c * STUD + STUD / 2;
             const cy = by + r * STUD + STUD / 2;
-            ctx.fillStyle = adjustColor(item.hex, 0.7);
-            ctx.beginPath(); ctx.arc(cx, cy, 21, 0, 2 * Math.PI); ctx.fill();
-            ctx.fillStyle = adjustColor(item.hex, 1.15);
-            ctx.beginPath(); ctx.arc(cx, cy, 18, 0, 2 * Math.PI); ctx.fill();
-            ctx.fillStyle = adjustColor(item.hex, 1.35);
-            ctx.beginPath(); ctx.arc(cx - 5, cy - 5, 5, 0, 2 * Math.PI); ctx.fill();
+            
+            const size = 36; // Размер ячейки
+            const rx = cx - size / 2;
+            const ry = cy - size / 2;
+            const radius = 6; // Скругление углов
+
+            // 1. Рисуем внутреннюю тень ячейки (вдавленный эффект)
+            ctx.fillStyle = adjustColor(item.hex, 0.65);
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(rx, ry, size, size, radius) : ctx.rect(rx, ry, size, size);
+            ctx.fill();
+
+            // 2. Рисуем светлую фаску (блик) на дне для объема
+            ctx.strokeStyle = adjustColor(item.hex, 1.3);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(rx + 1, ry + 1, size - 2, size - 2, radius - 1) : ctx.rect(rx + 1, ry + 1, size - 2, size - 2);
+            ctx.stroke();
         }
     }
     
