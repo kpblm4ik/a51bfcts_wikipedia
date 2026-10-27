@@ -33,7 +33,27 @@ const COIL_COLORS = [
     { hex: "#6B1F8A", name: "Пурпурный" },
     { hex: "#1A5C10", name: "Темно-зеленый" },
     { hex: "#DDD5A0", name: "Песочный" },
-    { hex: "#7A1010", name: "Бордовый" }
+    { hex: "#7A1010", name: "Бордовый" },
+    { hex: "#CC1414", name: "Ярко-красный" },
+    { hex: "#1428A0", name: "Темно-синий" },
+    { hex: "#5BC8C8", name: "Светло-бирюзовый" },
+    { hex: "#C85500", name: "Оранжевый" },
+    { hex: "#5A8A78", name: "Пастельно-зеленый" },
+    { hex: "#AACC00", name: "Лаймовый" },
+    { hex: "#6B5A4A", name: "Бурый" },
+    { hex: "#1A1A8C", name: "Глубокий синий" },
+    { hex: "#C87060", name: "Терракотовый" },
+    { hex: "#880088", name: "Фиолетовый" },
+    { hex: "#2D0035", name: "Сливовый" },
+    { hex: "#00DDE0", name: "Ярко-зеленый" },
+    { hex: "#6B6030", name: "Оливковый" },
+    { hex: "#C08878", name: "Телесно-розовый" },
+    { hex: "#FF00CC", name: "Розовый" },
+    { hex: "#1A8C00", name: "Зеленый" },
+    { hex: "#00DDEE", name: "Голубой" },
+    { hex: "#C8AEA0", name: "Бежевый" },
+    { hex: "#0000CC", name: "Чистый синий" },
+    { hex: "#4477CC", name: "Джинсовый" }
 ];
 
 const canvas = document.getElementById('coilsCanvas');
