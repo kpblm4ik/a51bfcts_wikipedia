@@ -111,47 +111,41 @@ COIL_COLORS.forEach((item, idx) => {
     
     const strokeColor = adjustColor(item.hex, 0.75);
     const innerCellColor = adjustColor(item.hex, 0.75);
-    
-    // 1. Тело кубика и его внешняя обводка
-    // Открываем группу для всего кубика целиком (теперь они связаны!)
-svgContent += `  <g class="falling-brick" data-start-x="${bx}" data-start-y="${by}">\n`;
 
-// строка с телом кубика (остается без изменений)
-svgContent += `  <rect x="${bx}" y="${by}" width="${BRICK_W}" height="${BRICK_H}" fill="${item.hex}" stroke="${strokeColor}" stroke-width="3" />\n`;
-    
+    // 1. ОТКРЫВАЕМ ГРУППУ ДЛЯ ПАСХАЛКИ (ДОБАВИЛИ СЮДА)
+    svgContent += `  <g class="falling-brick" data-start-x="${bx}" data-start-y="${by}">\n`;
+
+    // Тело кубика и его внешняя обводка
+    svgContent += `  <rect x="${bx}" y="${by}" width="${BRICK_W}" height="${BRICK_H}" fill="${item.hex}" stroke="${strokeColor}" stroke-width="3" />\n`;
+
     // 2. Генерация ячеек (2х4)
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 2; c++) {
             const cx = bx + c * STUD + STUD / 2;
             const cy = by + r * STUD + STUD / 2;
-            
             const size = 36;
             const rx = cx - size / 2;
             const ry = cy - size / 2;
-            
-            // Белая нижняя фаска-блик
-            svgContent += `  <rect x="${rx + 1}" y="${ry + 1}" width="${size}" height="${size}" rx="6" fill="rgba(255, 255, 255, 0.4)" />\n`;
-            // Сама ячейка с внутренней тенью
-            svgContent += `  <rect x="${rx}" y="${ry}" width="${size}" height="${size}" rx="6" fill="${innerCellColor}" filter="url(#inset-shadow)" />\n`;
-            
-    } // конец цикла колонок
-} // конец цикла строк
 
-// 3. Текстовая подпись под кубиком (с поддержкой переноса по дефису)
-if (item.name.includes('-')) {
-    const parts = item.name.split('-');
-    svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">
-        <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
-        <tspan x="${bx + BRICK_W / 2}" dy="18">${parts[1]}</tspan>
-    </text>\n`;
-} else {
-    svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">${item.name}</text>\n`;
-}
+            svgContent += `  <rect x="${rx}" y="${ry + 3}" width="${size}" height="${size}" rx="4" fill="${strokeColor}" opacity="0.3" />\n`;
+            svgContent += `  <rect x="${rx}" y="${ry}" width="${size}" height="${size}" rx="4" fill="${item.hex}" filter="url(#inset-shadow)" stroke="${strokeColor}" stroke-width="1.5" />\n`;
+        }
+    }
 
-// ЗАКРЫВАЕМ ГРУППУ КУБИКА (для анимации)
-svgContent += `</g>\n`; 
+    // 3. Текстовая подпись под кубиком
+    if (item.name.includes('-')) {
+        const parts = item.name.split('-');
+        svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">
+            <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
+            <tspan x="${bx + BRICK_W / 2}" dy="18">${parts[1]}</tspan>
+        </text>\n`;
+    } else {
+        svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">${item.name}</text>\n`;
+    }
+
+    svgContent += `  </g>\n`; 
 });
-
+    
 // Монтируем сгенерированный SVG в DOM
 document.getElementById('svgContainer').innerHTML = svgContent;
 
