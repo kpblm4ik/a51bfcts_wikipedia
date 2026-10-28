@@ -129,18 +129,17 @@ COIL_COLORS.forEach((item, idx) => {
         }
     }
     
-    // 3. Текстовая подпись под кубиком (с поддержкой переноса по дефису)
-if (item.name.includes('-')) {
-  const parts = item.name.split('-');
-  svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 20}" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">
-    <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
-    <tspan x="${bx + BRICK_W / 2}" dy="14">${parts[1]}</tspan>
-  </text>\n`;
-} else {
-  svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" fill="#ffffff" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">${item.name}</text>\n`;
-}
-    
-svgContent += `</svg>`;
+  // 3. Текстовая подпись под кубиком (с поддержкой переноса по дефису)
+  if (item.name.includes('-')) {
+    const parts = item.name.split('-');
+    svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 20}" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">
+      <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
+      <tspan x="${bx + BRICK_W / 2}" dy="14">${parts[1]}</tspan>
+    </text>\n`;
+  } else {
+    svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" fill="#ffffff" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">${item.name}</text>\n`;
+  }
+});
 
 // Монтируем сгенерированный SVG в DOM
 document.getElementById('svgContainer').innerHTML = svgContent;
