@@ -5,11 +5,14 @@ custom_css: /css/main.css
 ---
 
 # Катушка призыва
-
 <div class="item-card">
 <img src="Screenshot_20261006_083912.jpg" alt="Summon Coil">
 <img src="Screenshot_20261006_083941.jpg" alt="Summon Coil">
 </div>
+
+***Описание*** *- призовите случайные и бесполезные блоки с помощью заклинания*
+
+**Катушка призыва** - одна из пяти катушек, для которой требуется получение значка в игре, четыре других:[**катушка расщепления**](fissioncoil.html), [**флекс-катушка**](flexcoil.html), [**зовки-катушка**](zowkycoil.html), [**защитная катушка**](guardiancoil.html)
 
 <!-- Блок генератора в фиолетовой рамке -->
 <div class="main-sector-card">
