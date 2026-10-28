@@ -206,44 +206,119 @@ btn.addEventListener('click', () => {
 });
 
 // 4. Математика падения и отскоков
+// 1. При старте хаоса (в обработчике клика на кнопку, там где bricks.push),
+// обязательно добавь кубикам начальный угол и скорость вращения:
+// b.angle = 0;
+// b.angularVelocity = (Math.random() - 0.5) * 0.1; // случайное вращение при старте
+
 function updatePhysics() {
-    if (bricks[0] && !bricks[0].optimized) {    document.querySelectorAll('rect').forEach(rect => {        rect.removeAttribute('filter'); // Удаляем фильтр тени, который вешал процессор
-            rect.setAttribute('stroke-width', '1'); // Делаем обводку тоньше и легче
+    // Включаем оптимизацию и разрешаем вылет за рамки SVG
+    if (bricks[0] && !bricks[0].optimized) {
+        document.querySelectorAll('rect').forEach(rect => {
+            rect.removeAttribute('filter');
+            rect.setAttribute('stroke-width', '1');
         });
+        
+        // Магия: делаем SVG "прозрачным" для вылетающих кубиков
+        const svgEl = document.querySelector('svg');
+        if (svgEl) {
+            svgEl.style.overflow = 'visible';
+            svgEl.style.position = 'relative';
+            svgEl.style.zIndex = '10';
+        }
+        
+        // Инициализируем физику вращения для всех блоков
+        bricks.forEach(b => {
+            b.angle = b.angle || 0;
+            b.angularVelocity = b.angularVelocity || (Math.random() - 0.5) * 0.1;
+        });
+        
         bricks[0].optimized = true;
     }
     
-    const containerWidth = 600; // Твоя ширина из переменной WIDTH
-    const containerHeight = HEIGHT; // Твоя высота из переменной HEIGHT
+    // Получаем реальные размеры экрана телефона, чтобы кубики летали по всей странице!
+    const containerWidth = window.innerWidth; 
+    const containerHeight = document.documentElement.scrollHeight || window.innerHeight;
 
     bricks.forEach((b) => {
-        // Если телефон лежит ровно, они просто падают вниз (сила 0.4)
         let gravityX = shakeX;
         let gravityY = (shakeY === 0) ? 0.4 : shakeY;
 
         b.vx += gravityX;
         b.vy += gravityY;
 
-        // Легкое трение воздуха, чтобы блоки не разгонялись до звуковых скоростей
         b.vx *= 0.98;
         b.vy *= 0.98;
+        b.angularVelocity *= 0.98; // Торможение вращения воздухом
 
         b.x += b.vx;
         b.y += b.vy;
+        b.angle += b.angularVelocity; // Меняем угол поворота
 
-        // Отскок от левой и правой границ сайта
-        if (b.x < 0) { b.x = 0; b.vx *= -0.6; }
-        if (b.x + b.w > containerWidth) { b.x = containerWidth - b.w; b.vx *= -0.6; }
+        // --- ФИЗИКА ОТСКОКОВ И ВРАЩЕНИЯ ---
+        
+        // Отскок от левой стены экрана
+        if (b.x < 0) { 
+            b.x = 0; 
+            b.vx *= -0.6; 
+            b.angularVelocity += b.vy * 0.002; // Удар закручивает блок!
+        }
+        // Отскок от правой стены экрана
+        if (b.x + b.w > containerWidth) { 
+            b.x = containerWidth - b.w; 
+            b.vx *= -0.6; 
+            b.angularVelocity -= b.vy * 0.002;
+        }
+        // Отскок от потолка
+        if (b.y < 0) { 
+            b.y = 0; 
+            b.vy *= -0.6; 
+            b.angularVelocity += b.vx * 0.002;
+        }
+        
+        // Отскок от пола страницы (Засыпание дна)
+        if (b.y + b.h > containerHeight) { 
+            b.y = containerHeight - b.h; 
+            b.vy *= -0.4; // Мягкий отскок, чтобы они оседали
+            b.vx *= 0.8;  // Трение о пол
+            b.angularVelocity *= 0.5; // Затухание кручения
+            
+            // Если скорость совсем маленькая — блок "засыпает"
+            if (Math.abs(b.vy) < 0.2) b.vy = 0;
+        }
 
-        // Отскок от пола и потолка страницы
-        if (b.y < 0) { b.y = 0; b.vy *= -0.6; }
-        if (b.y + b.h > containerHeight) { b.y = containerHeight - b.h; b.vy *= -0.6; }
+        // --- СТОЛКНОВЕНИЯ МЕЖДУ КУБИКАМИ (Простая засыпка грудой) ---
+        bricks.forEach((other) => {
+            if (b === other) return; // Не сталкиваемся сами с собой
+            
+            // Проверяем расстояние между центрами кубиков
+            let dx = other.x - b.x;
+            let dy = other.y - b.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Если кубики слишком близко друг к другу (наползают)
+            let minDist = b.w * 0.9; 
+            if (distance < minDist && distance > 0) {
+                let overlap = minDist - distance;
+                // Расталкиваем их в стороны
+                let nx = dx / distance;
+                let ny = dy / distance;
+                
+                b.x -= nx * overlap * 0.5;
+                b.y -= ny * overlap * 0.5;
+                
+                // Передаем импульс скорости друг другу
+                b.vx *= -0.5;
+                b.vy *= -0.5;
+                b.angularVelocity += (b.vx - other.vx) * 0.005; // Закручивание при столкновении
+            }
+        });
 
-        // Двигаем кирпичик на новые координаты
-        b.element.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        // ПРИМЕНЯЕМ СРАЗУ И ПОЗИЦИЮ, И ПОВОРОТ
+        // Магия translate + rotate заставит кубик крутиться вокруг своей оси!
+        b.element.style.transform = `translate(${b.x}px, ${b.y}px) rotate(${b.angle}rad)`;
+        b.element.style.transformOrigin = 'center'; // Крутим ровно по центру
     });
 
-    // Повторяем на следующем кадре анимации
     requestAnimationFrame(updatePhysics);
 }
-</script>
