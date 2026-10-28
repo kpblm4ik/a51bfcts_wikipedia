@@ -207,6 +207,12 @@ btn.addEventListener('click', () => {
 
 // 4. Математика падения и отскоков
 function updatePhysics() {
+    if (bricks[0] && !bricks[0].optimized) {    document.querySelectorAll('rect').forEach(rect => {        rect.removeAttribute('filter'); // Удаляем фильтр тени, который вешал процессор
+            rect.setAttribute('stroke-width', '1'); // Делаем обводку тоньше и легче
+        });
+        bricks[0].optimized = true;
+    }
+    
     const containerWidth = 600; // Твоя ширина из переменной WIDTH
     const containerHeight = HEIGHT; // Твоя высота из переменной HEIGHT
 
