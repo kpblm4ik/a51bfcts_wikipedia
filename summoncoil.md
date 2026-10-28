@@ -113,7 +113,11 @@ COIL_COLORS.forEach((item, idx) => {
     const innerCellColor = adjustColor(item.hex, 0.75);
     
     // 1. Тело кубика и его внешняя обводка
-    svgContent += `  <rect x="${bx}" y="${by}" width="${BRICK_W}" height="${BRICK_H}" fill="${item.hex}" stroke="${strokeColor}" stroke-width="3" />\n`;
+    // Открываем группу для всего кубика целиком (теперь они связаны!)
+svgContent += `  <g class="falling-brick" data-start-x="${bx}" data-start-y="${by}">\n`;
+
+// строка с телом кубика (остается без изменений)
+svgContent += `  <rect x="${bx}" y="${by}" width="${BRICK_W}" height="${BRICK_H}" fill="${item.hex}" stroke="${strokeColor}" stroke-width="3" />\n`;
     
     // 2. Генерация ячеек (2х4)
     for (let r = 0; r < 4; r++) {
@@ -129,21 +133,117 @@ COIL_COLORS.forEach((item, idx) => {
             svgContent += `  <rect x="${rx + 1}" y="${ry + 1}" width="${size}" height="${size}" rx="6" fill="rgba(255, 255, 255, 0.4)" />\n`;
             // Сама ячейка с внутренней тенью
             svgContent += `  <rect x="${rx}" y="${ry}" width="${size}" height="${size}" rx="6" fill="${innerCellColor}" filter="url(#inset-shadow)" />\n`;
-        }
-    }
-    
-  // 3. Текстовая подпись под кубиком (с поддержкой переноса по дефису)
-  if (item.name.includes('-')) {
+            
+    } // конец цикла колонок
+} // конец цикла строк
+
+// 3. Текстовая подпись под кубиком (с поддержкой переноса по дефису)
+if (item.name.includes('-')) {
     const parts = item.name.split('-');
-    svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 20}" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">
-      <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
-      <tspan x="${bx + BRICK_W / 2}" dy="14">${parts[1]}</tspan>
+    svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">
+        <tspan x="${bx + BRICK_W / 2}" dy="0">${parts[0]}-</tspan>
+        <tspan x="${bx + BRICK_W / 2}" dy="18">${parts[1]}</tspan>
     </text>\n`;
-  } else {
-    svgContent += `<text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" fill="#ffffff" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">${item.name}</text>\n`;
-  }
+} else {
+    svgContent += `  <text x="${bx + BRICK_W / 2}" y="${by + BRICK_H + 25}" font-family="monospace" font-size="14" fill="#AAA" text-anchor="middle">${item.name}</text>\n`;
+}
+
+// ЗАКРЫВАЕМ ГРУППУ КУБИКА (для анимации)
+svgContent += `</g>\n`; 
 });
 
 // Монтируем сгенерированный SVG в DOM
 document.getElementById('svgContainer').innerHTML = svgContent;
+
+// ========================================================
+// ЛОГИКА ДЛЯ ПАСХАЛКИ (ДОБАВЛЯЕМ КНОПКУ И ФИЗИКУ ПАДЕНИЯ)
+// ========================================================
+
+// 1. Создаем и добавляем кнопку «НЕ ТРОГАТЬ» прямо над картой
+const btn = document.createElement('button');
+btn.innerText = 'НЕ ТРОГАТЬ';
+btn.style.cssText = 'display:block; margin: 10px auto; padding: 10px 20px; background: #222; color: #ff3333; border: 1px solid #ff3333; font-family: monospace; font-size: 14px; cursor: pointer; font-weight: bold;';
+document.getElementById('svgContainer').before(btn);
+
+let isChaos = false;
+let bricks = [];
+let shakeX = 0;
+let shakeY = 0;
+
+// 2. Слушаем наклон и тряску телефона (Акселерометр)
+if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', (event) => {
+        if (!isChaos) return;
+        // Считываем положение телефона в пространстве
+        shakeX = (event.accelerationIncludingGravity.x || 0) * -1.2;
+        shakeY = (event.accelerationIncludingGravity.y || 0) * 1.2;
+    });
+}
+
+// 3. Активация хаоса при клике на кнопку
+btn.addEventListener('click', () => {
+    if (isChaos) return;
+    isChaos = true;
+    btn.innerText = 'ЧТО ТЫ НАДЕЛАЛ?!';
+    btn.style.color = '#00ff00';
+    btn.style.borderColor = '#00ff00';
+
+    // Находим все кубики на странице
+    const brickElements = document.querySelectorAll('.falling-brick');
+    
+    brickElements.forEach((el) => {
+        // Запоминаем стартовые позиции, которые выдал твой скрипт
+        const startX = parseFloat(el.getAttribute('data-start-x'));
+        const startY = parseFloat(el.getAttribute('data-start-y'));
+        
+        bricks.push({
+            element: el,
+            x: startX,
+            y: startY,
+            vx: (Math.random() - 0.5) * 15, // Случайный толчок вбок при старте
+            vy: (Math.random() - 0.5) * 15, // Случайный толчок вверх/вниз
+            w: 110, // Приблизительная ширина кубика с отступами
+            h: 260  // Высота кубика вместе с текстом
+        });
+    });
+
+    // Запускаем бесконечный цикл падения
+    requestAnimationFrame(updatePhysics);
+});
+
+// 4. Математика падения и отскоков
+function updatePhysics() {
+    const containerWidth = 600; // Твоя ширина из переменной WIDTH
+    const containerHeight = HEIGHT; // Твоя высота из переменной HEIGHT
+
+    bricks.forEach((b) => {
+        // Если телефон лежит ровно, они просто падают вниз (сила 0.4)
+        let gravityX = shakeX;
+        let gravityY = (shakeY === 0) ? 0.4 : shakeY;
+
+        b.vx += gravityX;
+        b.vy += gravityY;
+
+        // Легкое трение воздуха, чтобы блоки не разгонялись до звуковых скоростей
+        b.vx *= 0.98;
+        b.vy *= 0.98;
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Отскок от левой и правой границ сайта
+        if (b.x < 0) { b.x = 0; b.vx *= -0.6; }
+        if (b.x + b.w > containerWidth) { b.x = containerWidth - b.w; b.vx *= -0.6; }
+
+        // Отскок от пола и потолка страницы
+        if (b.y < 0) { b.y = 0; b.vy *= -0.6; }
+        if (b.y + b.h > containerHeight) { b.y = containerHeight - b.h; b.vy *= -0.6; }
+
+        // Двигаем кирпичик на новые координаты
+        b.element.style.transform = `translate(${b.x}px, ${b.y}px)`;
+    });
+
+    // Повторяем на следующем кадре анимации
+    requestAnimationFrame(updatePhysics);
+}
 </script>
