@@ -1,0 +1,12 @@
+name: 🗑️ Удалить/Исправить цвет катушки
+description: Автоматическое создание PR на удаление цвета из списка
+title: "[REMOVE]: Удаление цвета"
+labels: ["auto-pr", "remove-color"]
+body:
+  - type: input
+    id: hex_code
+    attributes:
+      label: HEX-код удаляемого цвета
+      placeholder: "#FF00CC"
+    validations:
+      required: true
