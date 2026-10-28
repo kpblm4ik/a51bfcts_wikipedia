@@ -18,7 +18,6 @@ custom_css: /css/main.css
 <!-- Блок генератора в фиолетовой рамке -->
 <div class="main-sector-card">
     <h3 style="color: #ffffff; text-align: center; text-shadow: 0 0 15px #a066ff, 0 0 5px rgba(138, 43, 226, 0.8); margin-bottom: 20px;">
-        🎨 База цветов кубиков
         Все цвета блоков
     </h3>
     <div id="svgContainer" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
