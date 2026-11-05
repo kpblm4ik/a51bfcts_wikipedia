@@ -14,10 +14,25 @@ custom_css: /css/main.css
     <h3>Катушка призыва</h3>
   </a>
 
-  <div class="item-card">
-    <img src="Screenshot_20261005_180545.jpg" alt="None">
-    <h3>Пока пусто</h3>
-  </div>
+  <a href="fissioncoil.html" class="item-card">
+    <img src="Screenshot_20261005_180545.jpg" alt="Fission Coil">
+    <h3>Катушка расщепления</h3>
+  </a>
+
+  <a href="flexcoil.html" class="item-card">
+    <img src="Screenshot_20261005_180545.jpg" alt="Flex Coil">
+    <h3>Флекс-катушка</h3>
+  </a>
+
+  <a href="zowkycoil.html" class="item-card">
+    <img src="Screenshot_20261005_180545.jpg" alt="Zowky Coil">
+    <h3>Зовки-катушка</h3>
+  </a>
+
+  <a href="guardiancoil.html" class="item-card">
+    <img src="Screenshot_20261005_180545.jpg" alt="Guardian Coil">
+    <h3>Защитная катушка</h3>
+  </a>
 </div>
 
 <br>
