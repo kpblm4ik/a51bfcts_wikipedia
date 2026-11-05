@@ -41,7 +41,7 @@ custom_css: /css/main.css
 <h1 style="font-family: 'Rubik Mono One', sans-serif; font-size: 24px; color: #ff3333; text-shadow: 0 0 10px #ff3333;">🩸 Палочка ho_rr&c wand</h1>
 
 <div class="photo-row">
-  <div class="photo-col"><img src="IMG_20261008_194233.jpg" alt="ho_rr&c wand"></div>
+  <div class="photo-col"><img src="IMG_20261008_194233.avif" alt="ho_rr&c wand"></div>
 </div>
 
 <!-- СТРОГАЯ КАРТОЧКА ПРЕДМЕТА -->
