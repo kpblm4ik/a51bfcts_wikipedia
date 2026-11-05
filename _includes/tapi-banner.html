@@ -5,6 +5,11 @@
   var K_NEVER = 'tapi-never';        // отмечено "Get out playa!"
   var K_SESSION = 'tapi-session';    // этот визит уже обработан
 
+  // Страны, где плашка НЕ показывается: РФ, Беларусь, Украина, Казахстан, Кыргызстан,
+  // Узбекистан, Таджикистан, Туркменистан, Армения.
+  // Абхазия и Южная Осетия отдельных кодов в базах IP не имеют (обычно это GE), см. ниже.
+  var EXCLUDED = ['RU', 'BY', 'UA', 'KZ', 'KG', 'UZ', 'TJ', 'TM', 'AM'];
+
   // Отладка: добавьте к адресу ?tapi-debug, и на экране появится журнал работы скрипта.
   // Также: ?tapi-reset (сброс счётчика/галочки) и ?tapi-country=NL (подмена страны).
   var DEBUG = /[?&]tapi-debug/.test(location.search);
@@ -25,7 +30,7 @@
   function get(s, k) { try { return s.getItem(k); } catch (e) { return 'ERR:' + e; } }
   function put(s, k, v) { try { s.setItem(k, v); return true; } catch (e) { log('storage write failed: ' + e); return false; } }
 
-  log('banner script loaded (v3)');
+  log('banner script loaded (v4)');
 
   if (/[?&]tapi-reset/.test(location.search)) {
     try {
@@ -108,7 +113,7 @@
     var country = await detectCountry();
     if (!country) { log('STOP: country not detected (all providers failed, maybe blocked by an ad blocker)'); return; }
     put(sessionStorage, K_SESSION, '1');
-    if (country === 'RU') { log('STOP: country is RU, no banner'); return; }
+    if (EXCLUDED.indexOf(country) !== -1) { log('STOP: country ' + country + ' is excluded, no banner'); return; }
 
     var prev = parseInt(get(localStorage, K_COUNT) || '0', 10) || 0;
     put(localStorage, K_COUNT, String(prev + 1));
