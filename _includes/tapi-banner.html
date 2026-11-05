@@ -5,30 +5,52 @@
   var K_NEVER = 'tapi-never';        // отмечено "Get out playa!"
   var K_SESSION = 'tapi-session';    // этот визит уже обработан
 
-  function get(s, k) { try { return s.getItem(k); } catch (e) { return null; } }
-  function put(s, k, v) { try { s.setItem(k, v); } catch (e) {} }
+  // Отладка: добавьте к адресу ?tapi-debug, и на экране появится журнал работы скрипта.
+  // Также: ?tapi-reset (сброс счётчика/галочки) и ?tapi-country=NL (подмена страны).
+  var DEBUG = /[?&]tapi-debug/.test(location.search);
+  var logLines = [];
+  var logBox = null;
+  function log(msg) {
+    logLines.push(msg);
+    if (!DEBUG) return;
+    if (!logBox) {
+      logBox = document.createElement('pre');
+      logBox.style.cssText = 'position:fixed;top:0;left:0;right:0;max-height:45vh;overflow:auto;margin:0;' +
+        'z-index:2147483647;background:#000;color:#0f0;font:11px/1.3 monospace;padding:6px;white-space:pre-wrap';
+      document.documentElement.appendChild(logBox);
+    }
+    logBox.textContent = logLines.join('\n');
+  }
 
-  // Для проверки: добавьте к адресу ?tapi-reset (сброс) и/или ?tapi-country=NL (подмена страны)
+  function get(s, k) { try { return s.getItem(k); } catch (e) { return 'ERR:' + e; } }
+  function put(s, k, v) { try { s.setItem(k, v); return true; } catch (e) { log('storage write failed: ' + e); return false; } }
+
+  log('banner script loaded (v3)');
+
   if (/[?&]tapi-reset/.test(location.search)) {
     try {
       localStorage.removeItem(K_COUNT);
       localStorage.removeItem(K_NEVER);
       sessionStorage.removeItem(K_SESSION);
-    } catch (e) {}
+      log('storage reset');
+    } catch (e) { log('reset failed: ' + e); }
   }
 
-  if (get(localStorage, K_NEVER)) return;
-  if (get(sessionStorage, K_SESSION)) return;
+  var never = get(localStorage, K_NEVER);
+  var sess = get(sessionStorage, K_SESSION);
+  log('never=' + never + ' session=' + sess + ' count=' + get(localStorage, K_COUNT));
+  if (never) { log('STOP: "Get out playa!" was checked earlier (add ?tapi-reset)'); return; }
+  if (sess) { log('STOP: this visit already handled (open in a new tab or add ?tapi-reset)'); return; }
 
   var providers = [
-    { url: 'https://api.country.is/', pick: function (d) { return d.country; } },
-    { url: 'https://ipwho.is/', pick: function (d) { return d.success === false ? null : d.country_code; } },
-    { url: 'https://ipapi.co/json/', pick: function (d) { return d.country_code || d.country; } }
+    { name: 'country.is', url: 'https://api.country.is/', pick: function (d) { return d.country; } },
+    { name: 'ipwho.is', url: 'https://ipwho.is/', pick: function (d) { return d.success === false ? null : d.country_code; } },
+    { name: 'ipapi.co', url: 'https://ipapi.co/json/', pick: function (d) { return d.country_code || d.country; } }
   ];
 
   function fetchJson(url) {
     var ctrl = window.AbortController ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 4000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 5000);
     return fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
       clearTimeout(timer);
       return r.json();
@@ -37,13 +59,16 @@
 
   async function detectCountry() {
     var m = location.search.match(/[?&]tapi-country=([A-Za-z]{2})/);
-    if (m) return m[1].toUpperCase();
+    if (m) { log('country forced via URL: ' + m[1]); return m[1].toUpperCase(); }
     for (var i = 0; i < providers.length; i++) {
       try {
         var d = await fetchJson(providers[i].url);
         var c = providers[i].pick(d);
+        log(providers[i].name + ' -> ' + (c || 'no country') + ' (ip ' + (d.ip || '?') + ')');
         if (c) return String(c).toUpperCase();
-      } catch (e) {}
+      } catch (e) {
+        log(providers[i].name + ' FAILED: ' + e);
+      }
     }
     return null;
   }
@@ -81,12 +106,13 @@
 
   (async function () {
     var country = await detectCountry();
-    if (!country) return;                      // страну определить не удалось: ничего не показываем
-    put(sessionStorage, K_SESSION, '1');       // визит учтён
-    if (country === 'RU') return;
+    if (!country) { log('STOP: country not detected (all providers failed, maybe blocked by an ad blocker)'); return; }
+    put(sessionStorage, K_SESSION, '1');
+    if (country === 'RU') { log('STOP: country is RU, no banner'); return; }
 
     var prev = parseInt(get(localStorage, K_COUNT) || '0', 10) || 0;
     put(localStorage, K_COUNT, String(prev + 1));
+    log('SHOWING banner for ' + country + ' (checkbox: ' + (prev >= 1) + ')');
     showBanner(prev >= 1);
   })();
 })();
