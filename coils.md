@@ -10,27 +10,27 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="summoncoil.html" class="item-card">
-    <img src="Screenshot_20261006_083912.avif" alt="Summon Coil">
+    <img src="images/Screenshot_20261006_083912.avif" alt="Summon Coil">
     <h3>Катушка призыва</h3>
   </a>
 
   <a href="fissioncoil.html" class="item-card">
-    <img src="Screenshot_20261005_180545.avif" alt="Fission Coil">
+    <img src="images/Screenshot_20261005_180545.avif" alt="Fission Coil">
     <h3>Катушка расщепления</h3>
   </a>
 
   <a href="flexcoil.html" class="item-card">
-    <img src="Screenshot_20261005_180545.avif" alt="Flex Coil">
+    <img src="images/Screenshot_20261005_180545.avif" alt="Flex Coil">
     <h3>Флекс-катушка</h3>
   </a>
 
   <a href="zowkycoil.html" class="item-card">
-    <img src="Screenshot_20261005_180545.avif" alt="Zowky Coil">
+    <img src="images/Screenshot_20261005_180545.avif" alt="Zowky Coil">
     <h3>Зовки-катушка</h3>
   </a>
 
   <a href="guardiancoil.html" class="item-card">
-    <img src="Screenshot_20261005_180545.avif" alt="Guardian Coil">
+    <img src="images/Screenshot_20261005_180545.avif" alt="Guardian Coil">
     <h3>Защитная катушка</h3>
   </a>
 </div>
