@@ -1,0 +1,19 @@
+name: Добавить новый цвет кубика
+description: Автоматическое создание PR на добавление цвета
+title: "[ADD]: Новый цвет"
+labels: ["auto-pr", "add-color"]
+body:
+  - type: input
+    id: hex_code
+    attributes:
+      label: HEX-код цвета
+      placeholder: "#FF00CC"
+    validations:
+      required: true
+  - type: input
+    id: color_name
+    attributes:
+      label: Название цвета на русском
+      placeholder: "Розовый"
+    validations:
+      required: true

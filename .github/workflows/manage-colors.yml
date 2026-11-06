@@ -1,0 +1,104 @@
+name: ⚙️ Авто-модерация цветов катушки
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  process-color:
+    if: contains(github.event.issue.labels.*.name, 'auto-pr')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверка репозитория
+        uses: actions/checkout@v4
+
+      - name: Парсинг полей формы
+        uses: eddiehubcommunity/issue-forms-body-parser@v2.2.0
+        id: parse
+        with:
+          issue-number: ${{ github.event.issue.number }}
+
+      - name: Модификация массива COIL_COLORS через Node.js
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'summoncoil.md';
+            let content = fs.readFileSync(path, 'utf8');
+            
+            // Получаем распарсенные данные из формы
+            const parsedData = JSON.parse('${{ steps.parse.outputs.jsonData }}');
+            const hex = parsedData['hex-код-цвета'] || parsedData['hex-код-удаляемого-цвета'];
+            const name = parsedData['название-цвета-на-русском'];
+            
+            const cleanHex = hex.trim().toUpperCase();
+            const cleanName = name ? name.trim() : '';
+
+            // Регулярка для поиска массива COIL_COLORS
+            const startMarker = 'const COIL_COLORS = [';
+            const endMarker = '];';
+            
+            let startIndex = content.indexOf(startMarker);
+            let endIndex = content.indexOf(endMarker, startIndex);
+            
+            if (startIndex === -1 || endIndex === -1) {
+              core.setFailed('Не удалось найти массив COIL_COLORS в файле!');
+              return;
+            }
+            
+            let arrayContent = content.substring(startIndex + startMarker.length, endIndex);
+            
+            // Парсим текущие элементы
+            let items = [];
+            const regex = /\{\s*hex:\s*"([^"]+)"\s*,\s*name:\s*"([^"]+)"\s*\}/g;
+            let match;
+            while ((match = regex.exec(arrayContent)) !== null) {
+              items.push({ hex: match[1].toUpperCase(), name: match[2] });
+            }
+
+            const isRemove = '${{ contains(github.event.issue.labels.*.name, 'remove-color') }}' === 'true';
+
+            if (isRemove) {
+              // Логика удаления
+              items = items.filter(item => item.hex !== cleanHex);
+            } else {
+              // Логика добавления (избегаем дубликатов по HEX)
+              items = items.filter(item => item.hex !== cleanHex);
+              items.push({ hex: cleanHex, name: cleanName });
+            }
+
+            // Собираем массив обратно в красивый текстовый вид
+            let newArrayStr = '\n' + items.map(item => `    { hex: "${item.hex}", name: "${item.name}" }`).join(',\n') + '\n  ';
+            
+            let newContent = content.substring(0, startIndex + startMarker.length) + newArrayStr + content.substring(endIndex);
+            fs.writeFileSync(path, newContent, 'utf8');
+
+      - name: Создание Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "auto: обновление палитры из Issue #${{ github.event.issue.number }}"
+          branch: "update-colors-issue-${{ github.event.issue.number }}"
+          title: "Авто-Правка: Изменение палитры цветов (Issue #${{ github.event.issue.number }})"
+          body: |
+            Этот Pull Request создан автоматически на основе обращения #${{ github.event.issue.number }}.
+            Проверьте корректность изменений в файле `summoncoil.md`.
+          labels: |
+            automated pr
+            ready-to-review
+
+      - name: Закрытие оригинального Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Робот успешно обработал ваш запрос и создал Pull Request на рассмотрение владельцу репозитория!'
+            });
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });

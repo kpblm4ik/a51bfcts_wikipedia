@@ -1,0 +1,3 @@
+{% if site.tapi.enabled %}
+<script src="{{ site.tapi.src }}" data-scope="{{ site.tapi.scope | default: 'body' }}"{% if site.tapi.phrases %} data-phrases="{{ site.tapi.phrases }}"{% endif %} defer></script>
+{% endif %}

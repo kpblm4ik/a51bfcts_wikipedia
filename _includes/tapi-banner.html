@@ -1,0 +1,94 @@
+{% if page.name == 'index.md' %}
+<script>
+(function () {
+  var K_COUNT = 'tapi-shown-count';  // сколько раз плашка уже показывалась
+  var K_NEVER = 'tapi-never';        // отмечено "Get out playa!"
+  var K_SESSION = 'tapi-session';    // этот визит уже обработан
+
+  function get(s, k) { try { return s.getItem(k); } catch (e) { return null; } }
+  function put(s, k, v) { try { s.setItem(k, v); } catch (e) {} }
+
+  // Для проверки: добавьте к адресу ?tapi-reset (сброс) и/или ?tapi-country=NL (подмена страны)
+  if (/[?&]tapi-reset/.test(location.search)) {
+    try {
+      localStorage.removeItem(K_COUNT);
+      localStorage.removeItem(K_NEVER);
+      sessionStorage.removeItem(K_SESSION);
+    } catch (e) {}
+  }
+
+  if (get(localStorage, K_NEVER)) return;
+  if (get(sessionStorage, K_SESSION)) return;
+
+  var providers = [
+    { url: 'https://api.country.is/', pick: function (d) { return d.country; } },
+    { url: 'https://ipwho.is/', pick: function (d) { return d.success === false ? null : d.country_code; } },
+    { url: 'https://ipapi.co/json/', pick: function (d) { return d.country_code || d.country; } }
+  ];
+
+  function fetchJson(url) {
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 4000);
+    return fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+      clearTimeout(timer);
+      return r.json();
+    });
+  }
+
+  async function detectCountry() {
+    var m = location.search.match(/[?&]tapi-country=([A-Za-z]{2})/);
+    if (m) return m[1].toUpperCase();
+    for (var i = 0; i < providers.length; i++) {
+      try {
+        var d = await fetchJson(providers[i].url);
+        var c = providers[i].pick(d);
+        if (c) return String(c).toUpperCase();
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function showBanner(withCheckbox) {
+    var bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:12px;right:84px;bottom:12px;z-index:2147483646;' +
+      'background:#222;color:#fff;padding:12px 40px 12px 14px;border-radius:10px;' +
+      'font:14px/1.4 sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+
+    bar.innerHTML =
+      'Don\'t understand what\'s written here? Download extension ' +
+      '<b>tapi-extension.zip</b> in repo ' +
+      '<a style="color:#6cf" target="_blank" rel="noopener" ' +
+      'href="https://github.com/kpblm4ik/TAPI-Translating-Application-Programming-Interface-">' +
+      'kpblm4ik/TAPI-Translating-Application-Programming-Interface-</a>' +
+      '<span id="tapi-x" style="position:absolute;right:12px;top:8px;cursor:pointer;font-size:18px">\u2715</span>' +
+      (withCheckbox
+        ? '<label style="display:block;margin-top:8px;cursor:pointer">' +
+          '<input type="checkbox" id="tapi-never"> Get out playa!</label>'
+        : '');
+
+    document.documentElement.appendChild(bar);
+
+    bar.querySelector('#tapi-x').onclick = function () { bar.remove(); };
+
+    var cb = bar.querySelector('#tapi-never');
+    if (cb) cb.onchange = function () {
+      if (cb.checked) {
+        put(localStorage, K_NEVER, '1');
+        bar.remove();
+      }
+    };
+  }
+
+  (async function () {
+    var country = await detectCountry();
+    if (!country) return;                      // страну определить не удалось: ничего не показываем
+    put(sessionStorage, K_SESSION, '1');       // визит учтён
+    if (country === 'RU') return;
+
+    var prev = parseInt(get(localStorage, K_COUNT) || '0', 10) || 0;
+    put(localStorage, K_COUNT, String(prev + 1));
+    showBanner(prev >= 1);
+  })();
+})();
+</script>
+{% endif %}
