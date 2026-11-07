@@ -54,6 +54,43 @@ window.FX = (function () {
     }
     return s + '</g>';
   }
+  /* Внешний контур фигуры по маске: occ(x, y) — занята ли клетка сетки w×h.
+     Берутся только клетки, которые касаются «наружи» (области, доступной с края сетки),
+     поэтому дырки и внутренние просветы между витками частиц не рождают.
+     Возвращает [[x, y, nx, ny], ...] в клетках сетки, нормаль сглажена по окну 5×5. */
+  function outline(w, h, occ, limit) {
+    const W = w + 2, H = h + 2, g = new Uint8Array(W * H), out = new Uint8Array(W * H), D = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (occ(x, y)) g[(y + 1) * W + x + 1] = 1;
+    const st = [0]; out[0] = 1;
+    while (st.length) {
+      const i = st.pop(), x = i % W, y = (i / W) | 0;
+      for (const d of D) {
+        const nx = x + d[0], ny = y + d[1];
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const j = ny * W + nx;
+        if (!g[j] && !out[j]) { out[j] = 1; st.push(j); }
+      }
+    }
+    const pts = [];
+    for (let y = 1; y <= h; y++) for (let x = 1; x <= w; x++) {
+      if (!g[y * W + x]) continue;
+      let ex = 0, ey = 0, edge = false;
+      for (const d of D) if (out[(y + d[1]) * W + x + d[0]]) { edge = true; ex += d[0]; ey += d[1]; }
+      if (!edge) continue;
+      let mx = 0, my = 0;
+      for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) {
+        const yy = y + j, xx = x + i;
+        if (yy >= 0 && yy < H && xx >= 0 && xx < W && g[yy * W + xx]) { mx += i; my += j; }
+      }
+      let nx = -mx, ny = -my;
+      const l = Math.hypot(nx, ny);
+      if (l < 0.5 || (nx * ex + ny * ey) < 0) { nx = ex; ny = ey; } else { nx /= l; ny /= l; }
+      const m = Math.hypot(nx, ny) || 1;
+      pts.push([x - 0.5 + Math.sign(ex) * 0.5, y - 0.5 + Math.sign(ey) * 0.5, nx / m, ny / m]);
+    }
+    const lim = limit || 300, step = Math.ceil(pts.length / lim);
+    return step > 1 ? pts.filter((_, i) => i % step === 0) : pts;
+  }
   /* Подключает блок «Эффекты» (id: fx, fxn, fxsp, fxauto, fxcol) к объекту состояния o */
   function bind(o, cb) {
     const $ = q => document.querySelector(q), sel = $('#fx');
@@ -66,5 +103,5 @@ window.FX = (function () {
     $('#fxauto').onchange = e => { o.auto = e.target.checked; cb(); };
     $('#fxcol').oninput = e => { o.col = e.target.value; cb(); };
   }
-  return { MAX, TYPES, svg, bind };
+  return { MAX, TYPES, svg, bind, outline };
 })();

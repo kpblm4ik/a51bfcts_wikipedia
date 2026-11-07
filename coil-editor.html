@@ -4,7 +4,7 @@ title: Редактор катушки — a51bfcts Вики
 custom_css: /css/main.css
 ---
 <div id="cfg" data-src="{{ '/images/covers/coil.svg' | relative_url }}" hidden></div>
-<script src="{{ '/js/fx.js' | relative_url }}"></script>
+<script src="{{ '/js/fx.js' | relative_url }}?v=2"></script>
 {% raw %}
 <style>
   .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
@@ -96,7 +96,7 @@ custom_css: /css/main.css
     <label><input type="checkbox" id="fxauto" checked> цвета из картинки</label>
     <label>Свой цвет <input type="color" id="fxcol" value="#ffffff"></label>
   </div>
-  <p class="hint">Частицы вылетают строго с контура каждой катушки и следуют за её положением, размером и поворотом. Больше 40 частиц не бывает: так обложка не нагружает телефон.</p>
+  <p class="hint">Частицы вылетают строго с внешнего контура каждой катушки (по той форме, какую она реально имеет) и следуют за её положением, размером и поворотом. Больше 40 частиц не бывает: так обложка не нагружает телефон.</p>
 </div>
 
 <div class="ed-card">
@@ -256,7 +256,7 @@ function helix(n) {
   }
   return { f: f.trim(), b: b.trim(), sf: Math.max(0.3, Math.pow(pf, 0.6)) };
 }
-/* точки на внешнем контуре катушки в координатах холста + внешняя нормаль (для эффектов) */
+/* запасной вариант (если браузер не умеет Path2D): точки по эллипсам витков */
 function coilPts(c, m) {
   const G = GEO, n = c.turns, pf = Math.min(1, 4 / Math.max(1, n - 1)), sf = Math.max(0.3, Math.pow(pf, 0.6));
   const k = c.size / 100, a = (c.rot || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), out = [];
@@ -270,6 +270,24 @@ function coilPts(c, m) {
     out.push([c.cx + k * (x * ca - y * sa), c.cy + k * (x * sa + y * ca), rx * ca - ry * sa, rx * sa + ry * ca]);
   }
   return out;
+}
+/* внешний контур всех катушек: рисуем их в маску теми же витками, поворотом и размером, берём только границу с внешней стороны */
+function coilOutline() {
+  const N = 200, sc = N / 400, cv = document.createElement('canvas');
+  cv.width = cv.height = N;
+  const x = cv.getContext('2d', { willReadFrequently: true });
+  x.setTransform(sc, 0, 0, sc, 0, 0);
+  x.strokeStyle = '#fff'; x.lineCap = 'round'; x.lineJoin = 'round';
+  S.coils.forEach(c => {
+    const h = helix(c.turns), k = c.size / 100;
+    x.save();
+    x.translate(c.cx, c.cy); x.rotate((c.rot || 0) * Math.PI / 180); x.scale(k, k); x.translate(-200, -200);
+    x.lineWidth = 14 * h.sf;
+    x.stroke(new Path2D(h.f)); x.stroke(new Path2D(h.b));
+    x.restore();
+  });
+  const d = x.getImageData(0, 0, N, N).data;
+  return FX.outline(N, N, (i, j) => d[(j * N + i) * 4 + 3] > 40, 400).map(p => [p[0] / sc, p[1] / sc, p[2], p[3]]);
 }
 function coilSVG(c, i) {
   const h = helix(c.turns), sf = h.sf, k = c.size / 100, w = v => (v * sf).toFixed(1);
@@ -290,7 +308,10 @@ function buildMulti() {
   loadCur();
   const o = S.fxo, cols = o.auto ? [...new Set(S.coils.flatMap(c => c.stops.map(p => p.c)))] : [o.col];
   let pts = [];
-  if (o.type !== 'none') { const m = Math.max(12, Math.round(90 / S.coils.length)); S.coils.forEach(c => { pts = pts.concat(coilPts(c, m)); }); }
+  if (o.type !== 'none') {
+    try { if (window.FX && FX.outline) pts = coilOutline(); } catch (e) { pts = []; }
+    if (!pts.length) { const m = Math.max(12, Math.round(90 / S.coils.length)); S.coils.forEach(c => { pts = pts.concat(coilPts(c, m)); }); }
+  }
   const sc = Math.max(0.6, S.coils.reduce((a, c) => a + c.size, 0) / S.coils.length / 100);
   const fx = window.FX ? FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, scale: sc, pts: pts, seed: 7 }) : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Катушка">' +

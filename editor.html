@@ -3,7 +3,7 @@ layout: default
 title: Редактор обложек — a51bfcts Вики
 custom_css: /css/main.css
 ---
-<script src="{{ '/js/fx.js' | relative_url }}"></script>
+<script src="{{ '/js/fx.js' | relative_url }}?v=2"></script>
 {% raw %}
 <style>
   .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
@@ -309,18 +309,10 @@ const FXS = { type: 'none', n: 12, sp: 1, auto: true, col: '#ffffff' };
 function perimPts() {
   const occ = new Set();
   layers.forEach(l => { if (l.vis) l.px.forEach((c, k) => { const q = parse(k); if (q[0] < W && q[1] < H) occ.add(k); }); });
-  const pts = [];
-  occ.forEach(k => {
-    const q = parse(k);
-    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => {
-      if (!occ.has(key(q[0] + d[0], q[1] + d[1]))) pts.push([q[0] + 0.5 + d[0] * 0.5, q[1] + 0.5 + d[1] * 0.5, d[0], d[1]]);
-    });
-  });
-  const st = Math.ceil(pts.length / 300);
-  return st > 1 ? pts.filter((_, i) => i % st === 0) : pts;
+  return FX.outline(W, H, (x, y) => occ.has(key(x, y)), 300);
 }
 function fxSVG() {
-  if (!window.FX || FXS.type === 'none') return '';
+  if (!window.FX || !FX.outline || FXS.type === 'none') return '';
   const cols = FXS.auto ? [...new Set(layers.filter(l => l.vis).flatMap(l => [...l.px.values()]))].slice(0, 8) : [FXS.col];
   return FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, scale: 1.6, pts: perimPts(), seed: 7 });
 }
