@@ -4,6 +4,7 @@ title: Редактор катушки — a51bfcts Вики
 custom_css: /css/main.css
 ---
 <div id="cfg" data-src="{{ '/images/covers/coil.svg' | relative_url }}" hidden></div>
+<script src="{{ '/js/fx.js' | relative_url }}"></script>
 {% raw %}
 <style>
   .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
@@ -37,6 +38,20 @@ custom_css: /css/main.css
 </div>
 
 <div class="ed-card">
+  <h3>Катушки на холсте</h3>
+  <div class="ed-row">
+    <select id="coilSel"></select>
+    <button class="ed-btn" id="addCoil">➕ Добавить</button>
+    <button class="ed-btn" id="delCoil">🗑 Удалить</button>
+  </div>
+  <div class="ed-row"><label>Спирали (1–20) <input type="number" id="turns" min="1" max="20" value="5"></label></div>
+  <div class="ed-row"><label style="flex:1">X <input type="range" id="cx" min="0" max="400" value="200"></label></div>
+  <div class="ed-row"><label style="flex:1">Y <input type="range" id="cy" min="0" max="400" value="200"></label></div>
+  <div class="ed-row"><label style="flex:1">Размер, % <input type="range" id="size" min="20" max="150" value="100"></label></div>
+  <p class="hint">Максимум 6 катушек. Чем больше спиралей, тем теснее витки: длина катушки не растёт. «Добавить» и «Удалить» заново расставляют катушки по сетке. Цвета ниже относятся к выбранной катушке.</p>
+</div>
+
+<div class="ed-card">
   <h3>Цвета и переливы</h3>
   <div class="ed-row" id="presets"></div>
   <div id="bar"></div>
@@ -67,6 +82,20 @@ custom_css: /css/main.css
   </div>
   <div class="ed-row" id="durRow"><label style="flex:1">Длительность круга, сек <input type="range" id="dur" min="1" max="20" value="6"> <span id="durV">6</span></label></div>
   <p class="hint">«Поток» лучше смотрится с короткой «Длиной перелива» и несколькими цветами. Анимация зациклена без шва.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Эффекты</h3>
+  <div class="ed-row">
+    <label>Эффект <select id="fx"></select></label>
+    <label>Количество (0–40) <input type="number" id="fxn" min="0" max="40" value="12"></label>
+  </div>
+  <div class="ed-row"><label style="flex:1">Скорость <input type="range" id="fxsp" min="0.3" max="3" step="0.1" value="1"></label></div>
+  <div class="ed-row">
+    <label><input type="checkbox" id="fxauto" checked> цвета из картинки</label>
+    <label>Свой цвет <input type="color" id="fxcol" value="#ffffff"></label>
+  </div>
+  <p class="hint">Эффекты анимированы внутри SVG. Больше 40 частиц не бывает: так обложка не нагружает телефон.</p>
 </div>
 
 <div class="ed-card">
@@ -118,7 +147,8 @@ function gradientSVG() {
   }
   return s + '    </linearGradient>';
 }
-function buildSVG() {
+function buildSVG() { return buildMulti(); }
+function buildSVGOld() {
   let s = TPL.replace(/<linearGradient id="g"[\s\S]*?<\/linearGradient>/, () => gradientSVG());
   s = s.replace(/stroke="#[0-9a-fA-F]{3,8}"/, () => 'stroke="' + S.hl + '"');
   s = s.replace(/<rect width="400" height="400" fill="[^"]*"\/>/, () => S.clear ? '' : '<rect width="400" height="400" fill="' + S.bg + '"/>');
@@ -179,6 +209,92 @@ $('#bg').addEventListener('input', e => { S.bg = e.target.value; refresh(); });
 $('#clear').addEventListener('change', e => { S.clear = e.target.checked; refresh(); });
 $('#anim').addEventListener('change', e => { S.anim = e.target.value; $('#durRow').style.display = S.anim === 'none' ? 'none' : ''; refresh(); });
 $('#dur').addEventListener('input', e => { S.dur = +e.target.value; $('#durV').textContent = S.dur; refresh(); });
+
+/* ---------- несколько катушек, спирали, эффекты ---------- */
+const GEO = { e1: [65.55, 58.9], e2: [-26.5, 20.5], P: [26.4, -31.45], C: [197.05, 192.2] };
+const POS = {
+  1: [[200, 200, 100]],
+  2: [[110, 200, 62], [290, 200, 62]],
+  3: [[200, 105, 50], [105, 290, 50], [295, 290, 50]],
+  4: [[105, 105, 50], [295, 105, 50], [105, 295, 50], [295, 295, 50]],
+  5: [[100, 100, 46], [300, 100, 46], [200, 200, 46], [100, 300, 46], [300, 300, 46]],
+  6: [[75, 110, 40], [200, 110, 40], [325, 110, 40], [75, 290, 40], [200, 290, 40], [325, 290, 40]]
+};
+S.coils = []; S.sel = 0; S.fxo = { type: 'none', n: 12, sp: 1, auto: true, col: '#ffffff' };
+const mkCoil = src => ({ stops: src.stops.map(p => ({ c: p.c, o: p.o })), ang: src.ang, len: src.len, turns: 5, cx: 200, cy: 200, size: 100 });
+function saveCur() {
+  if (!S.coils.length) S.coils.push(mkCoil(S));
+  const c = S.coils[S.sel]; c.stops = S.stops; c.ang = S.ang; c.len = S.len;
+}
+function loadCur() { const c = S.coils[S.sel]; S.stops = c.stops; S.ang = c.ang; S.len = c.len; }
+function autoLayout() { const L = POS[S.coils.length]; S.coils.forEach((c, i) => { c.cx = L[i][0]; c.cy = L[i][1]; c.size = L[i][2]; }); }
+function ui() {
+  const c = S.coils[S.sel];
+  $('#ang').value = S.ang; $('#angV').textContent = Math.round(S.ang) + '°';
+  $('#len').value = S.len; $('#lenV').textContent = Math.round(S.len);
+  $('#turns').value = c.turns; $('#cx').value = c.cx; $('#cy').value = c.cy; $('#size').value = c.size;
+  const sel = $('#coilSel');
+  sel.innerHTML = S.coils.map((_, i) => '<option value="' + i + '">Катушка ' + (i + 1) + '</option>').join('');
+  sel.value = S.sel;
+  $('#addCoil').disabled = S.coils.length >= 6; $('#delCoil').disabled = S.coils.length <= 1;
+}
+function pick(i) { saveCur(); S.sel = i; loadCur(); renderStops(); ui(); refresh(); }
+
+/* геометрия витка: проекция спирали; передние дуги f, задние b */
+function helix(n) {
+  const G = GEO, pf = Math.min(1, 4 / Math.max(1, n - 1)), P = [G.P[0] * pf, G.P[1] * pf];
+  const pt = (k, th) => {
+    const t = k - (n - 1) / 2 - 0.5 + th / 6.2832, c = Math.cos(th), s = Math.sin(th);
+    return (G.C[0] + t * P[0] + G.e1[0] * c + G.e2[0] * s).toFixed(1) + ' ' + (G.C[1] + t * P[1] + G.e1[1] * c + G.e2[1] * s).toFixed(1);
+  };
+  let f = '', b = '';
+  for (let k = 0; k < n; k++) for (let i = 0; i <= 14; i++) {
+    f += (i ? ' L' : ' M') + pt(k, Math.PI * i / 14);
+    b += (i ? ' L' : ' M') + pt(k, Math.PI + Math.PI * i / 14);
+  }
+  return { f: f.trim(), b: b.trim(), sf: Math.max(0.3, Math.pow(pf, 0.6)) };
+}
+function coilSVG(c, i) {
+  const h = helix(c.turns), sf = h.sf, k = c.size / 100, w = v => (v * sf).toFixed(1);
+  S.stops = c.stops; S.ang = c.ang; S.len = c.len;
+  const g = gradientSVG().replace('id="g"', 'id="g' + i + '"');
+  return '<defs>' + g + '<path id="b' + i + '" d="' + h.b + '"/><path id="f' + i + '" d="' + h.f + '"/></defs>' +
+    '<g transform="translate(' + c.cx + ' ' + c.cy + ') scale(' + k + ') translate(-200 -200)" fill="none" stroke="url(#g' + i + ')" stroke-linecap="round" stroke-linejoin="round">' +
+    '<g filter="url(#glow)" stroke-width="' + w(18.7) + '" opacity=".55"><use href="#b' + i + '"/><use href="#f' + i + '"/></g>' +
+    '<use href="#b' + i + '" stroke-width="' + w(8.4) + '" opacity=".6"/>' +
+    '<use href="#f' + i + '" stroke-width="' + w(12.1) + '"/>' +
+    '<use href="#f' + i + '" stroke="' + S.hl + '" stroke-width="' + w(2.8) + '" opacity=".55"/></g>';
+}
+function buildMulti() {
+  saveCur();
+  if (!S.uiInit) { S.uiInit = 1; ui(); }
+  let body = '';
+  S.coils.forEach((c, i) => { body += coilSVG(c, i); });
+  loadCur();
+  const o = S.fxo, cols = o.auto ? [...new Set(S.coils.flatMap(c => c.stops.map(p => p.c)))] : [o.col];
+  const fx = window.FX ? FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, seed: 7 }) : '';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Катушка">' +
+    '<defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400"><feGaussianBlur stdDeviation="8"/></filter></defs>' +
+    (S.clear ? '' : '<rect width="400" height="400" fill="' + S.bg + '"/>') + body + fx + '</svg>';
+}
+const curCoil = () => S.coils[S.sel];
+$('#coilSel').addEventListener('change', e => pick(+e.target.value));
+$('#addCoil').addEventListener('click', () => {
+  if (S.coils.length >= 6) return say('Не больше 6 катушек.');
+  saveCur(); S.coils.push(mkCoil(curCoil())); S.sel = S.coils.length - 1;
+  autoLayout(); loadCur(); renderStops(); ui(); refresh();
+});
+$('#delCoil').addEventListener('click', () => {
+  if (S.coils.length <= 1) return;
+  saveCur(); S.coils.splice(S.sel, 1); S.sel = Math.min(S.sel, S.coils.length - 1);
+  autoLayout(); loadCur(); renderStops(); ui(); refresh();
+});
+$('#turns').addEventListener('change', e => {
+  const v = Math.min(20, Math.max(1, parseInt(e.target.value) || 5));
+  e.target.value = v; curCoil().turns = v; refresh();
+});
+[['#cx', 'cx'], ['#cy', 'cy'], ['#size', 'size']].forEach(q => $(q[0]).addEventListener('input', e => { curCoil()[q[1]] = +e.target.value; refresh(); }));
+if (window.FX) FX.bind(S.fxo, refresh);
 
 /* ---------- загрузка каркаса ---------- */
 function syncUI() {
