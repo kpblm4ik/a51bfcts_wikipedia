@@ -10,7 +10,7 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="summoncoil.html" class="item-card">
-    <img src="images/covers/coil.svg" alt="Summon Coil">
+    <img src="images/covers/summoncoil.svg" alt="Summon Coil">
     <h3>Катушка призыва</h3>
   </a>
 
