@@ -8,12 +8,12 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="horrificwand.html" class="item-card">
-    <img src="images/IMG_20261027_105404.avif" alt="Summon Coil">
+    <img src="images/covers/wand.svg" alt="Ужасная палочка" style="filter: hue-rotate(-30deg) saturate(1.5) brightness(0.9);">
     <h3>Ужасная палочка</h3>
   </a>
 
   <div class="item-card">
-    <img src="images/Screenshot_20261005_180545.avif" alt="None">
+    <img src="images/covers/wand.svg" alt="None" style="filter: grayscale(1) brightness(0.7);">
     <h3>Пока пусто</h3>
   </div>
 </div>
