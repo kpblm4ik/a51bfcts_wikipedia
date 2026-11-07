@@ -8,7 +8,7 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="horrificwand.html" class="item-card">
-    <img src="images/covers/wand.svg" alt="Ужасная палочка" style="filter: hue-rotate(-30deg) saturate(1.5) brightness(0.9);">
+    <img src="images/covers/wand.svg" alt="Ужасная палочка">
     <h3>Ужасная палочка</h3>
   </a>
 
