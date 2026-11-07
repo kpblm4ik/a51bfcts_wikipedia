@@ -40,6 +40,8 @@ custom_css: /css/main.css
     <label>Высота <input type="number" id="h" min="4" max="128" value="32"></label>
     <label>Цвет <input type="color" id="col" value="#a066ff"></label>
   </div>
+  <div class="ed-row"><label style="flex:1">Прозрачность кисти <input type="range" id="opa" min="5" max="100" value="100"> <span id="opaV">100%</span></label></div>
+  <p class="hint">100% — сплошной цвет, меньше — полупрозрачный. Работает для кисти и заливки, ластик стирает полностью.</p>
   <div class="ed-row">
     <button class="ed-btn on" data-tool="pen">✏️ Кисть</button>
     <button class="ed-btn" data-tool="eraser">🧽 Ластик</button>
@@ -57,6 +59,7 @@ custom_css: /css/main.css
 
   <div id="settings">
     <div class="ed-row"><label>Название <input type="text" id="lname"></label></div>
+    <div class="ed-row"><label><input type="checkbox" id="lall" checked> Применять переход, длительность и плавность ко всем слоям</label></div>
     <div class="ed-row">
       <label>Переход
         <select id="lmode">
@@ -69,7 +72,7 @@ custom_css: /css/main.css
     <div class="ed-row"><label>Длительность, сек <input type="number" id="ldur" min="0.5" max="30" step="0.5" value="3"></label></div>
     <div class="ed-row" id="smoothRow"><label style="flex:1">Плавность <input type="range" id="lsmooth" min="0" max="100" value="50"> <span id="smoothV">50%</span></label></div>
     <div class="ed-row"><label style="flex:1">Свечение <input type="range" id="lglow" min="0" max="20" value="0"> <span id="glowV">0</span></label></div>
-    <p class="hint">«Плавная вспышка» — слои показываются по очереди: пиксели постепенно разгораются и гаснут, а не мигают. «Плавность» — какая часть слота уходит на разгорание и затухание. «Пульсация» — слой непрерывно дышит.</p>
+    <p class="hint">«Плавная вспышка по очереди» — слои показываются по порядку: с «Слоя 1» до последнего, потом снова с первого. «Плавность» — насколько слои перетекают друг в друга: 0% — резкая смена, 100% — каждый слой плавно разгорается и гаснет, пока следующий уже разгорается. «Пульсация» — слой непрерывно дышит. Если снять галочку «ко всем слоям», настройки меняются только у выбранного слоя (например, чтобы фон оставался статичным).</p>
   </div>
 </div>
 
@@ -116,6 +119,16 @@ const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '
 const key = (x, y) => x + ',' + y;
 const parse = k => k.split(',').map(Number);
 
+/* цвет пикселя: "#rrggbb" или "#rrggbbaa" (если кисть полупрозрачная) */
+function brushColor() {
+  const a = parseInt($('#opa').value) || 100, c = $('#col').value;
+  return a >= 100 ? c : c + Math.round(a / 100 * 255).toString(16).padStart(2, '0');
+}
+const css = c => c.length > 7
+  ? 'rgba(' + parseInt(c.substr(1, 2), 16) + ',' + parseInt(c.substr(3, 2), 16) + ',' + parseInt(c.substr(5, 2), 16) + ',' + (parseInt(c.substr(7, 2), 16) / 255).toFixed(3) + ')'
+  : c;
+$('#opa').addEventListener('input', e => { $('#opaV').textContent = e.target.value + '%'; });
+
 /* ---------- холст ---------- */
 function render() {
   const cell = Math.max(4, Math.floor(560 / Math.max(W, H)));
@@ -129,7 +142,7 @@ function render() {
     ctx.globalAlpha = i === cur ? 1 : 0.5;
     l.px.forEach((c, k) => {
       const [x, y] = parse(k);
-      if (x < W && y < H) { ctx.fillStyle = c; ctx.fillRect(x * cell, y * cell, cell, cell); }
+      if (x < W && y < H) { ctx.fillStyle = css(c); ctx.fillRect(x * cell, y * cell, cell, cell); }
     });
   });
   ctx.globalAlpha = 1;
@@ -151,7 +164,7 @@ function pushUndo() {
 function plot(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
   const px = layers[cur].px;
-  if (tool === 'eraser') px.delete(key(x, y)); else px.set(key(x, y), $('#col').value);
+  if (tool === 'eraser') px.delete(key(x, y)); else px.set(key(x, y), brushColor());
 }
 function line(a, b) {
   let [x0, y0] = a; const [x1, y1] = b;
@@ -167,7 +180,7 @@ function line(a, b) {
 }
 function fill(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
-  const px = layers[cur].px, target = px.get(key(x, y)) || null, c = $('#col').value;
+  const px = layers[cur].px, target = px.get(key(x, y)) || null, c = brushColor();
   if (target === c) return;
   const stack = [[x, y]];
   while (stack.length) {
@@ -236,14 +249,20 @@ function loadSettings() {
   $('#lglow').value = l.glow; $('#glowV').textContent = l.glow;
   $('#smoothRow').style.display = l.mode === 'fade' ? '' : 'none';
 }
+/* переход, длительность и плавность меняются у всех слоёв сразу (пока стоит галочка) */
+function setProp(k, v) {
+  if ($('#lall').checked) layers.forEach(l => { l[k] = v; }); else layers[cur][k] = v;
+}
 $('#addLayer').addEventListener('click', () => {
-  layers.push(mkLayer('Слой ' + (layers.length + 1))); cur = layers.length - 1;
+  const src = layers[cur], nl = mkLayer('Слой ' + (layers.length + 1));
+  nl.mode = src.mode; nl.dur = src.dur; nl.smooth = src.smooth; nl.glow = src.glow;
+  layers.push(nl); cur = layers.length - 1;
   renderLayers(); loadSettings(); render(); refresh();
 });
 $('#lname').addEventListener('input', e => { layers[cur].name = e.target.value || 'Слой'; renderLayers(); });
-$('#lmode').addEventListener('change', e => { layers[cur].mode = e.target.value; loadSettings(); refresh(); });
-$('#ldur').addEventListener('change', e => { layers[cur].dur = Math.min(30, Math.max(0.5, parseFloat(e.target.value) || 3)); loadSettings(); refresh(); });
-$('#lsmooth').addEventListener('input', e => { layers[cur].smooth = +e.target.value; $('#smoothV').textContent = e.target.value + '%'; refresh(); });
+$('#lmode').addEventListener('change', e => { setProp('mode', e.target.value); loadSettings(); refresh(); });
+$('#ldur').addEventListener('change', e => { setProp('dur', Math.min(30, Math.max(0.5, parseFloat(e.target.value) || 3))); loadSettings(); refresh(); });
+$('#lsmooth').addEventListener('input', e => { setProp('smooth', +e.target.value); $('#smoothV').textContent = e.target.value + '%'; refresh(); });
 $('#lglow').addEventListener('input', e => { layers[cur].glow = +e.target.value; $('#glowV').textContent = e.target.value; refresh(); });
 
 /* ---------- векторная обложка (SVG) ---------- */
@@ -262,13 +281,32 @@ function rects(l) {
     while (i < a.length) {
       let j = i;
       while (j + 1 < a.length && a[j + 1][0] === a[j][0] + 1 && a[j + 1][1] === a[i][1]) j++;
-      s += '<rect x="' + a[i][0] + '" y="' + y + '" width="' + (j - i + 1) + '" height="1" fill="' + a[i][1] + '"/>';
+      const c = a[i][1];
+      s += '<rect x="' + a[i][0] + '" y="' + y + '" width="' + (j - i + 1) + '" height="1" fill="' + c.slice(0, 7) + '"' +
+        (c.length > 7 ? ' fill-opacity="' + (parseInt(c.slice(7), 16) / 255).toFixed(2) + '"' : '') + '/>';
       i = j + 1;
     }
   });
   return s;
 }
-const f = n => +n.toFixed(4);
+const f = n => +n.toFixed(5);
+/* ключевые кадры прозрачности слоя в последовательности: слот [s, e] из цикла T, перетекание в соседние слои на r секунд */
+function fadeFrames(s, e, r, T) {
+  r = Math.max(r, T * 0.0005);
+  const cl = v => Math.min(1, Math.max(0, v));
+  const op = t => {
+    let m = 0;
+    for (const sh of [-T, 0, T]) {
+      const x = t + sh;
+      m = Math.max(m, Math.min(cl((x - (s - r)) / (2 * r)), cl(((e + r) - x) / (2 * r))));
+    }
+    return m;
+  };
+  const md = x => ((x % T) + T) % T;
+  const pts = [0, T, md(s - r), md(s + r), md(e - r), md(e + r)].sort((a, b) => a - b);
+  const u = pts.filter((t, i) => i === 0 || t - pts[i - 1] > 1e-9);
+  return { kt: u.map(t => f(t / T)).join(';'), vals: u.map(t => f(op(t))).join(';') };
+}
 function buildSVG() {
   const vis = layers.filter(l => l.vis);
   const seq = vis.filter(l => l.mode === 'fade');
@@ -282,10 +320,9 @@ function buildSVG() {
       attrs += ' filter="url(#g' + i + ')"';
     }
     if (l.mode === 'fade') {
-      const s = t0 / T, e = (t0 + l.dur) / T, r = (e - s) / 2 * l.smooth / 100;
-      const kt = [0, s, s + r, e - r, e, 1].map(f), vals = [0, 0, 1, 1, 0, 0];
+      const fr = fadeFrames(t0, t0 + l.dur, l.dur / 2 * l.smooth / 100, T);
       attrs += ' opacity="0"';
-      anim = '<animate attributeName="opacity" dur="' + T + 's" repeatCount="indefinite" keyTimes="' + kt.join(';') + '" values="' + vals.join(';') + '"/>';
+      anim = '<animate attributeName="opacity" dur="' + T + 's" repeatCount="indefinite" keyTimes="' + fr.kt + '" values="' + fr.vals + '"/>';
       t0 += l.dur;
     } else if (l.mode === 'pulse') {
       anim = '<animate attributeName="opacity" dur="' + l.dur + 's" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines=".4 0 .6 1;.4 0 .6 1" values="0.15;1;0.15"/>';
@@ -313,7 +350,7 @@ function perimPts() {
 }
 function fxSVG() {
   if (!window.FX || !FX.outline || FXS.type === 'none') return '';
-  const cols = FXS.auto ? [...new Set(layers.filter(l => l.vis).flatMap(l => [...l.px.values()]))].slice(0, 8) : [FXS.col];
+  const cols = FXS.auto ? [...new Set(layers.filter(l => l.vis).flatMap(l => [...l.px.values()].map(c => c.slice(0, 7))))].slice(0, 8) : [FXS.col];
   return FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, scale: 1.6, pts: perimPts(), seed: 7 });
 }
 if (window.FX) FX.bind(FXS, refresh);
