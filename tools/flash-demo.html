@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вспышки слоёв по очереди</title>
+<style>
+  body { background:#0b090f; color:#e2daf0; font-family:'Courier New',monospace; display:flex; flex-direction:column; align-items:center; gap:18px; padding:20px; margin:0; min-height:100vh; justify-content:center; }
+  svg { width:min(80vw,320px); height:auto; background:#120e1c; border-radius:12px; }
+  label { display:block; font-size:.9rem; color:#8c829e; text-align:center; margin-bottom:6px; }
+  input[type=range] { width:260px; accent-color:#a066ff; }
+  #info { font-size:.8rem; color:#8c829e; text-align:center; }
+</style>
+</head>
+<body>
+<svg id="wand" viewBox="0 0 17 17" shape-rendering="crispEdges"></svg>
+<div>
+  <label>Слоёв (n): <span id="nVal">7</span></label>
+  <input type="range" id="n" min="2" max="12" value="7">
+</div>
+<div>
+  <label>Полный круг, секунд: <span id="tVal">3.5</span></label>
+  <input type="range" id="t" min="1" max="10" step="0.5" value="3.5">
+</div>
+<div id="info"></div>
+
+<script>
+/* ======================================================================
+   ЛОГИКА: вспышки слоёв строго по очереди, от слоя 1 до слоя n.
+
+   Круг длится T. Он делится на n одинаковых "окон" по T/n.
+   Слой с номером i (0 = первый) вспыхивает в своём окне:
+        начало окна  = i * T/n
+        длина окна   = T/n
+   Все слои используют ОДНУ и ту же длительность T и ОДНИ и те же ключевые кадры:
+   вспышка занимает первую 1/n часть круга, остальное время слой погашен.
+   Разница между слоями только в задержке (delay = i * T/n).
+
+   Частые причины, почему мигают только последние слои:
+   1) у слоёв разная длительность или задержка считается не от номера слоя;
+   2) вспышка растянута на весь круг (а не на 1/n), окна налезают друг на друга;
+   3) общее сглаживание (ease) стоит на всём круге и сдвигает окна, плавность
+      нужно задавать между кадрами (keyframe easing), а не на всём круге;
+   4) без fill:'backwards' слой в период задержки показывается в "включённом" виде.
+   ====================================================================== */
+function flashInTurn(layers, cycleMs, peak = 0.5) {
+  const n = layers.length;
+  const slot = cycleMs / n;
+  return layers.map((el, i) => el.animate(
+    [
+      { opacity: 0, offset: 0,            easing: 'ease-out' },   // плавно разгораемся
+      { opacity: 1, offset: peak / n,     easing: 'ease-in'  },   // пик вспышки внутри окна
+      { opacity: 0, offset: 1 / n },                              // к концу окна погасли
+      { opacity: 0, offset: 1 }                                   // ждём остальные n-1 окон
+    ],
+    {
+      duration: cycleMs,        // одинаковая для всех слоёв
+      delay: i * slot,          // единственное отличие: очередь по номеру
+      iterations: Infinity,
+      fill: 'backwards',        // до своей очереди слой погашен
+      easing: 'linear'          // общее сглаживание ВЫКЛ, чтобы окна не сдвигались
+    }
+  ));
+}
+
+// ------------------------- демо: радужная палочка -------------------------
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('wand');
+let anims = [];
+
+function cell(x, y, fill) {
+  const r = document.createElementNS(SVGNS, 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y);
+  r.setAttribute('width', 1); r.setAttribute('height', 1);
+  r.setAttribute('fill', fill);
+  return r;
+}
+
+function build() {
+  const n = +document.getElementById('n').value;
+  const T = +document.getElementById('t').value * 1000;
+  document.getElementById('nVal').textContent = n;
+  document.getElementById('tVal').textContent = (T / 1000).toFixed(1);
+  anims.forEach(a => a.cancel());
+  svg.innerHTML = '';
+
+  // тусклая основа палочки (12 клеток по диагонали)
+  const base = document.createElementNS(SVGNS, 'g');
+  for (let k = 0; k < 12; k++) {
+    base.appendChild(cell(2 + k, 14 - k, '#3a3446'));
+    base.appendChild(cell(3 + k, 14 - k, '#2c2736'));
+  }
+  svg.appendChild(base);
+
+  // n слоёв: слой i красит свой кусок палочки цветом радуги
+  const layers = [];
+  for (let i = 0; i < n; i++) {
+    const g = document.createElementNS(SVGNS, 'g');
+    g.style.opacity = 0;
+    const hue = n === 1 ? 0 : Math.round((i / (n - 1)) * 290);
+    for (let k = 0; k < 12; k++) {
+      if (Math.floor(k * n / 12) === i) {
+        g.appendChild(cell(2 + k, 14 - k, `hsl(${hue} 95% 60%)`));
+        g.appendChild(cell(3 + k, 14 - k, `hsl(${hue} 95% 45%)`));
+      }
+    }
+    svg.appendChild(g);
+    layers.push(g);
+  }
+  anims = flashInTurn(layers, T);
+  document.getElementById('info').textContent =
+    `окно одного слоя = ${(T / n / 1000).toFixed(2)} с; порядок: слой 1 → слой ${n}, затем снова по кругу`;
+}
+
+document.getElementById('n').addEventListener('input', build);
+document.getElementById('t').addEventListener('input', build);
+build();
+</script>
+</body>
+</html>
