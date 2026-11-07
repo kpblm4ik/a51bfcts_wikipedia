@@ -23,6 +23,8 @@ custom_css: /css/main.css
   .layer { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid rgba(160,102,255,.25); border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 14px; }
   .layer.sel { border-color: #a066ff; background: rgba(160,102,255,.18); }
   .layer .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer .ord { min-width: 22px; text-align: center; font-size: 13px; font-weight: bold; color: #0b090f; background: #a066ff; border-radius: 999px; padding: 1px 7px; }
+  .layer .ord.off { background: transparent; color: var(--ink-soft); border: 1px solid rgba(160,102,255,.3); font-weight: normal; }
   .layer button { background: none; border: none; color: #fff; font-size: 15px; padding: 2px 5px; cursor: pointer; }
   #prev { width: 100%; max-width: 100%; background: #0b090f; image-rendering: pixelated; }
   #status { font-size: 13px; margin-top: 8px; word-break: break-word; }
@@ -54,6 +56,7 @@ custom_css: /css/main.css
   <h3>Слои</h3>
   <div id="layers"></div>
   <div class="ed-row"><button class="ed-btn" id="addLayer">➕ Новый слой</button></div>
+  <p class="hint" id="seqInfo"></p>
 
   <div id="settings">
     <div class="ed-row"><label>Название <input type="text" id="lname"></label></div>
@@ -66,10 +69,11 @@ custom_css: /css/main.css
         </select>
       </label>
     </div>
-    <div class="ed-row"><label>Длительность, сек <input type="number" id="ldur" min="0.5" max="30" step="0.5" value="3"></label></div>
+    <div class="ed-row"><label>Длительность, сек <input type="number" id="ldur" min="0.1" max="30" step="0.1" value="3"></label></div>
     <div class="ed-row" id="smoothRow"><label style="flex:1">Плавность <input type="range" id="lsmooth" min="0" max="100" value="50"> <span id="smoothV">50%</span></label></div>
     <div class="ed-row"><label style="flex:1">Свечение <input type="range" id="lglow" min="0" max="20" value="0"> <span id="glowV">0</span></label></div>
-    <p class="hint">«Плавная вспышка» — слои показываются по очереди: пиксели постепенно разгораются и гаснут, а не мигают. «Плавность» — какая часть слота уходит на разгорание и затухание. «Пульсация» — слой непрерывно дышит.</p>
+    <div class="ed-row"><button class="ed-btn" id="applyAll">🔁 Переход, длительность и плавность — на все слои</button></div>
+    <p class="hint">«Плавная вспышка» — слои показываются по очереди: пиксели постепенно разгораются и гаснут, а не мигают. Очередь идёт от слоя 1 (самый нижний) до последнего. Цифра справа от названия слоя — его место в очереди; «—» значит, что слой в очереди не участвует (статичный, скрытый или пустой). Длительность — время одного слоя в очереди, полный круг равен сумме. «Плавность» — какая часть слота уходит на разгорание и затухание. «Пульсация» — слой непрерывно дышит.</p>
   </div>
 </div>
 
@@ -115,6 +119,15 @@ const layers = [mkLayer('Слой 1')];
 const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const key = (x, y) => x + ',' + y;
 const parse = k => k.split(',').map(Number);
+
+/* Слой участвует в очереди «по очереди», если он виден, у него выбрана «плавная вспышка» и на нём есть пиксели.
+   Очередь строго по порядку слоёв: слой 1 (нижний) -> последний (верхний). */
+const inSeq = l => l.vis && l.mode === 'fade' && l.px.size > 0;
+function seqOrder() {
+  const ord = new Map(); let k = 0;
+  layers.forEach(l => { if (inSeq(l)) ord.set(l, ++k); });
+  return ord;
+}
 
 /* ---------- холст ---------- */
 function render() {
@@ -189,7 +202,7 @@ cv.addEventListener('pointermove', e => {
   if (!drawing) return;
   const p = cellAt(e); line(last, p); last = p; render();
 });
-const stop = () => { if (drawing) { drawing = false; refresh(); } };
+const stop = () => { if (drawing) { drawing = false; renderLayers(); refresh(); } };
 cv.addEventListener('pointerup', stop);
 cv.addEventListener('pointercancel', stop);
 
@@ -199,9 +212,9 @@ document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click'
 }));
 $('#undo').addEventListener('click', () => {
   const u = undoStack.pop(); if (!u || !layers[u.i]) return;
-  layers[u.i].px = u.m; render(); refresh();
+  layers[u.i].px = u.m; render(); renderLayers(); refresh();
 });
-$('#clr').addEventListener('click', () => { pushUndo(); layers[cur].px.clear(); render(); refresh(); });
+$('#clr').addEventListener('click', () => { pushUndo(); layers[cur].px.clear(); render(); renderLayers(); refresh(); });
 ['#w', '#h'].forEach(id => $(id).addEventListener('change', () => {
   W = Math.min(128, Math.max(4, parseInt($('#w').value) || 32));
   H = Math.min(128, Math.max(4, parseInt($('#h').value) || 32));
@@ -211,12 +224,16 @@ $('#clr').addEventListener('click', () => { pushUndo(); layers[cur].px.clear(); 
 /* ---------- слои ---------- */
 function renderLayers() {
   const box = $('#layers'); box.innerHTML = '';
+  const ord = seqOrder();
   // сверху списка — верхний слой
   for (let i = layers.length - 1; i >= 0; i--) {
-    const l = layers[i], d = document.createElement('div');
+    const l = layers[i], d = document.createElement('div'), o = ord.get(l);
     d.className = 'layer' + (i === cur ? ' sel' : '');
+    const badge = o
+      ? '<span class="ord" title="Место в очереди анимации">' + o + '</span>'
+      : '<span class="ord off" title="Не участвует в очереди">' + (l.mode === 'pulse' ? '∿' : '—') + '</span>';
     d.innerHTML = '<button data-a="vis">' + (l.vis ? '👁' : '🚫') + '</button><span class="nm">' + esc(l.name) +
-      '</span><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button>';
+      '</span>' + badge + '<button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button>';
     d.addEventListener('click', e => {
       const a = e.target.dataset.a;
       if (a === 'vis') l.vis = !l.vis;
@@ -228,6 +245,10 @@ function renderLayers() {
     });
     box.appendChild(d);
   }
+  const seq = layers.filter(inSeq), total = seq.reduce((a, l) => a + l.dur, 0);
+  $('#seqInfo').textContent = seq.length
+    ? 'Очередь: ' + seq.length + ' ' + (seq.length === 1 ? 'слой' : 'слоёв') + ', полный круг ' + +total.toFixed(2) + ' сек. Порядок: от слоя 1 к последнему.'
+    : 'Очередь пуста: ни у одного видимого слоя с рисунком не выбрана «Плавная вспышка по очереди».';
 }
 function loadSettings() {
   const l = layers[cur];
@@ -237,12 +258,22 @@ function loadSettings() {
   $('#smoothRow').style.display = l.mode === 'fade' ? '' : 'none';
 }
 $('#addLayer').addEventListener('click', () => {
-  layers.push(mkLayer('Слой ' + (layers.length + 1))); cur = layers.length - 1;
+  // новый слой наследует переход, длительность, плавность и свечение выбранного слоя,
+  // чтобы очередь не пришлось настраивать заново для каждого слоя
+  const base = layers[cur], nl = mkLayer('Слой ' + (layers.length + 1));
+  nl.mode = base.mode; nl.dur = base.dur; nl.smooth = base.smooth; nl.glow = base.glow;
+  layers.push(nl); cur = layers.length - 1;
   renderLayers(); loadSettings(); render(); refresh();
 });
+$('#applyAll').addEventListener('click', () => {
+  const s = layers[cur];
+  if (!confirm('Скопировать переход, длительность и плавность слоя «' + s.name + '» на все слои?')) return;
+  layers.forEach(l => { l.mode = s.mode; l.dur = s.dur; l.smooth = s.smooth; });
+  renderLayers(); loadSettings(); refresh();
+});
 $('#lname').addEventListener('input', e => { layers[cur].name = e.target.value || 'Слой'; renderLayers(); });
-$('#lmode').addEventListener('change', e => { layers[cur].mode = e.target.value; loadSettings(); refresh(); });
-$('#ldur').addEventListener('change', e => { layers[cur].dur = Math.min(30, Math.max(0.5, parseFloat(e.target.value) || 3)); loadSettings(); refresh(); });
+$('#lmode').addEventListener('change', e => { layers[cur].mode = e.target.value; renderLayers(); loadSettings(); refresh(); });
+$('#ldur').addEventListener('change', e => { layers[cur].dur = Math.min(30, Math.max(0.1, parseFloat(e.target.value) || 3)); renderLayers(); loadSettings(); refresh(); });
 $('#lsmooth').addEventListener('input', e => { layers[cur].smooth = +e.target.value; $('#smoothV').textContent = e.target.value + '%'; refresh(); });
 $('#lglow').addEventListener('input', e => { layers[cur].glow = +e.target.value; $('#glowV').textContent = e.target.value; refresh(); });
 
@@ -271,7 +302,7 @@ function rects(l) {
 const f = n => +n.toFixed(4);
 function buildSVG() {
   const vis = layers.filter(l => l.vis);
-  const seq = vis.filter(l => l.mode === 'fade');
+  const seq = vis.filter(inSeq);
   const T = seq.reduce((a, l) => a + l.dur, 0) || 1;
   let t0 = 0, defs = '', body = '';
   vis.forEach((l, i) => {
@@ -281,7 +312,7 @@ function buildSVG() {
         (l.glow / 10).toFixed(2) + '" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
       attrs += ' filter="url(#g' + i + ')"';
     }
-    if (l.mode === 'fade') {
+    if (inSeq(l)) {
       const s = t0 / T, e = (t0 + l.dur) / T, r = (e - s) / 2 * l.smooth / 100;
       const kt = [0, s, s + r, e - r, e, 1].map(f), vals = [0, 0, 1, 1, 0, 0];
       attrs += ' opacity="0"';
