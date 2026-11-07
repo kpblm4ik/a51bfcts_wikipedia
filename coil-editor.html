@@ -1,0 +1,257 @@
+---
+layout: default
+title: Редактор катушки — a51bfcts Вики
+custom_css: /css/main.css
+---
+<div id="cfg" data-src="{{ '/images/covers/coil.svg' | relative_url }}" hidden></div>
+{% raw %}
+<style>
+  .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
+  .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
+  .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  .ed-row label { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+  .ed-card input[type=number], .ed-card input[type=text], .ed-card input[type=password], .ed-card select {
+    background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; box-sizing: border-box;
+  }
+  .ed-card input[type=text], .ed-card input[type=password] { flex: 1 1 200px; }
+  .ed-card input[type=color] { width: 44px; height: 34px; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; background: none; padding: 2px; }
+  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-btn:disabled { opacity: .5; }
+  #prev { width: 100%; max-width: 100%; background: #0b090f; border-radius: 10px; display: block; margin: 0 auto; }
+  #bar { height: 22px; border-radius: 8px; border: 1px solid rgba(160,102,255,.45); margin: 8px 0; }
+  .stoprow input[type=range] { flex: 1 1 100px; }
+  .stoprow .pv { width: 40px; font-size: 13px; color: var(--ink-soft); }
+  #status { font-size: 13px; margin-top: 8px; word-break: break-word; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  input[type=range] { flex: 1 1 120px; }
+</style>
+
+<h1>⚡ Редактор катушки</h1>
+<p class="hint"><a href="editor.html">🎨 Пиксельная обложка</a> · <a href="coil-editor.html">⚡ Редактор катушки</a></p>
+
+<div class="ed-card">
+  <h3>Предпросмотр</h3>
+  <img id="prev" alt="Предпросмотр катушки">
+  <div class="ed-row"><button class="ed-btn" id="dl">⬇️ Скачать SVG</button></div>
+  <p class="hint">Каркас катушки берётся из файла images/covers/coil.svg и не меняется: редактор подменяет только градиент, блик и фон.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Цвета и переливы</h3>
+  <div class="ed-row" id="presets"></div>
+  <div id="bar"></div>
+  <div id="stops"></div>
+  <div class="ed-row">
+    <button class="ed-btn" id="addStop">➕ Добавить цвет</button>
+    <button class="ed-btn" id="rev">🔁 Развернуть</button>
+  </div>
+  <div class="ed-row"><label style="flex:1">Угол <input type="range" id="ang" min="0" max="360" value="315"> <span id="angV">315°</span></label></div>
+  <div class="ed-row"><label style="flex:1">Длина перелива <input type="range" id="len" min="60" max="700" value="311"> <span id="lenV">311</span></label></div>
+  <div class="ed-row">
+    <label>Блик <input type="color" id="hl" value="#d9ccff"></label>
+    <label>Фон <input type="color" id="bg" value="#000000"></label>
+    <label><input type="checkbox" id="clear"> прозрачный фон</label>
+  </div>
+</div>
+
+<div class="ed-card">
+  <h3>Анимация перелива</h3>
+  <div class="ed-row">
+    <label>Тип
+      <select id="anim">
+        <option value="none">Без анимации</option>
+        <option value="flow">Поток: цвета плывут вдоль катушки</option>
+        <option value="cycle">Смена: цвета плавно сменяют друг друга</option>
+      </select>
+    </label>
+  </div>
+  <div class="ed-row" id="durRow"><label style="flex:1">Длительность круга, сек <input type="range" id="dur" min="1" max="20" value="6"> <span id="durV">6</span></label></div>
+  <p class="hint">«Поток» лучше смотрится с короткой «Длиной перелива» и несколькими цветами. Анимация зациклена без шва.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Залить в репозиторий</h3>
+  <div class="ed-row">
+    <label>Репозиторий <input type="text" id="repo" value="kpblm4ik/a51bfcts_wikipedia"></label>
+    <label>Ветка <input type="text" id="branch" value="main" style="flex:0 1 120px"></label>
+  </div>
+  <div class="ed-row"><label>Файл <input type="text" id="path" value="images/covers/example.svg"></label></div>
+  <div class="ed-row"><label>GitHub-токен <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…"></label></div>
+  <p class="hint">Нужен fine-grained токен только для этого репозитория с правом Contents: Read and write. Токен хранится только в поле на странице и пропадает при обновлении. Файл должен оканчиваться на .svg; если папку не указать, он попадёт в images/.</p>
+  <div class="ed-row"><button class="ed-btn" id="up">⬆️ Залить</button></div>
+  <div id="status"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const S = { stops: [], ang: 315, len: 311, hl: '#d9ccff', bg: '#000000', clear: false, anim: 'none', dur: 6 };
+let TPL = '', ORIG = null;
+const norm = c => {
+  c = (c || '').trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(c)) return c;
+  if (/^#[0-9a-f]{3}$/.test(c)) return '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+  return '#ffffff';
+};
+const mix = (a, b) => '#' + [1, 3, 5].map(i => Math.round((parseInt(a.substr(i, 2), 16) + parseInt(b.substr(i, 2), 16)) / 2).toString(16).padStart(2, '0')).join('');
+const sorted = () => S.stops.slice().sort((a, b) => a.o - b.o);
+const say = (t, ok) => { const s = $('#status'); s.textContent = t; s.style.color = ok ? '#5cf2c8' : '#ff8a8a'; };
+
+/* ---------- сборка SVG: меняем только градиент, блик и фон ---------- */
+function gradientSVG() {
+  const a = S.ang * Math.PI / 180, dx = Math.cos(a) * S.len, dy = Math.sin(a) * S.len;
+  const x1 = 200 - dx / 2, y1 = 200 - dy / 2, x2 = 200 + dx / 2, y2 = 200 + dy / 2;
+  const st = sorted(), n = st.length, d = S.dur + 's', r = v => +v.toFixed(2);
+  let s = '<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="' + r(x1) + '" y1="' + r(y1) + '" x2="' + r(x2) + '" y2="' + r(y2) + '"' +
+    (S.anim === 'flow' ? ' spreadMethod="reflect"' : '') + '>\n';
+  st.forEach((p, i) => {
+    s += '      <stop offset="' + p.o / 100 + '" stop-color="' + p.c + '"';
+    if (S.anim === 'cycle' && n > 1) {
+      const vals = [];
+      for (let k = 0; k <= n; k++) vals.push(st[(i + k) % n].c);
+      s += '><animate attributeName="stop-color" dur="' + d + '" repeatCount="indefinite" values="' + vals.join(';') + '"/></stop>\n';
+    } else s += '/>\n';
+  });
+  if (S.anim === 'flow') {
+    [['x1', x1, 2 * dx], ['y1', y1, 2 * dy], ['x2', x2, 2 * dx], ['y2', y2, 2 * dy]].forEach(q => {
+      s += '      <animate attributeName="' + q[0] + '" dur="' + d + '" repeatCount="indefinite" values="' + r(q[1]) + ';' + r(q[1] + q[2]) + '"/>\n';
+    });
+  }
+  return s + '    </linearGradient>';
+}
+function buildSVG() {
+  let s = TPL.replace(/<linearGradient id="g"[\s\S]*?<\/linearGradient>/, () => gradientSVG());
+  s = s.replace(/stroke="#[0-9a-fA-F]{3,8}"/, () => 'stroke="' + S.hl + '"');
+  s = s.replace(/<rect width="400" height="400" fill="[^"]*"\/>/, () => S.clear ? '' : '<rect width="400" height="400" fill="' + S.bg + '"/>');
+  return s;
+}
+function refresh() {
+  if (!TPL) return;
+  $('#prev').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(buildSVG());
+}
+
+/* ---------- интерфейс цветов ---------- */
+function bar() {
+  $('#bar').style.background = 'linear-gradient(90deg, ' + sorted().map(p => p.c + ' ' + p.o + '%').join(', ') + ')';
+}
+function renderStops() {
+  const box = $('#stops'); box.innerHTML = '';
+  S.stops.forEach((p, i) => {
+    const row = document.createElement('div'); row.className = 'ed-row stoprow';
+    row.innerHTML = '<input type="color" value="' + p.c + '"><input type="range" min="0" max="100" value="' + p.o + '"><span class="pv">' + p.o +
+      '%</span><button class="ed-btn"' + (S.stops.length <= 2 ? ' disabled' : '') + '>✕</button>';
+    const c = row.children[0], r = row.children[1], pv = row.children[2], del = row.children[3];
+    c.addEventListener('input', () => { p.c = c.value; bar(); refresh(); });
+    r.addEventListener('input', () => { p.o = +r.value; pv.textContent = p.o + '%'; bar(); refresh(); });
+    del.addEventListener('click', () => { S.stops.splice(i, 1); renderStops(); refresh(); });
+    box.appendChild(row);
+  });
+  bar();
+}
+const PRESETS = {
+  'Огонь': ['#ff3b1f', '#ff9a1f', '#ffe14d'],
+  'Океан': ['#00e5ff', '#2979ff', '#7c4dff'],
+  'Неон': ['#ff2bd6', '#7a5cff', '#2bf5ff'],
+  'Радуга': ['#ff3b3b', '#ffa63b', '#fff23b', '#3bff6a', '#3bd0ff', '#7a5cff', '#ff3bd6']
+};
+function setStops(colors) {
+  S.stops = colors.map((c, i) => ({ c: c, o: Math.round(i / (colors.length - 1) * 100) }));
+  renderStops(); refresh();
+}
+function buildPresets() {
+  const box = $('#presets'); box.innerHTML = '';
+  const add = (name, fn) => { const b = document.createElement('button'); b.className = 'ed-btn'; b.textContent = name; b.addEventListener('click', fn); box.appendChild(b); };
+  add('Оригинал', () => { S.stops = ORIG.map(p => ({ c: p.c, o: p.o })); renderStops(); refresh(); });
+  Object.keys(PRESETS).forEach(k => add(k, () => setStops(PRESETS[k])));
+}
+$('#addStop').addEventListener('click', () => {
+  if (S.stops.length >= 10) return say('Не больше 10 цветов.');
+  const st = sorted();
+  let bi = 0, bg = -1;
+  for (let i = 0; i < st.length - 1; i++) if (st[i + 1].o - st[i].o > bg) { bg = st[i + 1].o - st[i].o; bi = i; }
+  S.stops.push({ c: mix(st[bi].c, st[bi + 1].c), o: Math.round((st[bi].o + st[bi + 1].o) / 2) });
+  renderStops(); refresh();
+});
+$('#rev').addEventListener('click', () => { S.stops.forEach(p => { p.o = 100 - p.o; }); renderStops(); refresh(); });
+$('#ang').addEventListener('input', e => { S.ang = +e.target.value; $('#angV').textContent = S.ang + '°'; refresh(); });
+$('#len').addEventListener('input', e => { S.len = +e.target.value; $('#lenV').textContent = S.len; refresh(); });
+$('#hl').addEventListener('input', e => { S.hl = e.target.value; refresh(); });
+$('#bg').addEventListener('input', e => { S.bg = e.target.value; refresh(); });
+$('#clear').addEventListener('change', e => { S.clear = e.target.checked; refresh(); });
+$('#anim').addEventListener('change', e => { S.anim = e.target.value; $('#durRow').style.display = S.anim === 'none' ? 'none' : ''; refresh(); });
+$('#dur').addEventListener('input', e => { S.dur = +e.target.value; $('#durV').textContent = S.dur; refresh(); });
+
+/* ---------- загрузка каркаса ---------- */
+function syncUI() {
+  $('#ang').value = S.ang; $('#angV').textContent = Math.round(S.ang) + '°';
+  $('#len').value = S.len; $('#lenV').textContent = Math.round(S.len);
+  $('#hl').value = S.hl; $('#bg').value = S.bg; $('#clear').checked = S.clear;
+  $('#durRow').style.display = 'none';
+}
+function parseTpl(txt) {
+  const d = new DOMParser().parseFromString(txt, 'image/svg+xml');
+  const g = d.querySelector('linearGradient[id="g"]');
+  if (!g || txt.indexOf('id="f"') < 0 || txt.indexOf('id="b"') < 0) throw new Error('В coil.svg не найден градиент или контур катушки.');
+  const stops = [...g.querySelectorAll('stop')].map(s => {
+    const o = (s.getAttribute('offset') || '0').trim();
+    return { c: norm(s.getAttribute('stop-color')), o: Math.round(o.endsWith('%') ? parseFloat(o) : parseFloat(o) * 100) || 0 };
+  });
+  if (stops.length >= 2) S.stops = stops;
+  else S.stops = [{ c: '#5b8cff', o: 0 }, { c: '#a064ff', o: 100 }];
+  const x1 = parseFloat(g.getAttribute('x1')), y1 = parseFloat(g.getAttribute('y1')), x2 = parseFloat(g.getAttribute('x2')), y2 = parseFloat(g.getAttribute('y2'));
+  if ([x1, y1, x2, y2].every(isFinite)) {
+    S.ang = ((Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI) % 360 + 360) % 360;
+    S.len = Math.hypot(x2 - x1, y2 - y1);
+  }
+  const hl = d.querySelector('use[stroke]');
+  if (hl && /^#/.test(hl.getAttribute('stroke'))) S.hl = norm(hl.getAttribute('stroke'));
+  const bg = d.querySelector('svg > rect');
+  if (bg) S.bg = norm(bg.getAttribute('fill')); else S.clear = true;
+  ORIG = S.stops.map(p => ({ c: p.c, o: p.o }));
+}
+(async function init() {
+  try {
+    const res = await fetch($('#cfg').dataset.src, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('Не удалось загрузить images/covers/coil.svg (' + res.status + ').');
+    TPL = await res.text();
+    parseTpl(TPL);
+    buildPresets(); renderStops(); syncUI(); refresh();
+  } catch (e) { say(String(e.message || e)); }
+})();
+
+$('#dl').addEventListener('click', () => {
+  if (!TPL) return say('Каркас катушки ещё не загружен.');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buildSVG()], { type: 'image/svg+xml' }));
+  a.download = ($('#path').value.split('/').pop() || 'coil.svg');
+  a.click();
+});
+
+/* ---------- заливка в GitHub ---------- */
+$('#up').addEventListener('click', async () => {
+  if (!TPL) return say('Каркас катушки ещё не загружен.');
+  const token = $('#tok').value.trim(), repo = $('#repo').value.trim(), br = $('#branch').value.trim() || 'main';
+  let path = $('#path').value.trim().replace(/^\/+/, '');
+  if (!token) return say('Вставь токен GitHub.');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return say('Репозиторий в формате владелец/имя.');
+  if (!/^[\w\-./]+$/.test(path) || path.includes('..') || !path.endsWith('.svg')) return say('Имя файла: латиница, цифры, - _ . /, окончание .svg, без «..».');
+  if (!path.includes('/')) path = 'images/' + path;
+  const api = 'https://api.github.com/repos/' + repo + '/contents/' + path;
+  const h = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' };
+  const btn = $('#up'); btn.disabled = true; say('Заливаю…', true);
+  try {
+    let sha;
+    const g = await fetch(api + '?ref=' + encodeURIComponent(br), { headers: h });
+    if (g.ok) {
+      sha = (await g.json()).sha;
+      if (!confirm('Файл ' + path + ' уже есть. Заменить?')) { btn.disabled = false; return say('Отменено.', true); }
+    } else if (g.status !== 404) throw new Error('Не удалось проверить файл (' + g.status + '). Проверь токен и права.');
+    const body = { message: 'Upload ' + path + ' from coil editor', content: btoa(unescape(encodeURIComponent(buildSVG()))), branch: br };
+    if (sha) body.sha = sha;
+    const p = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, h), body: JSON.stringify(body) });
+    if (!p.ok) throw new Error('GitHub вернул ' + p.status + ': ' + ((await p.json()).message || ''));
+    say('Готово: ' + path + ' залит в ветку ' + br + '. Сайт обновится через 1–2 минуты.', true);
+  } catch (err) { say(String(err.message || err)); }
+  btn.disabled = false;
+});
+</script>
+{% endraw %}
