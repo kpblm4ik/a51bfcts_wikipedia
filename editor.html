@@ -90,7 +90,7 @@ custom_css: /css/main.css
     <label><input type="checkbox" id="fxauto" checked> цвета из картинки</label>
     <label>Свой цвет <input type="color" id="fxcol" value="#ffffff"></label>
   </div>
-  <p class="hint">Эффекты анимированы внутри SVG. Больше 40 частиц не бывает: так обложка не нагружает телефон.</p>
+  <p class="hint">Частицы вылетают строго с внешнего контура нарисованной палочки (по всем видимым слоям) и следуют за рисунком. Больше 40 частиц не бывает: так обложка не нагружает телефон.</p>
 </div>
 
 <div class="ed-card">
@@ -304,12 +304,25 @@ $('#dl').addEventListener('click', () => {
   a.click();
 });
 
-/* ---------- эффекты ---------- */
+/* ---------- эффекты: частицы вылетают с внешнего контура рисунка ---------- */
 const FXS = { type: 'none', n: 12, sp: 1, auto: true, col: '#ffffff' };
+function perimPts() {
+  const occ = new Set();
+  layers.forEach(l => { if (l.vis) l.px.forEach((c, k) => { const q = parse(k); if (q[0] < W && q[1] < H) occ.add(k); }); });
+  const pts = [];
+  occ.forEach(k => {
+    const q = parse(k);
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => {
+      if (!occ.has(key(q[0] + d[0], q[1] + d[1]))) pts.push([q[0] + 0.5 + d[0] * 0.5, q[1] + 0.5 + d[1] * 0.5, d[0], d[1]]);
+    });
+  });
+  const st = Math.ceil(pts.length / 300);
+  return st > 1 ? pts.filter((_, i) => i % st === 0) : pts;
+}
 function fxSVG() {
-  if (!window.FX) return '';
+  if (!window.FX || FXS.type === 'none') return '';
   const cols = FXS.auto ? [...new Set(layers.filter(l => l.vis).flatMap(l => [...l.px.values()]))].slice(0, 8) : [FXS.col];
-  return FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, seed: 7 });
+  return FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, scale: 1.6, pts: perimPts(), seed: 7 });
 }
 if (window.FX) FX.bind(FXS, refresh);
 
