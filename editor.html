@@ -30,6 +30,7 @@ custom_css: /css/main.css
 </style>
 
 <h1>🎨 Редактор обложек</h1>
+<p class="hint"><a href="editor.html">🎨 Пиксельная обложка</a> · <a href="coil-editor.html">⚡ Редактор катушки</a></p>
 
 <div class="ed-card">
   <h3>Холст</h3>
@@ -83,7 +84,7 @@ custom_css: /css/main.css
     <label>Репозиторий <input type="text" id="repo" value="kpblm4ik/a51bfcts_wikipedia"></label>
     <label>Ветка <input type="text" id="branch" value="main" style="flex:0 1 120px"></label>
   </div>
-  <div class="ed-row"><label>Файл <input type="text" id="path" value="images/cover.svg"></label></div>
+  <div class="ed-row"><label>Файл <input type="text" id="path" value="images/covers/example.svg"></label></div>
   <div class="ed-row"><label>GitHub-токен <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…"></label></div>
   <p class="hint">Нужен fine-grained токен только для этого репозитория с правом Contents: Read and write. Токен хранится только в поле на странице, никуда не сохраняется и пропадает при обновлении. Файл должен оканчиваться на .svg; если папку не указать, он попадёт в images/.</p>
   <div class="ed-row"><button class="ed-btn" id="up">⬆️ Залить</button></div>
