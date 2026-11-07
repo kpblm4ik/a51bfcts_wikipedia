@@ -10,27 +10,27 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="summoncoil.html" class="item-card">
-    <img src="images/Screenshot_20261006_083912.avif" alt="Summon Coil">
+    <img src="images/covers/coil.svg" alt="Summon Coil">
     <h3>Катушка призыва</h3>
   </a>
 
   <a href="fissioncoil.html" class="item-card">
-    <img src="images/Screenshot_20261005_180545.avif" alt="Fission Coil">
+    <img src="images/covers/coil.svg" alt="Fission Coil" style="filter: hue-rotate(110deg);">
     <h3>Катушка расщепления</h3>
   </a>
 
   <a href="flexcoil.html" class="item-card">
-    <img src="images/Screenshot_20261005_180545.avif" alt="Flex Coil">
+    <img src="images/covers/coil.svg" alt="Flex Coil" style="filter: hue-rotate(-110deg);">
     <h3>Флекс-катушка</h3>
   </a>
 
   <a href="zowkycoil.html" class="item-card">
-    <img src="images/Screenshot_20261005_180545.avif" alt="Zowky Coil">
+    <img src="images/covers/coil.svg" alt="Zowky Coil" style="filter: hue-rotate(60deg);">
     <h3>Зовки-катушка</h3>
   </a>
 
   <a href="guardiancoil.html" class="item-card">
-    <img src="images/Screenshot_20261005_180545.avif" alt="Guardian Coil">
+    <img src="images/covers/coil.svg" alt="Guardian Coil" style="filter: hue-rotate(150deg);">
     <h3>Защитная катушка</h3>
   </a>
 </div>
