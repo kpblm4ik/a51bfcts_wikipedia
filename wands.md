@@ -8,7 +8,7 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="horrificwand.html" class="item-card">
-    <img src="images/covers/wand.svg" alt="Ужасная палочка">
+    <img src="images/covers/horrificwand.svg" alt="Ужасная палочка">
     <h3>Ужасная палочка</h3>
   </a>
 
