@@ -74,9 +74,9 @@
 </head>
 <body>
     <div class="wrapper">
-        {{ content }}
+        {{ content | replace: '<img ', '<img loading="lazy" decoding="async" ' }}
                 <footer>
-  <img src="{{ '/images/1000033782.avif' | relative_url }}" alt="Area 51 But Find Coils To Survive">
+  <img src="{{ '/images/1000033782.avif' | relative_url }}" loading="lazy" decoding="async" alt="Area 51 But Find Coils To Survive">
   <p>kpblm4ik 2026 ©</p>
   <p>Защищено лицензией CC-BY-NC-ND 4.0</p>
                 </footer> 
