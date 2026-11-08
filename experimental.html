@@ -5,6 +5,7 @@ custom_css: /css/main.css
 ---
 {% assign avif = site.static_files | where: "extname", ".avif" %}
 <script>window.AVIF = {{ avif | map: "path" | jsonify }}; window.BASE = {{ site.baseurl | jsonify }};</script>
+<script type="importmap">{"imports":{"wasm-feature-detect":"https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.8.0/dist/esm/index.js"}}</script>
 {% raw %}
 <style>
   .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
@@ -30,11 +31,9 @@ custom_css: /css/main.css
 <div class="ed-card">
   <h3>JPEG XL</h3>
   <div class="ed-row"><label><input type="checkbox" id="on"> Включить JPEG XL</label></div>
-  <div class="warn">
-    ⚠️ Чтобы браузер показывал JPEG XL, нужен флаг <b>enable jxl image format</b>.<br>
-    Откройте <code>chrome://flags/#enable-jxl-image-format</code> в адресной строке (ссылкой Chrome её не откроет), поставьте <b>Enabled</b> и перезапустите браузер.
-  </div>
-  <div class="ed-row"><button class="ed-btn" id="copy">📋 Скопировать адрес флага</button><button class="ed-btn" id="recheck">🔄 Проверить флаг</button></div>
+  <div class="hint" id="br"></div>
+  <div class="warn" id="warn"></div>
+  <div class="ed-row"><button class="ed-btn" id="copy">📋 Скопировать адрес</button><button class="ed-btn" id="recheck">🔄 Проверить флаг</button></div>
   <div id="flag">Проверяю флаг…</div>
   <div class="ed-row"><label><input type="checkbox" id="skip"> всё равно продолжить без проверки флага</label></div>
 </div>
@@ -45,21 +44,55 @@ custom_css: /css/main.css
   <div class="ed-row"><button class="ed-btn" id="go" disabled>⚙️ Перекодировать все AVIF</button></div>
   <div id="st" class="hint"></div>
   <div id="res"></div>
-  <p class="hint">Кодирование выполняет Wasm-кодировщик libjxl (пакет @jsquash/jxl 1.3.0, загружается с jsDelivr при нажатии кнопки). Исходные AVIF на сайте не меняются: результат лежит только в памяти страницы, его можно скачать. Перекодирование уже сжатого AVIF добавляет потери, а файлы JXL у таких картинок часто получаются больше, чем AVIF; в таблице видно разницу по каждому файлу.</p>
+  <p class="hint">Кодирование выполняет Wasm-кодировщик libjxl (пакет @jsquash/jxl 1.3.0 и wasm-feature-detect 1.8.0, загружаются с jsDelivr при нажатии кнопки). Исходные AVIF на сайте не меняются: результат лежит только в памяти страницы, его можно скачать. Перекодирование уже сжатого AVIF добавляет потери, а файлы JXL у таких картинок часто получаются больше, чем AVIF; в таблице видно разницу по каждому файлу.</p>
 </div>
 
 <script>
 const $ = s => document.querySelector(s);
-const LS = 'exp.jxl', FLAG = 'chrome://flags/#enable-jxl-image-format';
+const LS = 'exp.jxl';
 const JXL = 'data:image/jxl;base64,/woIELASCAgQAFwASxLFgkWAHL0xqnPCT2k0';
 const fmt = n => n >= 1024 ? (n / 1024).toFixed(1) + ' КБ' : n + ' Б';
+
+/* ---------- определяем браузер, чтобы показать правильный адрес флага ---------- */
+function detect() {
+  const u = navigator.userAgent, F = 'flags/#enable-jxl-image-format';
+  const web = (name, scheme) => ({
+    name: name, url: scheme + F,
+    warn: '⚠️ Чтобы браузер показывал JPEG XL, нужен флаг <b>enable jxl image format</b>.<br>' +
+      'Откройте <code>' + scheme + F + '</code> в адресной строке этого браузера (ссылкой его не открыть), поставьте <b>Enabled</b> и перезапустите браузер. ' +
+      'Если такого флага в списке нет, версия браузера слишком старая: обновите его.'
+  });
+  if (/YaBrowser/.test(u)) return web('Яндекс Браузер', 'browser://');
+  if (/Edg\//.test(u)) return web('Microsoft Edge', 'edge://');
+  if (/OPR\//.test(u)) return web('Opera', 'opera://');
+  if (navigator.brave) return web('Brave', 'brave://');
+  if (/Vivaldi/.test(u)) return web('Vivaldi', 'vivaldi://');
+  if (/Firefox\//.test(u)) return {
+    name: 'Firefox', url: 'about:config',
+    warn: '⚠️ В Firefox нет флага с таким именем. Откройте <code>about:config</code>, найдите параметр <b>image.jxl.enabled</b>, поставьте <b>true</b> и перезапустите браузер.'
+  };
+  if (/Chrome\/|CriOS/.test(u)) return web('Chrome / Chromium', 'chrome://');
+  if (/Safari\//.test(u)) return {
+    name: 'Safari', url: '',
+    warn: 'ℹ️ Safari 17 и новее показывает JPEG XL без флагов. Если проверка ниже не прошла, обновите систему.'
+  };
+  return web('неизвестный браузер', 'chrome://');
+}
+const BR = detect(), FLAG = BR.url;
+$('#br').textContent = 'Браузер: ' + BR.name + (FLAG ? ' · адрес настройки: ' + FLAG : '');
+$('#warn').innerHTML = BR.warn;
+if (!FLAG) $('#copy').style.display = 'none';
+
+/* ---------- проверка поддержки JPEG XL ---------- */
 let flagOk = false, busy = false;
 const probe = () => new Promise(r => { const i = new Image(); i.onload = () => r(i.width > 0); i.onerror = () => r(false); i.src = JXL; });
 function upd() { $('#go').disabled = busy || !$('#on').checked || !(flagOk || $('#skip').checked) || !(window.AVIF || []).length; }
 async function check() {
   flagOk = await probe();
   const f = $('#flag');
-  f.textContent = flagOk ? '✅ Флаг включён: браузер умеет показывать JPEG XL.' : '⚠️ Флаг выключен (или браузер не поддерживает JPEG XL): картинки JXL не отобразятся.';
+  f.textContent = flagOk
+    ? '✅ ' + BR.name + ' умеет показывать JPEG XL.'
+    : '⚠️ ' + BR.name + ' пока не показывает JPEG XL' + (FLAG ? ': проверьте настройку ' + FLAG + '.' : '.') + ' Перекодированные картинки не отобразятся.';
   f.style.color = flagOk ? '#5cf2c8' : '#ffb86b';
   upd();
 }
@@ -68,7 +101,7 @@ $('#on').addEventListener('change', e => { try { localStorage.setItem(LS, e.targ
 $('#skip').addEventListener('change', upd);
 $('#recheck').addEventListener('click', check);
 $('#copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(FLAG); $('#flag').textContent = 'Адрес скопирован. Вставьте его в адресную строку.'; } catch (e) { prompt('Скопируйте адрес вручную:', FLAG); }
+  try { await navigator.clipboard.writeText(FLAG); $('#flag').textContent = 'Адрес скопирован. Вставьте его в адресную строку.'; $('#flag').style.color = ''; } catch (e) { prompt('Скопируйте адрес вручную:', FLAG); }
 });
 $('#q').addEventListener('input', e => { $('#qv').textContent = e.target.value; });
 
