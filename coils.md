@@ -15,22 +15,22 @@ custom_css: /css/main.css
   </a>
 
   <a href="fissioncoil.html" class="item-card">
-    <img src="images/covers/fissioncoil.svg" alt="Fission Coil">
+    <img src="images/covers/fissiocoil.svg" alt="Fission Coil">
     <h3>Катушка расщепления</h3>
   </a>
 
   <a href="flexcoil.html" class="item-card">
-    <img src="images/covers/coil.svg" alt="Flex Coil" style="filter: hue-rotate(-110deg);">
+    <img src="images/covers/flexcoil.svg" alt="Flex Coil">
     <h3>Флекс-катушка</h3>
   </a>
 
   <a href="zowkycoil.html" class="item-card">
-    <img src="images/covers/coil.svg" alt="Zowky Coil" style="filter: hue-rotate(60deg);">
+    <img src="images/covers/zowkycoil.svg" alt="Zowky Coil">
     <h3>Зовки-катушка</h3>
   </a>
 
   <a href="guardiancoil.html" class="item-card">
-    <img src="images/covers/coil.svg" alt="Guardian Coil" style="filter: hue-rotate(150deg);">
+    <img src="images/covers/guardiancoil.svg" alt="Guardian Coil">
     <h3>Защитная катушка</h3>
   </a>
 </div>
