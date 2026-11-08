@@ -15,7 +15,7 @@ custom_css: /css/main.css
   </a>
 
   <a href="fissioncoil.html" class="item-card">
-    <img src="images/covers/coil.svg" alt="Fission Coil" style="filter: hue-rotate(110deg);">
+    <img src="images/covers/fissioncoil.svg" alt="Fission Coil">
     <h3>Катушка расщепления</h3>
   </a>
 
