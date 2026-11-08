@@ -249,19 +249,21 @@ document.addEventListener("DOMContentLoaded", () => {
   initZoom();
 });
 
-  // 1. Создаем внутреннюю базу данных заголовков и ссылок средствами Jekyll
-const wikiDatabase = [
-  {% for page in site.pages %}
-    {% if page.title %}
-      {
-        title: "{{ page.title | escape }}".toLowerCase(),
-        url: "{{ page.url | relative_url }}"
-      },
-    {% endif %}
-  {% endfor %}
-];
+  // Поиск: список страниц лежит отдельным файлом search.json и грузится только тогда,
+  // когда пользователь нажимает на поиск (раньше список ВСЕХ страниц вшивался в каждую страницу сайта)
+let wikiDatabase = null, wikiLoading = null;
+function loadWikiIndex() {
+  if (wikiDatabase) return Promise.resolve(wikiDatabase);
+  if (!wikiLoading) {
+    wikiLoading = fetch("{{ '/search.json' | relative_url }}")
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(list => (wikiDatabase = list.map(p => ({ title: String(p.title).toLowerCase(), url: p.url }))))
+      .catch(err => { wikiLoading = null; throw err; });
+  }
+  return wikiLoading;
+}
 
-// 2. Логика работы кнопки поиска
+// Логика работы кнопки поиска
 const searchBtn = document.getElementById("widget-search-btn");
 
 if (searchBtn) {
@@ -271,8 +273,12 @@ if (searchBtn) {
     // Включаем фиолетовую подсветку кнопки
     searchBtn.classList.add("active");
     
+    // Список страниц начинает грузиться сразу, пока пользователь вводит запрос
+    const indexReady = loadWikiIndex();
+    indexReady.catch(() => {});
+    
     // Задержка в 50мс, чтобы браузер успел отрисовать подсветку кнопки перед вызовом prompt
-    setTimeout(() => {
+    setTimeout(async () => {
       const query = prompt("Введите название статьи для поиска:");
       
       // Если пользователь нажал «Отмена» или ничего не ввел
@@ -283,8 +289,17 @@ if (searchBtn) {
       
       const cleanQuery = query.trim().toLowerCase();
       
+      let db;
+      try {
+        db = await indexReady;
+      } catch (err) {
+        searchBtn.classList.remove("active");
+        alert("Не удалось загрузить список статей. Проверьте интернет и попробуйте ещё раз.");
+        return;
+      }
+      
       // Ищем совпадение по заголовкам (частичное или полное)
-      const result = wikiDatabase.find(item => item.title.includes(cleanQuery));
+      const result = db.find(item => item.title.includes(cleanQuery));
       
       if (result) {
         // Если нашли статью — мгновенно переходим на неё
