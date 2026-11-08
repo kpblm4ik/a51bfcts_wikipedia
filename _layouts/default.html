@@ -71,6 +71,9 @@
     {% if page.custom_css %}
     <link rel="stylesheet" href="{{ page.custom_css | relative_url }}">
     {% endif %}
+
+    <!-- Пользовательская тема (UI kit): красит только .wrapper и фон, виджет не трогает -->
+    <script src="{{ '/js/kit.js' | relative_url }}"></script>
 </head>
 <body>
     <div class="wrapper">
