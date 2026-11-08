@@ -1,0 +1,145 @@
+---
+layout: default
+title: Темы и UI kit — a51bfcts Вики
+custom_css: /css/main.css
+---
+{% raw %}
+<style>
+  .ed-card { background: linear-gradient(160deg, #201830, #14101c); border: 1px solid rgba(160,102,255,.25); border-radius: 14px; padding: 14px; margin: 18px 0; color: #e2daf0; }
+  .ed-card h3 { margin: 0 0 10px; font-family: "Rajdhani", sans-serif; color: #fff; text-shadow: 0 0 8px rgba(160,102,255,.6); }
+  .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  .ed-row label { font-size: 14px; color: #bcaada; display: flex; align-items: center; gap: 6px; }
+  .ed-card input[type=text], .ed-card select, .ed-card textarea { background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; box-sizing: border-box; }
+  .ed-card textarea { width: 100%; min-height: 150px; font-family: monospace; font-size: 12px; }
+  .ed-card input[type=color] { width: 44px; height: 34px; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; background: none; padding: 2px; }
+  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .hint { font-size: 12px; color: #bcaada; line-height: 1.5; }
+  .ed-card input[type=range] { flex: 1 1 120px; }
+  #errs div { font-size: 13px; margin: 3px 0; color: #ffb86b; }
+  #st { font-size: 13px; margin-top: 8px; }
+</style>
+
+<h1>🎨 Темы и UI kit</h1>
+<p class="hint">Тема меняет только обои и оформление статей. Виджет с кнопками, баннер и эти карточки настроек она не трогает. Тема хранится в вашем браузере и другим посетителям сайт не меняет. Если что-то пошло не так, добавьте к адресу любой страницы <code>?theme=off</code>.</p>
+
+<!-- Пример: эти блоки меняются вместе с темой -->
+<div class="main-sector-card"><div class="card-text">
+  <h4><a href="#" onclick="return false">Пример карточки</a></h4>
+  <p>Так выглядит текст статьи. Число <span class="stat">+30%</span> подсвечивается вторым акцентом.</p>
+</div></div>
+<div class="items-grid"><a class="item-card" href="#" onclick="return false"><h3>Пример предмета</h3><p>Скорость: <span class="stat">+30%</span></p></a></div>
+<hr>
+
+<div class="ed-card"><h3>Готовые темы</h3><div class="ed-row" id="presets"></div></div>
+
+<div class="ed-card">
+  <h3>Редактор</h3>
+  <div class="ed-row"><label>Название <input type="text" id="nm" maxlength="40"></label></div>
+  <div id="cols"></div>
+  <div class="ed-row"><label style="flex:1">Свечение <input type="range" id="gl" min="0" max="1" step="0.05"></label></div>
+  <div class="ed-row"><label style="flex:1">Скругление <input type="range" id="rd" min="0" max="24"></label></div>
+  <div class="ed-row"><label>Шрифт <select id="ft"></select></label></div>
+  <div class="ed-row"><label>Обои <input type="file" id="wp" accept="image/*"></label><button class="ed-btn" id="wpx">✕ Убрать обои</button></div>
+  <div class="ed-row"><label style="flex:1">Яркость обоев <input type="range" id="dm" min="0.05" max="1" step="0.05"></label></div>
+  <p class="hint">Картинка сама уменьшится и сожмётся примерно до 190 КБ и кладётся прямо внутрь темы: внешних ссылок нет.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Импорт и экспорт</h3>
+  <div class="ed-row"><label>Файл темы <input type="file" id="imp" accept=".json,application/json"></label></div>
+  <textarea id="js" spellcheck="false"></textarea>
+  <div class="ed-row">
+    <button class="ed-btn" id="fromtxt">📥 Применить из текста</button>
+    <button class="ed-btn" id="copy">📋 Скопировать</button>
+    <button class="ed-btn" id="dl">⬇️ Скачать .json</button>
+  </div>
+  <div id="errs"></div>
+  <p class="hint">В файле темы работают только поля schema, name, colors (accent, accent2, text, textSoft, panel, panelHi, page в формате #rrggbb), glow (0–1), radius (0–24), font (default, rounded, serif, mono, display), wallpaper и dim (0.05–1). Всё остальное отбрасывается, а ошибки показываются здесь.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Сохранить</h3>
+  <div class="ed-row">
+    <button class="ed-btn" id="save">💾 Сохранить тему</button>
+    <button class="ed-btn" id="reset">↩️ Сбросить на стандартную</button>
+  </div>
+  <p class="hint">Пока вы не нажмёте «Сохранить», тема видна только на этой странице.</p>
+  <div id="st"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+if (!window.KIT) { $('#st').textContent = 'Не загрузился движок тем (js/kit.js).'; }
+else {
+  const NAMES = [['accent', 'Акцент (ссылки, свечение)'], ['accent2', 'Второй акцент (цифры)'], ['text', 'Текст'], ['textSoft', 'Текст бледнее'], ['panel', 'Карточка'], ['panelHi', 'Карточка светлее'], ['page', 'Фон страницы']];
+  let kit = KIT.validate(KIT.stored() || KIT.DEF).kit;
+  const say = (t, ok) => { const s = $('#st'); s.textContent = t; s.style.color = ok ? '#5cf2c8' : '#ff8a8a'; };
+  const showErr = list => {
+    const b = $('#errs'); b.innerHTML = '';
+    if (!list.length) { const d = document.createElement('div'); d.style.color = '#5cf2c8'; d.textContent = 'Тема загружена без ошибок.'; b.appendChild(d); return; }
+    list.forEach(t => { const d = document.createElement('div'); d.textContent = '⚠️ ' + t; b.appendChild(d); });
+  };
+  const cols = $('#cols');
+  NAMES.forEach(n => { const r = document.createElement('div'); r.className = 'ed-row'; r.innerHTML = '<label>' + n[1] + ' <input type="color" data-c="' + n[0] + '"></label>'; cols.appendChild(r); });
+  $('#ft').innerHTML = Object.keys(KIT.FONTS).map(k => '<option value="' + k + '">' + KIT.FONT_LABELS[k] + '</option>').join('');
+  const pr = $('#presets');
+  Object.keys(KIT.PRESETS).forEach(n => { const b = document.createElement('button'); b.className = 'ed-btn'; b.textContent = n; b.addEventListener('click', () => { kit = KIT.clone(KIT.PRESETS[n]); fill(); }); pr.appendChild(b); });
+
+  function sync() { KIT.apply(kit); $('#js').value = JSON.stringify(kit, null, 2); }
+  function fill(apply) {
+    $('#nm').value = kit.name; $('#gl').value = kit.glow; $('#rd').value = kit.radius; $('#ft').value = kit.font; $('#dm').value = kit.dim;
+    document.querySelectorAll('[data-c]').forEach(i => { i.value = kit.colors[i.dataset.c]; });
+    if (apply === false) $('#js').value = JSON.stringify(kit, null, 2); else sync();
+  }
+  cols.addEventListener('input', e => { const c = e.target.dataset.c; if (c) { kit.colors[c] = e.target.value; sync(); } });
+  $('#nm').addEventListener('input', e => { kit.name = e.target.value.replace(/[^\p{L}\p{N} _.\-]/gu, '').slice(0, 40) || 'Своя тема'; $('#js').value = JSON.stringify(kit, null, 2); });
+  $('#gl').addEventListener('input', e => { kit.glow = +e.target.value; sync(); });
+  $('#rd').addEventListener('input', e => { kit.radius = +e.target.value; sync(); });
+  $('#ft').addEventListener('change', e => { kit.font = e.target.value; sync(); });
+  $('#dm').addEventListener('input', e => { kit.dim = +e.target.value; sync(); });
+  $('#wpx').addEventListener('click', () => { kit.wallpaper = ''; sync(); });
+
+  /* Обои: уменьшаем и сжимаем в браузере, пока не влезут в лимит */
+  $('#wp').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const bmp = await createImageBitmap(f);
+      for (const w of [900, 700, 500, 360]) {
+        const k = Math.min(1, w / bmp.width), c = document.createElement('canvas');
+        c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+        c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+        for (const q of [0.7, 0.5, 0.35]) {
+          const u = c.toDataURL('image/webp', q);
+          if (u.length <= KIT.MAXWP && /^data:image\/webp/.test(u)) { kit.wallpaper = u; sync(); say('Обои добавлены (' + Math.round(u.length / 1024) + ' КБ).', true); return; }
+          const j = c.toDataURL('image/jpeg', q);
+          if (j.length <= KIT.MAXWP) { kit.wallpaper = j; sync(); say('Обои добавлены (' + Math.round(j.length / 1024) + ' КБ).', true); return; }
+        }
+      }
+      say('Не удалось сжать картинку до нужного размера. Возьмите картинку попроще.');
+    } catch (err) { say('Не удалось прочитать картинку.'); }
+    e.target.value = '';
+  });
+
+  function load(text) {
+    let o;
+    try { o = JSON.parse(text); } catch (e) { showErr(['Это не JSON: ' + e.message]); return; }
+    const r = KIT.validate(o); kit = r.kit; showErr(r.errors); fill();
+  }
+  $('#imp').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 400000) { showErr(['Файл больше 400 КБ.']); return; }
+    const rd = new FileReader(); rd.onload = () => load(String(rd.result)); rd.readAsText(f); e.target.value = '';
+  });
+  $('#fromtxt').addEventListener('click', () => load($('#js').value));
+  $('#copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('#js').value); say('Скопировано.', true); } catch (e) { $('#js').select(); say('Выделено: скопируйте вручную.', true); } });
+  $('#dl').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([$('#js').value], { type: 'application/json' }));
+    a.download = (kit.name.replace(/\s+/g, '-') || 'theme') + '.json'; a.click();
+  });
+  $('#save').addEventListener('click', () => say(KIT.save(kit) ? 'Тема «' + kit.name + '» сохранена: она применится на всех страницах.' : 'Не удалось сохранить: браузер не даёт писать в память.', KIT.save(kit)));
+  $('#reset').addEventListener('click', () => { KIT.reset(); kit = KIT.validate(KIT.DEF).kit; fill(false); say('Тема сброшена. Стандартный вид вернётся после обновления страницы.', true); });
+  fill(false);
+}
+</script>
+{% endraw %}
