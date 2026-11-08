@@ -15,7 +15,8 @@
     <!-- Кнопка поиска -->
     <button id="widget-search-btn" title="Поиск по Вики">⌕</button>
 
-    <button id="widget-experimental-btn" title="Экспериментальные функции">⚗</button>
+    <!-- Экспериментальные функции: обычная ссылка, работает и без JS -->
+    <a id="widget-experimental-btn" href="{{ '/experimental.html' | relative_url }}" title="Экспериментальные функции">⚗</a>
   </div>
 </div>
 
@@ -177,6 +178,35 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   background: #a066ff;
   color: #050407;
   box-shadow: 0 0 15px #a066ff;
+}
+
+/* Кнопка экспериментальных функций (ссылка, оформлена как остальные) */
+#widget-experimental-btn {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #050407;
+  border: 1px solid #a066ff;
+  color: #a066ff;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#widget-experimental-btn:hover,
+#widget-experimental-btn:active {
+  background: rgba(160, 102, 255, 0.2);
+  box-shadow: 0 0 12px #a066ff;
+  color: #a066ff;
 }
 </style>
   
