@@ -1,0 +1,115 @@
+---
+layout: default
+title: Экспериментальные функции — a51bfcts Вики
+custom_css: /css/main.css
+---
+{% assign avif = site.static_files | where: "extname", ".avif" %}
+<script>window.AVIF = {{ avif | map: "path" | jsonify }}; window.BASE = {{ site.baseurl | jsonify }};</script>
+{% raw %}
+<style>
+  .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
+  .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
+  .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  .ed-row label { font-size: 14px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-btn:disabled { opacity: .5; cursor: default; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .warn { font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid rgba(255,184,107,.5); border-radius: 10px; background: rgba(255,184,107,.07); color: #ffd9a8; }
+  .warn code { color: #fff; word-break: break-all; }
+  #flag { font-size: 14px; margin: 8px 0; }
+  input[type=range] { flex: 1 1 120px; }
+  .jr { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid rgba(160,102,255,.25); border-radius: 8px; margin: 6px 0; font-size: 13px; }
+  .jr img { width: 56px; height: 56px; object-fit: contain; background: #0b090f; border-radius: 6px; flex: none; }
+  .jr .tx { flex: 1; min-width: 0; word-break: break-all; }
+  .jr a { color: #a066ff; }
+</style>
+
+<h1>⚗ Экспериментальные функции</h1>
+<p class="hint">Здесь живут функции, которые могут работать нестабильно. Всё выполняется в вашем браузере, на сервер ничего не отправляется.</p>
+
+<div class="ed-card">
+  <h3>JPEG XL</h3>
+  <div class="ed-row"><label><input type="checkbox" id="on"> Включить JPEG XL</label></div>
+  <div class="warn">
+    ⚠️ Чтобы браузер показывал JPEG XL, нужен флаг <b>enable jxl image format</b>.<br>
+    Откройте <code>chrome://flags/#enable-jxl-image-format</code> в адресной строке (ссылкой Chrome её не откроет), поставьте <b>Enabled</b> и перезапустите браузер.
+  </div>
+  <div class="ed-row"><button class="ed-btn" id="copy">📋 Скопировать адрес флага</button><button class="ed-btn" id="recheck">🔄 Проверить флаг</button></div>
+  <div id="flag">Проверяю флаг…</div>
+  <div class="ed-row"><label><input type="checkbox" id="skip"> всё равно продолжить без проверки флага</label></div>
+</div>
+
+<div class="ed-card">
+  <h3>Перекодировать AVIF → JPEG XL</h3>
+  <div class="ed-row"><label style="flex:1">Качество JXL <input type="range" id="q" min="50" max="100" value="85"> <span id="qv">85</span></label></div>
+  <div class="ed-row"><button class="ed-btn" id="go" disabled>⚙️ Перекодировать все AVIF</button></div>
+  <div id="st" class="hint"></div>
+  <div id="res"></div>
+  <p class="hint">Кодирование выполняет Wasm-кодировщик libjxl (пакет @jsquash/jxl 1.3.0, загружается с jsDelivr при нажатии кнопки). Исходные AVIF на сайте не меняются: результат лежит только в памяти страницы, его можно скачать. Перекодирование уже сжатого AVIF добавляет потери, а файлы JXL у таких картинок часто получаются больше, чем AVIF; в таблице видно разницу по каждому файлу.</p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const LS = 'exp.jxl', FLAG = 'chrome://flags/#enable-jxl-image-format';
+const JXL = 'data:image/jxl;base64,/woIELASCAgQAFwASxLFgkWAHL0xqnPCT2k0';
+const fmt = n => n >= 1024 ? (n / 1024).toFixed(1) + ' КБ' : n + ' Б';
+let flagOk = false, busy = false;
+const probe = () => new Promise(r => { const i = new Image(); i.onload = () => r(i.width > 0); i.onerror = () => r(false); i.src = JXL; });
+function upd() { $('#go').disabled = busy || !$('#on').checked || !(flagOk || $('#skip').checked) || !(window.AVIF || []).length; }
+async function check() {
+  flagOk = await probe();
+  const f = $('#flag');
+  f.textContent = flagOk ? '✅ Флаг включён: браузер умеет показывать JPEG XL.' : '⚠️ Флаг выключен (или браузер не поддерживает JPEG XL): картинки JXL не отобразятся.';
+  f.style.color = flagOk ? '#5cf2c8' : '#ffb86b';
+  upd();
+}
+try { $('#on').checked = localStorage.getItem(LS) === '1'; } catch (e) {}
+$('#on').addEventListener('change', e => { try { localStorage.setItem(LS, e.target.checked ? '1' : '0'); } catch (x) {} upd(); });
+$('#skip').addEventListener('change', upd);
+$('#recheck').addEventListener('click', check);
+$('#copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(FLAG); $('#flag').textContent = 'Адрес скопирован. Вставьте его в адресную строку.'; } catch (e) { prompt('Скопируйте адрес вручную:', FLAG); }
+});
+$('#q').addEventListener('input', e => { $('#qv').textContent = e.target.value; });
+
+function row(name, text, src, dl) {
+  const d = document.createElement('div'); d.className = 'jr';
+  if (src) { const im = document.createElement('img'); im.src = src; im.alt = ''; d.appendChild(im); }
+  const t = document.createElement('div'); t.className = 'tx'; t.textContent = name + ': ' + text; d.appendChild(t);
+  if (dl) { const a = document.createElement('a'); a.href = dl; a.download = name.replace(/\.avif$/i, '') + '.jxl'; a.textContent = '⬇️ JXL'; d.appendChild(a); }
+  $('#res').appendChild(d);
+}
+async function run() {
+  busy = true; upd(); $('#res').innerHTML = '';
+  const list = (window.AVIF || []).map(p => (window.BASE || '') + p), q = +$('#q').value;
+  let enc;
+  try {
+    $('#st').textContent = 'Загружаю Wasm-кодировщик JPEG XL…';
+    const m = await import('https://cdn.jsdelivr.net/npm/@jsquash/jxl@1.3.0/encode.js');
+    enc = m.default || m.encode;
+  } catch (e) { $('#st').textContent = 'Не удалось загрузить кодировщик: ' + (e.message || e); busy = false; upd(); return; }
+  let a = 0, b = 0, ok = 0;
+  for (let i = 0; i < list.length; i++) {
+    const name = list[i].split('/').pop();
+    $('#st').textContent = 'Кодирую ' + (i + 1) + ' из ' + list.length + ': ' + name;
+    try {
+      const blob = await (await fetch(list[i])).blob();
+      const bmp = await createImageBitmap(blob);
+      const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      const x = c.getContext('2d'); x.drawImage(bmp, 0, 0); bmp.close();
+      const buf = await enc(x.getImageData(0, 0, c.width, c.height), { quality: q, effort: 7 });
+      const out = new Blob([buf], { type: 'image/jxl' }), u = URL.createObjectURL(out);
+      const pc = Math.round((out.size / blob.size - 1) * 100);
+      a += blob.size; b += out.size; ok++;
+      row(name, 'AVIF ' + fmt(blob.size) + ' → JXL ' + fmt(out.size) + ' (' + (pc > 0 ? '+' : '') + pc + '%)', u, u);
+    } catch (e) { row(name, 'ошибка: ' + (e.message || e)); }
+  }
+  const tp = a ? Math.round((b / a - 1) * 100) : 0;
+  $('#st').textContent = 'Готово: ' + ok + ' из ' + list.length + '. Итого AVIF ' + fmt(a) + ' → JXL ' + fmt(b) + ' (' + (tp > 0 ? '+' : '') + tp + '%).';
+  busy = false; upd();
+}
+$('#go').addEventListener('click', run);
+if (!(window.AVIF || []).length) $('#st').textContent = 'AVIF-файлы на сайте не найдены.';
+check();
+</script>
+{% endraw %}
