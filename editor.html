@@ -57,6 +57,14 @@ custom_css: /css/main.css
   <div id="layers"></div>
   <div class="ed-row"><button class="ed-btn" id="addLayer">➕ Новый слой</button></div>
   <p class="hint" id="seqInfo"></p>
+  <div class="ed-row">
+    <label>Смена слоёв
+      <select id="seqMode">
+        <option value="after">Прошлый гаснет полностью, потом появляется следующий</option>
+        <option value="overlap">Следующий появляется, когда прошлый начинает гаснуть</option>
+      </select>
+    </label>
+  </div>
 
   <div id="settings">
     <div class="ed-row"><label>Название <input type="text" id="lname"></label></div>
@@ -73,7 +81,7 @@ custom_css: /css/main.css
     <div class="ed-row" id="smoothRow"><label style="flex:1">Плавность <input type="range" id="lsmooth" min="0" max="100" value="50"> <span id="smoothV">50%</span></label></div>
     <div class="ed-row"><label style="flex:1">Свечение <input type="range" id="lglow" min="0" max="20" value="0"> <span id="glowV">0</span></label></div>
     <div class="ed-row"><button class="ed-btn" id="applyAll">🔁 Переход, длительность и плавность — на все слои</button></div>
-    <p class="hint">«Плавная вспышка» — слои показываются по очереди: пиксели постепенно разгораются и гаснут, а не мигают. Очередь идёт от слоя 1 (самый нижний) до последнего. Цифра справа от названия слоя — его место в очереди; «—» значит, что слой в очереди не участвует (статичный, скрытый или пустой). Длительность — время одного слоя в очереди, полный круг равен сумме. «Плавность» — какая часть слота уходит на разгорание и затухание. «Пульсация» — слой непрерывно дышит.</p>
+    <p class="hint">«Плавная вспышка» — слои показываются по очереди: пиксели постепенно разгораются и гаснут, а не мигают. Очередь идёт от слоя 1 (самый нижний) до последнего. Цифра справа от названия слоя — его место в очереди; «—» значит, что слой в очереди не участвует (статичный, скрытый или пустой). Длительность — время одного слоя в очереди (от начала разгорания до конца затухания). «Смена слоёв»: в первом режиме между слоями есть короткая пауза, полный круг равен сумме длительностей; во втором следующий слой появляется, как только прошлый начинает гаснуть, слои плавно перетекают друг в друга, круг замкнут и короче суммы на время затуханий (при плавности 0 перекрытия нет). «Плавность» — какая часть слота уходит на разгорание и затухание. «Пульсация» — слой непрерывно дышит.</p>
   </div>
 </div>
 
@@ -127,6 +135,42 @@ function seqOrder() {
   const ord = new Map(); let k = 0;
   layers.forEach(l => { if (inSeq(l)) ord.set(l, ++k); });
   return ord;
+}
+
+let seqMode = 'after';   // 'after' = прошлый гаснет полностью, потом следующий; 'overlap' = следующий, пока прошлый гаснет
+
+/* Расписание очереди. Слой занимает окно длиной dur; разгорание и затухание длятся r = dur / 2 * плавность.
+   «after»:   следующий слой стартует, когда прошлый ПОЛНОСТЬЮ погас (старт += dur).
+   «overlap»: следующий слой стартует, когда прошлый только НАЧИНАЕТ гаснуть (старт += dur - r);
+              круг замкнут: последний слой догорает, пока снова разгорается первый. */
+function seqTimeline() {
+  const seq = layers.filter(inSeq), over = seqMode === 'overlap' && seq.length > 1;
+  let t = 0;
+  const items = seq.map(l => {
+    const r = l.dur / 2 * l.smooth / 100, it = { l, a: t, dur: l.dur, r };
+    t += over ? l.dur - r : l.dur;
+    return it;
+  });
+  return { T: t || 1, items };
+}
+/* Ключевые кадры непрозрачности одного слоя за круг T. Окно [a, a+dur] может выйти за конец круга:
+   тогда хвост затухания продолжается с начала круга (поэтому суммируем копии, сдвинутые на T). */
+function layerKeys(it, T) {
+  const r = Math.min(it.dur / 2, Math.max(it.r, T * 0.0005));   // у «жёсткой» смены r почти 0, но не 0
+  const P = [[it.a, 0], [it.a + r, 1], [it.a + it.dur - r, 1], [it.a + it.dur, 0]];
+  const f = t => {
+    if (t <= P[0][0] || t >= P[3][0]) return 0;
+    for (let i = 0; i < 3; i++) if (t <= P[i + 1][0]) {
+      const [t0, v0] = P[i], [t1, v1] = P[i + 1];
+      return t1 === t0 ? v1 : v0 + (v1 - v0) * (t - t0) / (t1 - t0);
+    }
+    return 0;
+  };
+  const g = t => Math.min(1, f(t) + f(t + T) + f(t + 2 * T));
+  const times = new Set([0, T]);
+  P.forEach(p => [0, 1, 2].forEach(k => { const t = p[0] - k * T; if (t > 0 && t < T) times.add(+t.toFixed(6)); }));
+  const ts = [...times].sort((x, y) => x - y);
+  return { kt: ts.map(t => +(t / T).toFixed(5)), vals: ts.map(t => +g(t).toFixed(3)) };
 }
 
 /* ---------- холст ---------- */
@@ -245,9 +289,9 @@ function renderLayers() {
     });
     box.appendChild(d);
   }
-  const seq = layers.filter(inSeq), total = seq.reduce((a, l) => a + l.dur, 0);
-  $('#seqInfo').textContent = seq.length
-    ? 'Очередь: ' + seq.length + ' ' + (seq.length === 1 ? 'слой' : 'слоёв') + ', полный круг ' + +total.toFixed(2) + ' сек. Порядок: от слоя 1 к последнему.'
+  const tl = seqTimeline(), n = tl.items.length;
+  $('#seqInfo').textContent = n
+    ? 'Очередь: ' + n + ' ' + (n === 1 ? 'слой' : 'слоёв') + ', полный круг ' + +tl.T.toFixed(2) + ' сек. Порядок: от слоя 1 к последнему.'
     : 'Очередь пуста: ни у одного видимого слоя с рисунком не выбрана «Плавная вспышка по очереди».';
 }
 function loadSettings() {
@@ -271,6 +315,7 @@ $('#applyAll').addEventListener('click', () => {
   layers.forEach(l => { l.mode = s.mode; l.dur = s.dur; l.smooth = s.smooth; });
   renderLayers(); loadSettings(); refresh();
 });
+$('#seqMode').addEventListener('change', e => { seqMode = e.target.value; renderLayers(); refresh(); });
 $('#lname').addEventListener('input', e => { layers[cur].name = e.target.value || 'Слой'; renderLayers(); });
 $('#lmode').addEventListener('change', e => { layers[cur].mode = e.target.value; renderLayers(); loadSettings(); refresh(); });
 $('#ldur').addEventListener('change', e => { layers[cur].dur = Math.min(30, Math.max(0.1, parseFloat(e.target.value) || 3)); renderLayers(); loadSettings(); refresh(); });
@@ -299,12 +344,11 @@ function rects(l) {
   });
   return s;
 }
-const f = n => +n.toFixed(4);
 function buildSVG() {
   const vis = layers.filter(l => l.vis);
-  const seq = vis.filter(inSeq);
-  const T = seq.reduce((a, l) => a + l.dur, 0) || 1;
-  let t0 = 0, defs = '', body = '';
+  const tl = seqTimeline(), T = tl.T;
+  const keys = new Map(tl.items.map(it => [it.l, layerKeys(it, T)]));
+  let defs = '', body = '';
   vis.forEach((l, i) => {
     let attrs = '', anim = '';
     if (l.glow > 0) {
@@ -312,12 +356,10 @@ function buildSVG() {
         (l.glow / 10).toFixed(2) + '" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
       attrs += ' filter="url(#g' + i + ')"';
     }
-    if (inSeq(l)) {
-      const s = t0 / T, e = (t0 + l.dur) / T, r = (e - s) / 2 * l.smooth / 100;
-      const kt = [0, s, s + r, e - r, e, 1].map(f), vals = [0, 0, 1, 1, 0, 0];
+    if (keys.has(l)) {
+      const k = keys.get(l);
       attrs += ' opacity="0"';
-      anim = '<animate attributeName="opacity" dur="' + T + 's" repeatCount="indefinite" keyTimes="' + kt.join(';') + '" values="' + vals.join(';') + '"/>';
-      t0 += l.dur;
+      anim = '<animate attributeName="opacity" dur="' + T + 's" repeatCount="indefinite" keyTimes="' + k.kt.join(';') + '" values="' + k.vals.join(';') + '"/>';
     } else if (l.mode === 'pulse') {
       anim = '<animate attributeName="opacity" dur="' + l.dur + 's" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines=".4 0 .6 1;.4 0 .6 1" values="0.15;1;0.15"/>';
     }
