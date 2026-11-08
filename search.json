@@ -1,0 +1,6 @@
+---
+layout: null
+---
+[{% assign first = true %}{% for p in site.pages %}{% if p.title %}{% unless first %},{% endunless %}{% assign first = false %}
+  {"title": {{ p.title | jsonify }}, "url": {{ p.url | relative_url | jsonify }}}{% endif %}{% endfor %}
+]
