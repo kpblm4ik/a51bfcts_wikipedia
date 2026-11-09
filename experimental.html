@@ -12,12 +12,15 @@ custom_css: /css/main.css
   .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
   .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
   .ed-row label { font-size: 14px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
-  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-card select { background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; }
+  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; display: inline-block; text-decoration: none; }
+  a.ed-btn { color: #fff !important; text-shadow: none; }
   .ed-btn:disabled { opacity: .5; cursor: default; }
   .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
   .warn { font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid rgba(255,184,107,.5); border-radius: 10px; background: rgba(255,184,107,.07); color: #ffd9a8; }
   .warn code { color: #fff; word-break: break-all; }
-  #flag { font-size: 14px; margin: 8px 0; }
+  .st { font-size: 14px; margin: 8px 0; }
+  pre.info { font-size: 12px; white-space: pre-wrap; word-break: break-word; margin: 6px 0; color: var(--ink-soft); }
   input[type=range] { flex: 1 1 120px; }
   .jr { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid rgba(160,102,255,.25); border-radius: 8px; margin: 6px 0; font-size: 13px; }
   .jr img { width: 56px; height: 56px; object-fit: contain; background: #0b090f; border-radius: 6px; flex: none; }
@@ -29,12 +32,18 @@ custom_css: /css/main.css
 <p class="hint">Здесь живут функции, которые могут работать нестабильно. Всё выполняется в вашем браузере, на сервер ничего не отправляется.</p>
 
 <div class="ed-card">
+  <h3>Браузер</h3>
+  <div class="hint" id="br"></div>
+  <div class="ed-row"><label>Определился неверно? <select id="brsel"></select></label></div>
+  <p class="hint">От браузера зависит, какой адрес настроек показывать (у Яндекса <code>browser://</code>, у Chrome <code>chrome://</code>).</p>
+</div>
+
+<div class="ed-card">
   <h3>JPEG XL</h3>
   <div class="ed-row"><label><input type="checkbox" id="on"> Включить JPEG XL</label></div>
-  <div class="hint" id="br"></div>
-  <div class="warn" id="warn"></div>
+  <div class="warn" id="jxlwarn"></div>
   <div class="ed-row"><button class="ed-btn" id="copy">📋 Скопировать адрес</button><button class="ed-btn" id="recheck">🔄 Проверить флаг</button></div>
-  <div id="flag">Проверяю флаг…</div>
+  <div class="st" id="flag">Проверяю флаг…</div>
   <div class="ed-row"><label><input type="checkbox" id="skip"> всё равно продолжить без проверки флага</label></div>
 </div>
 
@@ -47,64 +56,98 @@ custom_css: /css/main.css
   <p class="hint">Кодирование выполняет Wasm-кодировщик libjxl (пакет @jsquash/jxl 1.3.0 и wasm-feature-detect 1.8.0, загружаются с jsDelivr при нажатии кнопки). Исходные AVIF на сайте не меняются: результат лежит только в памяти страницы, его можно скачать. Перекодирование уже сжатого AVIF добавляет потери, а файлы JXL у таких картинок часто получаются больше, чем AVIF; в таблице видно разницу по каждому файлу.</p>
 </div>
 
+<div class="ed-card">
+  <h3>WebGPU</h3>
+  <div class="ed-row"><label><input type="checkbox" id="gpuon"> Включить WebGPU</label></div>
+  <div class="warn" id="gpuwarn"></div>
+  <div class="ed-row"><button class="ed-btn" id="gpucopy">📋 Скопировать адрес</button><button class="ed-btn" id="gpucheck">🔄 Проверить WebGPU</button></div>
+  <div class="st" id="gpust">Проверяю…</div>
+  <pre class="info" id="gpuinfo"></pre>
+  <p class="hint">Проверка запрашивает видеоадаптер и запускает крошечное вычисление на видеокарте (удвоение четырёх чисел). Переключатель сохраняет ваш выбор: он понадобится для раздела «Ассеты для разработчиков».</p>
+</div>
+
+<div class="ed-card">
+  <h3>xHE-AAC</h3>
+  <div class="ed-row"><label><input type="checkbox" id="xheon"> Включить xHE-AAC</label></div>
+  <div class="st" id="xhest">Проверяю…</div>
+  <pre class="info" id="xheinfo"></pre>
+  <div class="ed-row"><button class="ed-btn" id="xhecheck">🔄 Проверить ещё раз</button></div>
+  <div class="ed-row"><label>Свой файл для проверки <input type="file" id="xf" accept="audio/*,.m4a,.mp4,.aac"></label></div>
+  <audio id="xa" controls style="width:100%"></audio>
+  <div class="hint" id="xamsg"></div>
+  <p class="hint">xHE-AAC (кодек USAC) воспроизводится средствами системы, отдельного флага в браузере для него нет. Если проверка не прошла, помогает обновление системы или браузера. На сайте пока нет аудио: переключатель просто запоминает выбор.</p>
+</div>
+
+<div class="ed-card">
+  <h3>🎨 Настройка UI kit</h3>
+  <p class="hint">Свои цвета, обои и скругления сайта: готовые темы, простой редактор и импорт файла темы. Тема меняет только цвета и вид, расположение и работа кнопок остаются прежними.</p>
+  <div class="ed-row"><a class="ed-btn" href="kit.html">🎨 Открыть редактор тем</a></div>
+  <div class="hint" id="kitnow"></div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
-const LS = 'exp.jxl';
-const JXL = 'data:image/jxl;base64,/woIELASCAgQAFwASxLFgkWAHL0xqnPCT2k0';
+const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const fmt = n => n >= 1024 ? (n / 1024).toFixed(1) + ' КБ' : n + ' Б';
+function toggle(id, key, cb) { const el = $(id); el.checked = ls.get(key) === '1'; el.addEventListener('change', () => { ls.set(key, el.checked ? '1' : '0'); if (cb) cb(); }); }
 
-/* ---------- определяем браузер, чтобы показать правильный адрес флага ---------- */
-function detect() {
-  const u = navigator.userAgent, F = 'flags/#enable-jxl-image-format';
-  const web = (name, scheme) => ({
-    name: name, url: scheme + F,
-    warn: '⚠️ Чтобы браузер показывал JPEG XL, нужен флаг <b>enable jxl image format</b>.<br>' +
-      'Откройте <code>' + scheme + F + '</code> в адресной строке этого браузера (ссылкой его не открыть), поставьте <b>Enabled</b> и перезапустите браузер. ' +
-      'Если такого флага в списке нет, версия браузера слишком старая: обновите его.'
-  });
-  if (/YaBrowser/.test(u)) return web('Яндекс Браузер', 'browser://');
-  if (/Edg\//.test(u)) return web('Microsoft Edge', 'edge://');
-  if (/OPR\//.test(u)) return web('Opera', 'opera://');
-  if (navigator.brave) return web('Brave', 'brave://');
-  if (/Vivaldi/.test(u)) return web('Vivaldi', 'vivaldi://');
-  if (/Firefox\//.test(u)) return {
-    name: 'Firefox', url: 'about:config',
-    warn: '⚠️ В Firefox нет флага с таким именем. Откройте <code>about:config</code>, найдите параметр <b>image.jxl.enabled</b>, поставьте <b>true</b> и перезапустите браузер.'
-  };
-  if (/Chrome\/|CriOS/.test(u)) return web('Chrome / Chromium', 'chrome://');
-  if (/Safari\//.test(u)) return {
-    name: 'Safari', url: '',
-    warn: 'ℹ️ Safari 17 и новее показывает JPEG XL без флагов. Если проверка ниже не прошла, обновите систему.'
-  };
-  return web('неизвестный браузер', 'chrome://');
+/* ---------- браузер ---------- */
+const BRS = { yandex: ['Яндекс Браузер', 'browser://'], chrome: ['Chrome / Chromium', 'chrome://'], edge: ['Microsoft Edge', 'edge://'], opera: ['Opera', 'opera://'], brave: ['Brave', 'brave://'], vivaldi: ['Vivaldi', 'vivaldi://'], firefox: ['Firefox', ''], safari: ['Safari', ''] };
+function autoBr() {
+  const u = navigator.userAgent, b = ((navigator.userAgentData && navigator.userAgentData.brands) || []).map(x => x.brand).join(' ');
+  if (/YaBrowser|Yowser/.test(u) || /yandex/i.test(b)) return 'yandex';
+  if (/Edg\//.test(u)) return 'edge';
+  if (/OPR\//.test(u) || /opera/i.test(b)) return 'opera';
+  if (navigator.brave) return 'brave';
+  if (/Vivaldi/.test(u)) return 'vivaldi';
+  if (/Firefox\//.test(u)) return 'firefox';
+  if (/Chrome\/|CriOS/.test(u)) return 'chrome';
+  if (/Safari\//.test(u)) return 'safari';
+  return 'chrome';
 }
-const BR = detect(), FLAG = BR.url;
-$('#br').textContent = 'Браузер: ' + BR.name + (FLAG ? ' · адрес настройки: ' + FLAG : '');
-$('#warn').innerHTML = BR.warn;
-if (!FLAG) $('#copy').style.display = 'none';
+let br = ls.get('exp.br') || 'auto';
+if (br !== 'auto' && !BRS[br]) br = 'auto';
+const cur = () => br === 'auto' ? autoBr() : br;
+const flagUrl = f => BRS[cur()][1] ? BRS[cur()][1] + 'flags/#' + f : '';
+function warn(f, ff, sa) {
+  const b = cur();
+  if (b === 'firefox') return ff;
+  if (b === 'safari') return sa;
+  return '⚠️ Нужен флаг <b>' + f.replace(/-/g, ' ') + '</b>.<br>Откройте <code>' + flagUrl(f) + '</code> в адресной строке этого браузера (ссылкой его не открыть), поставьте <b>Enabled</b> и перезапустите браузер. Если такого флага в списке нет, версия браузера слишком старая: обновите его.';
+}
+const FF_JXL = '⚠️ В Firefox нет флага с таким именем. Откройте <code>about:config</code>, найдите <b>image.jxl.enabled</b>, поставьте <b>true</b> и перезапустите браузер.';
+const SA_JXL = 'ℹ️ Safari 17 и новее показывает JPEG XL без флагов. Если проверка ниже не прошла, обновите систему.';
+const FF_GPU = '⚠️ В Firefox откройте <code>about:config</code>, найдите <b>dom.webgpu.enabled</b>, поставьте <b>true</b> и перезапустите браузер.';
+const SA_GPU = 'ℹ️ В новых версиях Safari WebGPU включён сам. Если проверка ниже не прошла, обновите систему.';
+function render() {
+  $('#br').textContent = 'Браузер: ' + BRS[cur()][0] + (br === 'auto' ? ' (определён автоматически)' : ' (выбран вручную)');
+  $('#jxlwarn').innerHTML = warn('enable-jxl-image-format', FF_JXL, SA_JXL);
+  $('#gpuwarn').innerHTML = warn('enable-unsafe-webgpu', FF_GPU, SA_GPU);
+  $('#copy').style.display = $('#gpucopy').style.display = flagUrl('x') ? '' : 'none';
+  checkJxl(); checkGpu();
+}
+$('#brsel').innerHTML = '<option value="auto">Определить автоматически</option>' + Object.keys(BRS).map(k => '<option value="' + k + '">' + BRS[k][0] + '</option>').join('');
+$('#brsel').value = br;
+$('#brsel').addEventListener('change', e => { br = e.target.value; ls.set('exp.br', br); render(); });
+async function copyText(t, el) { try { await navigator.clipboard.writeText(t); el.textContent = 'Адрес скопирован. Вставьте его в адресную строку.'; el.style.color = ''; } catch (e) { prompt('Скопируйте адрес вручную:', t); } }
 
-/* ---------- проверка поддержки JPEG XL ---------- */
+/* ---------- JPEG XL ---------- */
+const JXL = 'data:image/jxl;base64,/woIELASCAgQAFwASxLFgkWAHL0xqnPCT2k0';
 let flagOk = false, busy = false;
 const probe = () => new Promise(r => { const i = new Image(); i.onload = () => r(i.width > 0); i.onerror = () => r(false); i.src = JXL; });
 function upd() { $('#go').disabled = busy || !$('#on').checked || !(flagOk || $('#skip').checked) || !(window.AVIF || []).length; }
-async function check() {
+async function checkJxl() {
   flagOk = await probe();
-  const f = $('#flag');
-  f.textContent = flagOk
-    ? '✅ ' + BR.name + ' умеет показывать JPEG XL.'
-    : '⚠️ ' + BR.name + ' пока не показывает JPEG XL' + (FLAG ? ': проверьте настройку ' + FLAG + '.' : '.') + ' Перекодированные картинки не отобразятся.';
+  const f = $('#flag'), a = flagUrl('enable-jxl-image-format');
+  f.textContent = flagOk ? '✅ ' + BRS[cur()][0] + ' умеет показывать JPEG XL.' : '⚠️ ' + BRS[cur()][0] + ' пока не показывает JPEG XL' + (a ? ': проверьте настройку ' + a + '.' : '.') + ' Перекодированные картинки не отобразятся.';
   f.style.color = flagOk ? '#5cf2c8' : '#ffb86b';
   upd();
 }
-try { $('#on').checked = localStorage.getItem(LS) === '1'; } catch (e) {}
-$('#on').addEventListener('change', e => { try { localStorage.setItem(LS, e.target.checked ? '1' : '0'); } catch (x) {} upd(); });
+toggle('#on', 'exp.jxl', upd);
 $('#skip').addEventListener('change', upd);
-$('#recheck').addEventListener('click', check);
-$('#copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(FLAG); $('#flag').textContent = 'Адрес скопирован. Вставьте его в адресную строку.'; $('#flag').style.color = ''; } catch (e) { prompt('Скопируйте адрес вручную:', FLAG); }
-});
+$('#recheck').addEventListener('click', checkJxl);
+$('#copy').addEventListener('click', () => copyText(flagUrl('enable-jxl-image-format'), $('#flag')));
 $('#q').addEventListener('input', e => { $('#qv').textContent = e.target.value; });
-
 function row(name, text, src, dl) {
   const d = document.createElement('div'); d.className = 'jr';
   if (src) { const im = document.createElement('img'); im.src = src; im.alt = ''; d.appendChild(im); }
@@ -143,6 +186,74 @@ async function run() {
 }
 $('#go').addEventListener('click', run);
 if (!(window.AVIF || []).length) $('#st').textContent = 'AVIF-файлы на сайте не найдены.';
-check();
+
+/* ---------- WebGPU ---------- */
+async function gpuSmoke(dev) {
+  const code = '@group(0) @binding(0) var<storage, read_write> d: array<f32>; @compute @workgroup_size(4) fn main(@builtin(global_invocation_id) id: vec3<u32>) { d[id.x] = d[id.x] * 2.0; }';
+  const pipe = dev.createComputePipeline({ layout: 'auto', compute: { module: dev.createShaderModule({ code: code }), entryPoint: 'main' } });
+  const buf = dev.createBuffer({ size: 16, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, mappedAtCreation: true });
+  new Float32Array(buf.getMappedRange()).set([1, 2, 3, 4]); buf.unmap();
+  const rd = dev.createBuffer({ size: 16, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buf } }] });
+  const enc = dev.createCommandEncoder(), p = enc.beginComputePass();
+  p.setPipeline(pipe); p.setBindGroup(0, bg); p.dispatchWorkgroups(1); p.end();
+  enc.copyBufferToBuffer(buf, 0, rd, 0, 16); dev.queue.submit([enc.finish()]);
+  await rd.mapAsync(GPUMapMode.READ);
+  const r = Array.from(new Float32Array(rd.getMappedRange().slice(0))); rd.unmap();
+  return r;
+}
+async function checkGpu() {
+  const st = $('#gpust'), inf = $('#gpuinfo'), a = flagUrl('enable-unsafe-webgpu');
+  inf.textContent = ''; st.style.color = '#ffb86b';
+  if (!navigator.gpu) { st.textContent = '⚠️ WebGPU недоступен: в ' + BRS[cur()][0] + ' нет navigator.gpu' + (a ? ' (проверьте ' + a + ')' : '') + '.'; return; }
+  try {
+    const ad = await navigator.gpu.requestAdapter();
+    if (!ad) { st.textContent = '⚠️ WebGPU есть, но видеоадаптер не найден (драйвер или настройка' + (a ? ' ' + a : '') + ').'; return; }
+    const i = ad.info || (ad.requestAdapterInfo ? await ad.requestAdapterInfo() : {});
+    const dev = await ad.requestDevice();
+    const r = await gpuSmoke(dev);
+    const L = ad.limits;
+    inf.textContent = 'Адаптер: ' + [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(' · ') + '\n' +
+      'Макс. текстура: ' + L.maxTextureDimension2D + ' px · макс. буфер: ' + fmt(L.maxBufferSize) + ' · функций: ' + [...ad.features].length + '\n' +
+      'Тест вычисления [1,2,3,4] × 2 = [' + r.join(', ') + ']';
+    const good = r.join() === '2,4,6,8';
+    st.textContent = good ? '✅ WebGPU работает.' : '⚠️ WebGPU запустился, но тест вычисления дал неверный результат.';
+    st.style.color = good ? '#5cf2c8' : '#ffb86b';
+    if (dev.destroy) dev.destroy();
+  } catch (e) { st.textContent = '⚠️ Ошибка WebGPU: ' + (e.message || e); }
+}
+toggle('#gpuon', 'exp.webgpu');
+$('#gpucheck').addEventListener('click', checkGpu);
+$('#gpucopy').addEventListener('click', () => copyText(flagUrl('enable-unsafe-webgpu'), $('#gpust')));
+
+/* ---------- xHE-AAC ---------- */
+async function checkXhe() {
+  const T = [['xHE-AAC (USAC, mp4a.40.42)', 'audio/mp4; codecs="mp4a.40.42"'], ['AAC-LC для сравнения (mp4a.40.2)', 'audio/mp4; codecs="mp4a.40.2"']];
+  const lines = []; let ok = false;
+  for (const t of T) {
+    const can = document.createElement('audio').canPlayType(t[1]);
+    const ms = !!(window.MediaSource && MediaSource.isTypeSupported && MediaSource.isTypeSupported(t[1]));
+    let mc = 'нет данных';
+    if (navigator.mediaCapabilities) { try { const r = await navigator.mediaCapabilities.decodingInfo({ type: 'file', audio: { contentType: t[1], channels: '2', bitrate: 128000, samplerate: 48000 } }); mc = r.supported ? 'да' : 'нет'; } catch (e) {} }
+    if (t[0].indexOf('xHE') === 0 && (can || ms || mc === 'да')) ok = true;
+    lines.push(t[0] + ': canPlayType «' + (can || 'нет') + '», MSE ' + (ms ? 'да' : 'нет') + ', MediaCapabilities ' + mc);
+  }
+  $('#xhest').textContent = ok ? '✅ ' + BRS[cur()][0] + ' заявляет поддержку xHE-AAC.' : '⚠️ Поддержка xHE-AAC не заявлена. Проверьте на своём файле ниже: иногда воспроизведение всё равно работает.';
+  $('#xhest').style.color = ok ? '#5cf2c8' : '#ffb86b';
+  $('#xheinfo').textContent = lines.join('\n');
+}
+toggle('#xheon', 'exp.xhe');
+$('#xhecheck').addEventListener('click', checkXhe);
+$('#xf').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const a = $('#xa'); a.src = URL.createObjectURL(f); $('#xamsg').textContent = 'Файл: ' + f.name + '. Нажмите ▶.';
+  a.onerror = () => { $('#xamsg').textContent = '⚠️ Браузер не смог воспроизвести этот файл.'; };
+  a.onplaying = () => { $('#xamsg').textContent = '✅ Файл ' + f.name + ' воспроизводится.'; };
+});
+
+/* ---------- UI kit ---------- */
+{ const s = window.KIT ? KIT.stored() : null; $('#kitnow').textContent = 'Сейчас: ' + (s && typeof s.name === 'string' ? s.name : 'стандартная тема') + '.'; }
+
+render(); checkXhe();
 </script>
 {% endraw %}
