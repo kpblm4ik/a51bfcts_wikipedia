@@ -3,239 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор статей A51BFCTS Wiki</title>
+    <title>Генератор статей | A51BFCTS Wiki</title>
+    <!-- Подключаем ваши глобальные стили, если они есть в /css/, 
+         иначе используем встроенные переменные из editor.html -->
+    <link rel="stylesheet" href="css/global.css"> 
     <style>
+        /* Базовые переменные из вашего editor.html для автономности */
         :root {
-            --bg-color: #1a1a2e;
-            --card-bg: #16213e;
-            --accent: #0f3460;
-            --text-main: #e94560;
-            --text-light: #f1f1f1;
-            --input-bg: #0f3460;
-            --border: #533483;
+            --bg: #0b090f;
+            --panel: #16121f;
+            --panel-hi: #1e182b;
+            --neon-line: rgba(160, 102, 255, .4);
+            --ink: #e2daf0;
+            --ink-soft: #9d93ad;
+            --display: 'Segoe UI', system-ui, sans-serif;
         }
-
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-light);
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--display);
             margin: 0;
             padding: 20px;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        .container {
-            max-width: 900px;
+        a { color: #a066ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        h1 { 
+            margin: 0 0 10px; 
+            font-family: var(--display); 
+            color: var(--ink); 
+            text-shadow: 0 0 8px rgba(160,102,255,.6); 
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid var(--text-main);
-            padding-bottom: 20px;
+        @media (max-width: 800px) {
+            .layout { grid-template-columns: 1fr; }
         }
 
-        h1 { color: var(--text-main); margin: 0; }
-        p.subtitle { opacity: 0.8; font-size: 0.9em; }
-
-        .editor-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .editor-layout { grid-template-columns: 1fr; }
-        }
-
-        .form-group { margin-bottom: 15px; }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: var(--text-main);
-        }
-
-        input, textarea, select {
+        /* Переиспользуем ваши классы из editor.html */
+        .ed-card textarea {
+            background: #120e1a;
+            color: #e2daf0;
+            border: 1px solid var(--neon-line);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 14px;
             width: 100%;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            color: white;
-            border-radius: 4px;
             box-sizing: border-box;
-            font-family: inherit;
-        }
-
-        textarea { resize: vertical; min-height: 100px; }
-        
-        button {
-            background: var(--text-main);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            border-radius: 4px;
-            transition: opacity 0.3s;
-            width: 100%;
-        }
-
-        button:hover { opacity: 0.9; }
-        button.secondary { background: var(--accent); margin-top: 10px; }
-
-        .preview-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 15px;
-            position: sticky;
-            top: 20px;
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 5px;
-        }
-
-        code {
-            display: block;
-            white-space: pre-wrap;
+            resize: vertical;
+            min-height: 120px;
             font-family: 'Consolas', monospace;
-            font-size: 0.9em;
-            color: #a8d8ea;
         }
 
-        .info-link {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 0.8em;
+        .code-preview {
+            background: #000;
+            border: 1px solid var(--neon-line);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #c8bfe7;
+            min-height: 300px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
-        .info-link a { color: var(--text-main); }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>A51BFCTS Wikipedia Generator</h1>
-        <p class="subtitle">Веб-интерфейс для скрипта new_page.py</p>
-    </header>
+<div style="max-width: 1200px; margin: 0 auto;">
+    <h1>📝 Генератор новых страниц</h1>
+    <p class="hint" style="margin-bottom: 20px;">
+        <a href="index.html">🏠 Главная</a> · 
+        <a href="editor.html">🎨 Редактор обложек</a> · 
+        <a href="coil-editor.html">⚡ Редактор катушки</a>
+    </p>
 
-    <div class="editor-layout">
-        <!-- Форма ввода -->
-        <div class="controls">
-            <div class="form-group">
-                <label for="pageTitle">Название статьи (Page Title)</label>
-                <input type="text" id="pageTitle" placeholder="Например: Объект A-51" oninput="generate()">
+    <div class="layout">
+        <!-- Левая колонка: Настройки -->
+        <div>
+            <div class="ed-card">
+                <h3>Параметры статьи</h3>
+                
+                <div class="ed-row">
+                    <label style="flex:1">Название объекта
+                        <input type="text" id="pageTitle" placeholder="Coil of Speed" oninput="generate()">
+                    </label>
+                </div>
+
+                <div class="ed-row">
+                    <label style="flex:1">Категория / Сектор
+                        <select id="category" onchange="generate()">
+                            <option value="Coils">⚡ Катушки (Coils)</option>
+                            <option value="Wands">🪄 Палочки (Wands)</option>
+                            <option value="Items">📦 Прочие предметы</option>
+                            <option value="Locations">🗺️ Локации / Координаты</option>
+                            <option value="Glitches">👾 Глитчи / Аномалии</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="ed-row">
+                    <label style="flex:1">Статус / Редкость
+                        <input type="text" id="status" placeholder="Legendary / Secret" oninput="generate()">
+                    </label>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="category">Категория / Тип объекта</label>
-                <select id="category" onchange="generate()">
-                    <option value="SCP">SCP Объект</option>
-                    <option value="Location">Локация / Зона</option>
-                    <option value="Personnel">Персонал / Ученый</option>
-                    <option value="Event">Инцидент / Событие</option>
-                    <option value="Item">Артефакт / Предмет</option>
-                </select>
-            </div>
+            <div class="ed-card">
+                <h3>Содержание</h3>
+                
+                <div class="ed-row">
+                    <label style="flex:1">Краткое описание (Lead)
+                        <textarea id="description" rows="3" placeholder="Артефакт скорости, позволяющий..." oninput="generate()"></textarea>
+                    </label>
+                </div>
 
-            <div class="form-group">
-                <label for="status">Статус / Класс опасности</label>
-                <input type="text" id="status" placeholder="Safe / Euclid / Keter / Active" oninput="generate()">
+                <div class="ed-row">
+                    <label style="flex:1">Основной текст (Wikitext)
+                        <textarea id="content" rows="8" placeholder="== Получение ==&#10;Описание метода получения...&#10;&#10;== Характеристики ==" oninput="generate()"></textarea>
+                    </label>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="description">Описание / Аннотация</label>
-                <textarea id="description" placeholder="Краткое описание объекта..." oninput="generate()"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="content">Основной текст (Wikitext поддерживается)</label>
-                <textarea id="content" style="min-height: 200px;" placeholder="== История обнаружения ==&#10;Текст статьи..." oninput="generate()"></textarea>
-            </div>
-
-            <button onclick="copyToClipboard()">📋 Копировать код</button>
-            <button class="secondary" onclick="downloadFile()">💾 Скачать .wiki файл</button>
         </div>
 
-        <!-- Превью результата -->
-        <div class="preview-box">
-            <div class="preview-header">
-                <strong>Результат (Wikitext)</strong>
-                <small id="charCount">0 символов</small>
+        <!-- Правая колонка: Результат -->
+        <div>
+            <div class="ed-card">
+                <h3>Результат (Wikitext)</h3>
+                <div id="output" class="code-preview"></div>
+                
+                <div class="actions">
+                    <button class="ed-btn" onclick="copyCode()">📋 Копировать код</button>
+                    <button class="ed-btn" onclick="downloadWiki()">💾 Скачать .wiki</button>
+                </div>
+                <p class="hint" id="charCount" style="margin-top: 8px;">0 символов</p>
             </div>
-            <code id="outputCode"></code>
         </div>
-    </div>
-
-    <div class="info-link">
-        Основано на логике <a href="https://github.com/kpblm4ik/a51bfcts_wikipedia/blob/main/.github/scripts/new_page.py" target="_blank">new_page.py</a> | 
-        <a href="https://kpblm4ik.github.io/a51bfcts_wikipedia/" target="_blank">Вернуться на главную Wiki</a>
     </div>
 </div>
 
 <script>
     function generate() {
-        const title = document.getElementById('pageTitle').value.trim() || 'Без названия';
-        const category = document.getElementById('category').value;
-        const status = document.getElementById('status').value.trim() || 'Не указан';
+        const title = document.getElementById('pageTitle').value.trim() || 'Unnamed Object';
+        const cat = document.getElementById('category').value;
+        const status = document.getElementById('status').value.trim() || 'Unknown';
         const desc = document.getElementById('description').value.trim();
-        const content = document.getElementById('content').value;
+        const body = document.getElementById('content').value;
 
-        // Формируем шаблон, аналогичный тому, что обычно используется в new_page.py
-        // Адаптируйте структуру ниже под ваш реальный шаблон в Python-скрипте
-        let template = `{{Инфокарточка\n`;
-        template += `| название       = ${title}\n`;
-        template += `| тип            = ${category}\n`;
-        template += `| статус         = ${status}\n`;
-        template += `}}\n\n`;
+        // Шаблон адаптирован под структуру A51BFCTS Wikipedia
+        let out = `{{Infobox\n`;
+        out += `| name   = ${title}\n`;
+        out += `| sector = ${cat}\n`;
+        out += `| status = ${status}\n`;
+        out += `}}\n\n`;
 
-        if (desc) {
-            template += `'''${title}''' — ${desc}\n\n`;
-        }
+        if (desc) out += `${desc}\n\n`;
 
-        if (content) {
-            template += `${content}\n\n`;
+        if (body) {
+            out += `${body}\n\n`;
         } else {
-            template += `== Описание ==\nTODO: Заполнить описание\n\n`;
-            template += `== Примечания ==\n* [Источник данных]\n`;
+            out += `== Описание ==\nИнформация отсутствует.\n\n`;
+            out += `== Примечания ==\n* Данные получены через датамайнинг.\n`;
         }
 
-        template += `[[Категория:${category}]]\n`;
-        template += `[[Категория:A51BFCTS]]`;
+        out += `[[Category:${cat}]]\n`;
+        out += `[[Category:A51BFCTS]]`;
 
-        const output = document.getElementById('outputCode');
-        output.textContent = template;
-        document.getElementById('charCount').textContent = `${template.length} символов`;
+        const outputEl = document.getElementById('output');
+        outputEl.textContent = out;
+        document.getElementById('charCount').textContent = `${out.length} символов`;
     }
 
-    function copyToClipboard() {
-        const code = document.getElementById('outputCode').textContent;
-        navigator.clipboard.writeText(code).then(() => {
-            alert('Код скопирован в буфер обмена!');
+    function copyCode() {
+        const text = document.getElementById('output').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('.actions .ed-btn');
+            const original = btn.textContent;
+            btn.textContent = '✅ Скопировано!';
+            setTimeout(() => btn.textContent = original, 2000);
         });
     }
 
-    function downloadFile() {
-        const code = document.getElementById('outputCode').textContent;
+    function downloadWiki() {
+        const text = document.getElementById('output').textContent;
         const title = document.getElementById('pageTitle').value.trim() || 'new_page';
-        const blob = new Blob([code], { type: 'text/plain' });
+        const safeName = title.replace(/[^a-zа-яё0-9_]/gi, '_');
+        
+        const blob = new Blob([text], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `${title.replace(/[^a-zа-яё0-9]/gi, '_')}.wiki`;
+        a.download = `${safeName}.wiki`;
         a.click();
+        URL.revokeObjectURL(a.href);
     }
 
-    // Инициализация при загрузке
+    // Инициализация
     generate();
 </script>
+
 </body>
 </html>
