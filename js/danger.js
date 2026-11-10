@@ -8,17 +8,19 @@
    • Настоящее кодирование делает внешний движок js/ecm/ecm-engine.js (сборка ECM в WebAssembly, контракт — в js/ecm/README.md).
      Пока его нет, кнопка «Начать» неактивна и зона честно пишет об этом.
    • Все ядра: тест процессора гоняет по воркеру на каждое ядро, а кодирование делится на независимые сегменты
-     (по одному воркеру движка на сегмент). Потоки внутри самого движка (pthreads) работают только при изоляции страницы. */
+     (по одному воркеру движка на сегмент). Потоки внутри самого движка (pthreads) работают только при изоляции страницы.
+   • Тест процессора измеряет WebAssembly (именно в нём будет работать ECM) и для сравнения обычный JavaScript. */
 (function () {
   'use strict';
   const CFG = Object.assign({ tokens: 'data/danger-tokens.json', engine: 'js/ecm/' }, window.DZ_CFG || {});
 
-  /* Пороги проверки железа. Числа подбирайте под свои устройства: реальные значения видны в панели «Проверка железа». */
+  /* Пороги проверки железа. Это оценки, а не паспортные данные: реальные значения видны в панели «Проверка железа»,
+     подгоните числа под свои устройства. Единицы: миллионы итераций теста WebAssembly в секунду. */
   const HW = {
     minCores: 4, okCores: 8,       // ядра процессора (navigator.hardwareConcurrency)
     minMem: 4, okMem: 8,           // ГБ, navigator.deviceMemory (только Chromium, больше 8 не показывает) или ваше значение
-    benchMin: 40,                  // минимум для одного ядра, млн итераций в секунду
-    parOk: 400,                    // сумма по всем ядрам для полного режима, млн итераций в секунду
+    benchMin: 250,                 // минимум для одного ядра (слабое ядро телефона даёт примерно 400–600, сильное 800–1000)
+    parOk: 4000,                   // сумма по всем ядрам для полного режима
     minBattery: 0.4,               // ниже этого заряда без зарядки не пускаем
     maxParts: 8,                   // не больше стольких параллельных сегментов (каждый держит свой экземпляр движка в памяти)
     tiers: {
@@ -27,6 +29,8 @@
     },
     maxBytes: 320e6                // потолок памяти под все исходные кадры
   };
+  /* Крошечный модуль WebAssembly: run(n) крутит цикл x = x*1664525 + 1013904223 n раз */
+  const WASM_B64 = 'AGFzbQEAAAABBgFgAX8BfwMCAQAHBwEDcnVuAAAKLwEtAQJ/AkADQCACIABPDQEgAUGNzOUAbEHf5rvjA2ohASACQQFqIQIMAAsLIAEL';
 
   const safe = n => { try { return window[n]; } catch (e) { return null; } };
   const store = st => ({
@@ -77,20 +81,35 @@
   function failAdd() { const f = failGet() || { n: 0, t: 0 }; f.n++; f.t = Date.now(); LS.set(FK, JSON.stringify(f)); }
 
   /* ---------- проверка железа ---------- */
-  /* Тест процессора в воркере, ограничен по времени (500 мс). Возвращает млн итер./с одного воркера. */
+  /* Тело воркера теста: 250 мс обычного JavaScript и 250 мс WebAssembly. Результат: млн итераций в секунду. */
+  function benchBody(B) {
+    (async function () {
+      let it = 0, x = 0, a = 1, t0 = performance.now();
+      while (performance.now() - t0 < 250) { for (let i = 0; i < 1e6; i++) { x = (Math.imul(x, 1664525) + 1013904223) | 0; a = a * 1.0000001 + (x & 7) * 1e-9; } it += 1e6; }
+      const j = it / (performance.now() - t0) / 1000;
+      let w = null;
+      try {
+        const m = await WebAssembly.instantiate(Uint8Array.from(atob(B), function (c) { return c.charCodeAt(0); }));
+        const run = m.instance.exports.run;
+        let n = 0, y = 0; const s = performance.now();
+        while (performance.now() - s < 250) { y = run(2000000); n += 2000000; }
+        w = n / (performance.now() - s) / 1000;
+      } catch (e) {}
+      postMessage({ j: j, w: w });
+    })();
+  }
   function benchOne() {
     return new Promise(res => {
       let w, url;
       try {
-        const src = 'let it=0,x=0,a=1;const t0=performance.now();while(performance.now()-t0<500){for(let i=0;i<1e6;i++){x=(Math.imul(x,1664525)+1013904223)|0;a=a*1.0000001+(x&7)*1e-9;}it+=1e6;}postMessage({it:it,ms:performance.now()-t0,v:a+x});';
-        url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+        url = URL.createObjectURL(new Blob(['(' + benchBody.toString() + ')("' + WASM_B64 + '")'], { type: 'text/javascript' }));
         w = new Worker(url);
       } catch (e) { res(null); return; }
       let fin = false;
       const done = v => { if (fin) return; fin = true; try { w.terminate(); URL.revokeObjectURL(url); } catch (e) {} res(v); };
-      w.onmessage = e => done(e.data.it / e.data.ms / 1000);
+      w.onmessage = e => done(e.data);
       w.onerror = () => done(null);
-      setTimeout(() => done(null), 4000);
+      setTimeout(() => done(null), 5000);
     });
   }
   /* Сначала одно ядро, потом по воркеру на каждое ядро одновременно: видно, сколько ядер реально работает. */
@@ -98,9 +117,9 @@
     const single = await benchOne();
     let par = null;
     const n = Math.min(Math.max(cores, 1), 16);
-    if (single !== null && n > 1) {
+    if (single && n > 1) {
       const r = await Promise.all(Array.from({ length: n }, benchOne));
-      if (r.every(v => v !== null)) par = r.reduce((a, b) => a + b, 0);
+      if (r.every(v => v)) par = { w: r.every(v => v.w !== null) ? r.reduce((a, v) => a + v.w, 0) : null, j: r.reduce((a, v) => a + v.j, 0) };
     }
     return { single: single, par: par, n: n };
   }
@@ -122,7 +141,7 @@
     h.bench = h.worker ? await bench(h.cores) : null;
     return h;
   }
-  /* Учитываем то, что указал пользователь: ОЗУ (браузер не показывает больше 8 ГБ) и подтверждение зарядки. */
+  /* Учитываем то, что указал пользователь: ОЗУ (браузер не показывает больше 8 ГБ), подтверждение зарядки и «не блокировать по скорости». */
   function eff(h, ov) {
     const e = Object.assign({}, h);
     e.mem = ov.mem !== null ? ov.mem : h.memReported;
@@ -130,6 +149,7 @@
     /* 100% и «на зарядке» ровно в таком виде отдают браузеры-заглушки и ПК без батареи: настоящим это считать нельзя */
     e.batFake = !!(h.bat && h.bat.level >= 0.999 && h.bat.charging);
     e.ack = !!ov.ack;
+    e.skipcpu = !!ov.skipcpu;
     return e;
   }
   function classify(h) {
@@ -140,9 +160,11 @@
     if (!h.cores) why.push('не удалось определить число ядер');
     else if (h.cores < HW.minCores) why.push('ядер ' + h.cores + ', нужно не меньше ' + HW.minCores);
     if (h.mem !== null && h.mem < HW.minMem) why.push('памяти ' + h.mem + ' ГБ, нужно не меньше ' + HW.minMem);
+    const b = h.bench;
     if (h.worker) {
-      if (!h.bench || h.bench.single === null) why.push('тест процессора не прошёл');
-      else if (h.bench.single < HW.benchMin) why.push('процессор слишком медленный (' + h.bench.single.toFixed(0) + ' млн итер./с на ядро, нужно не меньше ' + HW.benchMin + ')');
+      if (!b || !b.single) why.push('тест процессора не прошёл');
+      else if (b.single.w === null) why.push('WebAssembly в воркере не запустился');
+      else if (b.single.w < HW.benchMin && !h.skipcpu) why.push('тест процессора показал ' + b.single.w.toFixed(0) + ' млн итер./с на ядро при минимуме ' + HW.benchMin + ' (это может быть экономия энергии или нагрев; если вы уверены в устройстве, поставьте галочку ниже)');
     }
     if (h.bat && !h.batFake) {
       if (!h.bat.charging && (h.mobile || h.bat.level < HW.minBattery)) why.push(h.mobile ? 'телефон должен быть на зарядке' : 'батарея ' + Math.round(h.bat.level * 100) + '%, подключите зарядку');
@@ -150,21 +172,29 @@
       why.push('браузер не сообщает настоящий заряд: подключите зарядку и поставьте галочку «Подтверждаю: телефон на зарядке»');
     }
     if (why.length) return { tier: 'blocked', why: why };
-    const par = h.bench && h.bench.par !== null ? h.bench.par : (h.bench ? h.bench.single : 0);
-    const strong = h.cores >= HW.okCores && (h.mem === null || h.mem >= HW.okMem) && par >= HW.parOk && !h.mobile;
-    return { tier: strong ? 'ok' : 'limited', why: strong ? [] : ['среднее железо или мобильное устройство: лимиты снижены'] };
+    const par = b && b.par && b.par.w !== null ? b.par.w : (b && b.single ? b.single.w : 0);
+    const strong = h.cores >= HW.okCores && (h.mem === null || h.mem >= HW.okMem) && par >= HW.parOk && !h.mobile && !h.skipcpu;
+    return { tier: strong ? 'ok' : 'limited', why: strong ? [] : [h.skipcpu ? 'проверка скорости отключена вами' : 'среднее железо или мобильное устройство: лимиты снижены'] };
   }
   function describe(h) {
-    const b = h.bench;
+    const b = h.bench, f = v => v.toFixed(0);
     const memTxt = h.memManual ? h.mem + ' ГБ (указано вами)' : (h.mem === null ? 'браузер не сообщает' : h.mem + ' ГБ (оценка браузера, больше 8 он не показывает)');
     let batTxt = 'браузер не сообщает';
     if (h.bat) batTxt = Math.round(h.bat.level * 100) + '%, ' + (h.bat.charging ? 'на зарядке' : 'без зарядки') + (h.batFake ? ' (похоже на заглушку: настоящий заряд страница узнать не может)' : '');
-    return [
+    let cpu = 'нет данных';
+    if (b && b.single) {
+      cpu = 'WebAssembly: 1 ядро ' + (b.single.w === null ? 'не запустился' : f(b.single.w)) +
+        (b.par && b.par.w !== null && b.single.w ? ' · все ' + b.n + ' ядер ' + f(b.par.w) + ' (×' + (b.par.w / b.single.w).toFixed(1) + ')' : '') +
+        ' млн итер./с · JavaScript: 1 ядро ' + f(b.single.j) + ' (минимум WASM на ядро ' + HW.benchMin + ', полный режим от ' + HW.parOk + ' по всем ядрам)';
+    }
+    const lines = [
       'Ядер: ' + (h.cores || '?') + ' · Память: ' + memTxt + ' · Мобильное: ' + (h.mobile ? 'да' : 'нет'),
-      'Тест процессора: ' + (!b || b.single === null ? 'нет данных' : '1 ядро ' + b.single.toFixed(0) + ' млн итер./с' + (b.par !== null ? ' · все ' + b.n + ' ядер ' + b.par.toFixed(0) + ' млн итер./с (×' + (b.par / b.single).toFixed(1) + ')' : '')) + ' (минимум на ядро ' + HW.benchMin + ', полный режим от ' + HW.parOk + ' по всем ядрам)',
+      'Тест процессора. ' + cpu,
       'Батарея: ' + batTxt,
       'WebAssembly: ' + (h.wasm ? 'да' : 'нет') + ' · HTTPS: ' + (h.secure ? 'да' : 'нет') + ' · WebGPU: ' + (h.gpu ? 'есть' : 'нет') + ' · изоляция страницы (потоки WASM): ' + (h.coi ? 'есть' : 'нет')
-    ].join('\n');
+    ];
+    if (b && b.single && b.single.w !== null && b.single.j * 8 < b.single.w) lines.push('Замечание: JavaScript идёт в разы медленнее WebAssembly. Так бывает при режиме экономии энергии, нагреве или в браузерах, где отключён JIT. Для кодирования важен показатель WebAssembly.');
+    return lines.join('\n');
   }
 
   /* ---------- видео → кадры I420 (8 бит, BT.709, ограниченный диапазон) ---------- */
@@ -293,7 +323,8 @@
         <label>Ядер в работе <select id='thr'></select></label>
       </div>
       <div class='row' id='chgrow' hidden><label><input type='checkbox' id='chg'> Подтверждаю: телефон на зарядке</label></div>
-      <p class='hint'>Браузер не сообщает больше 8 ГБ памяти, а некоторые браузеры на телефонах подставляют 100% заряда и «на зарядке». Если оценка неверна, укажите значения сами: за них отвечаете вы.</p>
+      <div class='row'><label><input type='checkbox' id='skipcpu'> Не блокировать по скорости процессора (я знаю своё устройство)</label></div>
+      <p class='hint'>Браузер не сообщает больше 8 ГБ памяти, а некоторые браузеры на телефонах подставляют 100% заряда и «на зарядке». Тест скорости короткий и зависит от режима энергосбережения и нагрева: на сильном телефоне он может показать заниженное число. Если оценка неверна, укажите значения сами: за них отвечаете вы. Перед повторной проверкой дайте телефону остыть и отключите экономию энергии.</p>
       <div class='row'><button id='hwre'>🔄 Перепроверить</button></div>
     </div>
     <div class='sec' id='sTok' hidden>
@@ -338,7 +369,7 @@
     const q = s => r.querySelector(s);
     let hw = null, tier = 'blocked', engineOk = false, job = null, file = null, meta = null, access = null, ack = false, view = null;
     const memLS = LS.get('dz.mem'), thrLS = LS.get('dz.thr');
-    const ov = { mem: memLS && isFinite(+memLS) && +memLS > 0 ? +memLS : null, get ack() { return ack; } };
+    const ov = { mem: memLS && isFinite(+memLS) && +memLS > 0 ? +memLS : null, skipcpu: LS.get('dz.skipcpu') === '1', get ack() { return ack; } };
     const T = () => HW.tiers[tier];
     const say = (el, t, bad) => { el.textContent = t; el.className = 'st' + (bad ? ' bad' : ''); };
     const updGo = () => { q('#go').disabled = !(engineOk && file && meta && !job); };
@@ -347,6 +378,7 @@
     /* списки ОЗУ и ядер */
     q('#memsel').innerHTML = '<option value="">Авто (по данным браузера)</option>' + [4, 6, 8, 12, 16, 24, 32, 64].map(g => '<option value="' + g + '">' + g + ' ГБ</option>').join('');
     q('#memsel').value = ov.mem !== null && [4, 6, 8, 12, 16, 24, 32, 64].indexOf(ov.mem) >= 0 ? String(ov.mem) : '';
+    q('#skipcpu').checked = ov.skipcpu;
     function fillThr() {
       const n = maxThr(), want = thrLS && +thrLS >= 1 && +thrLS <= n ? +thrLS : n;
       q('#thr').innerHTML = Array.from({ length: n }, (_, i) => '<option value="' + (i + 1) + '">' + (i + 1) + (i + 1 === n ? ' (все)' : '') + '</option>').join('');
@@ -355,14 +387,14 @@
 
     async function runCheck() {
       q('#hwre').disabled = true; q('#sTok').hidden = true; q('#sEnc').hidden = true;
-      say(q('#hwst'), 'Проверяю железо (до 2 с)…');
+      say(q('#hwst'), 'Проверяю железо (до 3 с)…');
       hw = await probe();
       q('#chgrow').hidden = !hw.mobile;
       fillThr();
       await show();
       q('#hwre').disabled = false;
     }
-    /* пересчёт без повторного теста: после смены ОЗУ или галочки зарядки */
+    /* пересчёт без повторного теста: после смены ОЗУ или галочек */
     async function show() {
       if (!hw) return;
       view = eff(hw, ov);
@@ -461,6 +493,7 @@
 
     q('#hwre').onclick = runCheck;
     q('#memsel').onchange = e => { ov.mem = e.target.value ? +e.target.value : null; if (ov.mem === null) LS.del('dz.mem'); else LS.set('dz.mem', String(ov.mem)); show(); };
+    q('#skipcpu').onchange = e => { ov.skipcpu = e.target.checked; if (ov.skipcpu) LS.set('dz.skipcpu', '1'); else LS.del('dz.skipcpu'); show(); };
     q('#thr').onchange = e => { LS.set('dz.thr', e.target.value); parInfo(); };
     q('#chg').onchange = e => { ack = e.target.checked; show(); };
     q('#unlock').onclick = unlock;
