@@ -1,4 +1,10 @@
 {
   "salt": "d6be02174bd899ed39e0cf00003dd9ae",
-  "tokens": []
+  "tokens": [
+    {
+      "id": "test",
+      "hash": "d0d5f7bbb26f9583bc880e838138eb9d6c635b0fcbd643a2cb3af17def4c1559",
+      "expires": "2026-11-17"
+    }
+  ]
 }
