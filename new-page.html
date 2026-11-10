@@ -1,0 +1,245 @@
+---
+layout: default
+title: Новая страница — a51bfcts Вики
+custom_css: /css/main.css
+---
+{% raw %}
+<style>
+  .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
+  .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
+  .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  .ed-row label { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ed-row label.grow { flex: 1 1 260px; }
+  .ed-card input[type=text], .ed-card input[type=password], .ed-card select {
+    background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; box-sizing: border-box;
+  }
+  .ed-card input[type=text], .ed-card input[type=password] { flex: 1 1 200px; }
+  .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-btn:disabled { opacity: .5; cursor: default; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  #kindInfo { font-size: 13px; }
+  #log { font-size: 13px; margin-top: 8px; word-break: break-word; white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; }
+  #log .ok { color: #8dffb0; } #log .warn { color: #ffd76a; } #log .err { color: #ff7a8a; }
+  #md { width: 100%; min-height: 260px; box-sizing: border-box; background: #0b090f; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 10px; padding: 10px; font: 13px/1.45 ui-monospace, Consolas, monospace; }
+</style>
+
+<h1>📄 Новая страница</h1>
+<p class="hint">Создаёт страницу-заготовку <code>имя.md</code> и (по желанию) добавляет её карточку в список раздела (coils.md / wands.md / other.md). Делает то же, что скрипт <code>.github/scripts/new_page.py</code>, но без запуска workflow.</p>
+
+<div class="ed-card">
+  <h3>Страница</h3>
+  <div class="ed-row"><label class="grow">Имя файла <input type="text" id="name" placeholder="reversecoil" autocomplete="off" spellcheck="false"></label></div>
+  <div class="ed-row"><label class="grow">Название <input type="text" id="title" placeholder="если пусто, возьмётся имя файла" maxlength="100"></label></div>
+  <div class="ed-row">
+    <label>Тип
+      <select id="kind">
+        <option value="auto">auto (по имени)</option>
+        <option value="coil">coil (катушка)</option>
+        <option value="wand">wand (палочка)</option>
+        <option value="other">other (предмет)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="card" checked> Добавить карточку в список раздела</label>
+  </div>
+  <div id="kindInfo" class="hint"></div>
+  <p class="hint">Имя: только латиница, цифры, - и _ (без пробелов и русских букв), до 61 символа. Если в имени есть <code>coil</code> — тип катушка, <code>wand</code> — палочка.</p>
+</div>
+
+<div class="ed-card">
+  <h3>Предпросмотр .md</h3>
+  <textarea id="md" spellcheck="false"></textarea>
+  <p class="hint">Текст можно поправить прямо здесь — зальётся именно он. Если поменять имя, тип или название, предпросмотр пересоберётся заново.</p>
+  <div class="ed-row"><button class="ed-btn" id="dl">⬇️ Скачать .md</button></div>
+</div>
+
+<div class="ed-card">
+  <h3>Залить в GitHub</h3>
+  <div class="ed-row">
+    <label>Репозиторий <input type="text" id="repo" value="kpblm4ik/a51bfcts_wikipedia"></label>
+    <label>Ветка <input type="text" id="branch" value="main" style="flex:0 1 120px"></label>
+  </div>
+  <div class="ed-row"><label class="grow">GitHub-токен <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…"></label></div>
+  <p class="hint">Нужен fine-grained токен только для этого репозитория с правом Contents: Read and write. Токен хранится только в поле на странице и пропадает при обновлении.</p>
+  <div class="ed-row"><button class="ed-btn" id="go">⬆️ Создать страницу</button></div>
+  <div id="log"></div>
+</div>
+
+<script>
+(function () {
+const $ = s => document.querySelector(s);
+
+/* ---------- то же, что в new_page.py ---------- */
+const KINDS = {
+  coil:  { thing: 'катушка', parent: 'coils', parent_title: 'Катушкам', cover: 'images/covers/coil.svg' },
+  wand:  { thing: 'палочка', parent: 'wands', parent_title: 'Палочкам', cover: 'images/covers/wand.svg' },
+  other: { thing: 'предмет', parent: 'other', parent_title: 'разделу',  cover: 'images/Screenshot_20261005_180545.avif' }
+};
+
+const TEMPLATE = (t, k) => `---
+layout: default
+title: ${t} — a51bfcts Вики
+custom_css: /css/main.css
+---
+
+# ${t}
+
+<div class="item-card">
+<!-- Вставь скриншоты, пример: <img src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="${t}"> -->
+</div>
+
+***Описание*** *- ВПИШИ ОДНУ ФРАЗУ: что делает ${k.thing}*
+
+**${t}** - ВПИШИ 1-2 ПРЕДЛОЖЕНИЯ: что это за ${k.thing}, чем она особенная.
+
+## Как получить
+
+<!-- Какой значок нужен, где его взять, шаги по порядку -->
+ВПИШИ СЮДА
+
+## Характеристики
+
+<!-- Скорость, прыжок, особенности, всё что измерял -->
+ВПИШИ СЮДА
+
+## Мелочи:
+
+<!-- Любые наблюдения, баги, трюки. Если есть координаты или видео, добавь -->
+ВПИШИ СЮДА
+
+<p align="center"><a href="${k.parent}.html">🔙 Назад к ${k.parent_title}</a></p>
+`;
+
+const CARD = (name, img, t) => `
+  <a href="${name}.html" class="item-card">
+    <img src="${img}" alt="${t}">
+    <h3>${t}</h3>
+  </a>
+`;
+
+function detectKind(name) {
+  const n = name.toLowerCase(), w = n.includes('wand'), c = n.includes('coil');
+  if (w && !c) return 'wand';
+  if (c && !w) return 'coil';
+  return null;
+}
+
+/* Разбор параметров: возвращает {name, title, kind, addCard, notes} или {error} */
+function resolve() {
+  let name = $('#name').value.trim();
+  if (name.toLowerCase().endsWith('.md')) name = name.slice(0, -3);
+  let title = $('#title').value.trim();
+  let kind = $('#kind').value;
+  const addCard = $('#card').checked, notes = [];
+
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,60}$/.test(name))
+    return { error: 'имя файла: только латиница, цифры, - и _ (без пробелов и русских букв), например reversecoil' };
+
+  const detected = detectKind(name);
+  if (kind === 'auto') {
+    if (detected) { kind = detected; notes.push(['ok', 'Тип определён по имени: ' + kind]); }
+    else {
+      kind = 'other';
+      const reason = (name.toLowerCase().includes('wand') && name.toLowerCase().includes('coil'))
+        ? 'есть и wand, и coil, поэтому тип непонятен' : 'нет ни wand, ни coil';
+      notes.push(['warn', `⚠️ Тип не определён. В имени «${name}» ${reason}, выбран тип other (предмет). Если это катушка или палочка, выберите тип вручную или поправьте имя.`]);
+    }
+  } else if (detected && detected !== kind) {
+    notes.push(['warn', `⚠️ Тип страницы изменён. В имени «${name}» есть «${detected}», а вы выбрали «${kind}». Автоматически использован тип «${detected}».`]);
+    kind = detected;
+  }
+  if (!title) title = name;
+  if (title.includes('\n') || title.length > 100) return { error: 'название должно быть в одну строку, до 100 символов' };
+  return { name, title, kind, addCard, notes };
+}
+
+/* ---------- интерфейс ---------- */
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function log(cls, msg) { $('#log').insertAdjacentHTML('beforeend', `<div class="${cls}">${esc(msg)}</div>`); }
+
+function refresh() {
+  const r = resolve();
+  if (r.error) {
+    $('#kindInfo').innerHTML = $('#name').value.trim() ? `<span style="color:#ff7a8a">${esc(r.error)}</span>` : '';
+    $('#md').value = '';
+    return;
+  }
+  const k = KINDS[r.kind];
+  $('#kindInfo').innerHTML = esc(`Файл: ${r.name}.md · тип: ${r.kind} (${k.thing}) · раздел: ${k.parent}.md · адрес: /${r.name}.html`)
+    + r.notes.filter(n => n[0] === 'warn').map(n => `<br><span style="color:#ffd76a">${esc(n[1])}</span>`).join('');
+  $('#md').value = TEMPLATE(r.title, k);
+}
+['#name', '#title'].forEach(s => $(s).addEventListener('input', refresh));
+['#kind', '#card'].forEach(s => $(s).addEventListener('change', refresh));
+refresh();
+
+$('#dl').addEventListener('click', () => {
+  const r = resolve();
+  if (r.error) return alert('ОШИБКА: ' + r.error);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([$('#md').value], { type: 'text/markdown' }));
+  a.download = r.name + '.md';
+  a.click();
+});
+
+/* ---------- GitHub API ---------- */
+const b64enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (let i = 0; i < b.length; i += 0x8000) x += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(x); };
+const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+
+$('#go').addEventListener('click', async () => {
+  $('#log').innerHTML = '';
+  const r = resolve();
+  if (r.error) return log('err', 'ОШИБКА: ' + r.error);
+  const token = $('#tok').value.trim(), repo = $('#repo').value.trim(), br = $('#branch').value.trim() || 'main';
+  if (!token) return log('err', 'Вставь токен GitHub.');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return log('err', 'Репозиторий в формате владелец/имя.');
+
+  const k = KINDS[r.kind];
+  const api = p => 'https://api.github.com/repos/' + repo + '/contents/' + p;
+  const h = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' };
+  const get = p => fetch(api(p) + '?ref=' + encodeURIComponent(br), { headers: h, cache: 'no-store' });
+  const put = (p, content, message, sha) => fetch(api(p), {
+    method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+    body: JSON.stringify(Object.assign({ message, content: b64enc(content), branch: br }, sha ? { sha } : {}))
+  });
+  const btn = $('#go'); btn.disabled = true;
+  r.notes.forEach(n => log(n[0], n[1]));
+
+  try {
+    // 1. страница
+    const target = r.name + '.md';
+    const ex = await get(target);
+    if (ex.ok) throw new Error(`${target} уже существует, ничего не перезаписываю`);
+    if (ex.status !== 404) throw new Error(`Не удалось проверить ${target} (${ex.status}). Проверь токен, права и ветку.`);
+    const md = $('#md').value || TEMPLATE(r.title, k);
+    const p1 = await put(target, md, `Новая страница: ${target} (${r.kind})`);
+    if (!p1.ok) throw new Error('GitHub вернул ' + p1.status + ': ' + ((await p1.json()).message || ''));
+    log('ok', 'Создана страница: ' + target);
+
+    // 2. карточка в разделе
+    if (r.addCard) {
+      const parent = k.parent + '.md';
+      const g = await get(parent);
+      if (g.status === 404) log('warn', `Карточка не добавлена: нет файла ${parent}`);
+      else if (!g.ok) log('err', `Карточка не добавлена: не удалось прочитать ${parent} (${g.status})`);
+      else {
+        const j = await g.json();
+        let text = b64dec(j.content).replace(/\r\n/g, '\n');
+        const grid = text.indexOf('class="items-grid"');
+        const end = grid !== -1 ? text.indexOf('\n</div>\n\n<br>', grid) : -1;
+        if (text.includes(`href="${r.name}.html"`)) log('warn', `Карточка не добавлена: в ${parent} уже есть ссылка на ${r.name}.html`);
+        else if (end === -1) log('warn', `Карточка не добавлена: в ${parent} не найден список items-grid`);
+        else {
+          text = text.slice(0, end + 1) + CARD(r.name, k.cover, r.title) + text.slice(end + 1);
+          const p2 = await put(parent, text, `Карточка ${r.name} в ${parent}`, j.sha);
+          if (!p2.ok) throw new Error(`Страница создана, но карточку добавить не вышло: GitHub вернул ${p2.status}: ` + ((await p2.json()).message || ''));
+          log('ok', 'Карточка добавлена в ' + parent);
+        }
+      }
+    }
+    log('ok', `Готово: ${target} (тип: ${r.kind}). После сборки (1–2 минуты) откроется по адресу /${r.name}.html`);
+  } catch (e) { log('err', 'ОШИБКА: ' + (e.message || e)); }
+  btn.disabled = false;
+});
+})();
+</script>
+{% endraw %}
