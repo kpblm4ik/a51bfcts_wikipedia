@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title | default: 'a51bfcts Вики' }}</title>
+
+    <!-- Изоляция страницы: пока включена галочка в опасной зоне, любая страница перекидывает на эксперименты -->
+    <script src="{{ '/js/isolate.js' | relative_url }}"></script>
+
     <style>
         html, body {
             margin: 0;
@@ -72,7 +76,7 @@
     <link rel="stylesheet" href="{{ page.custom_css | relative_url }}">
     {% endif %}
 
-    <!-- Пользовательская тема (UI kit): красит только .wrapper и фон, виджет не трогает -->
+    <!-- Пользовательская тема (UI kit): меняет цвета, скругления, шрифт и обои; опасную зону не трогает -->
     <script src="{{ '/js/kit.js' | relative_url }}"></script>
 </head>
 <body>
