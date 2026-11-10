@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор статей A51BFCTS Wiki</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --accent: #0f3460;
+            --text-main: #e94560;
+            --text-light: #f1f1f1;
+            --input-bg: #0f3460;
+            --border: #533483;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--text-main);
+            padding-bottom: 20px;
+        }
+
+        h1 { color: var(--text-main); margin: 0; }
+        p.subtitle { opacity: 0.8; font-size: 0.9em; }
+
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-layout { grid-template-columns: 1fr; }
+        }
+
+        .form-group { margin-bottom: 15px; }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea { resize: vertical; min-height: 100px; }
+        
+        button {
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 4px;
+            transition: opacity 0.3s;
+            width: 100%;
+        }
+
+        button:hover { opacity: 0.9; }
+        button.secondary { background: var(--accent); margin-top: 10px; }
+
+        .preview-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 15px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        code {
+            display: block;
+            white-space: pre-wrap;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: #a8d8ea;
+        }
+
+        .info-link {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8em;
+        }
+        .info-link a { color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>A51BFCTS Wikipedia Generator</h1>
+        <p class="subtitle">Веб-интерфейс для скрипта new_page.py</p>
+    </header>
+
+    <div class="editor-layout">
+        <!-- Форма ввода -->
+        <div class="controls">
+            <div class="form-group">
+                <label for="pageTitle">Название статьи (Page Title)</label>
+                <input type="text" id="pageTitle" placeholder="Например: Объект A-51" oninput="generate()">
+            </div>
+
+            <div class="form-group">
+                <label for="category">Категория / Тип объекта</label>
+                <select id="category" onchange="generate()">
+                    <option value="SCP">SCP Объект</option>
+                    <option value="Location">Локация / Зона</option>
+                    <option value="Personnel">Персонал / Ученый</option>
+                    <option value="Event">Инцидент / Событие</option>
+                    <option value="Item">Артефакт / Предмет</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Статус / Класс опасности</label>
+                <input type="text" id="status" placeholder="Safe / Euclid / Keter / Active" oninput="generate()">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание / Аннотация</label>
+                <textarea id="description" placeholder="Краткое описание объекта..." oninput="generate()"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="content">Основной текст (Wikitext поддерживается)</label>
+                <textarea id="content" style="min-height: 200px;" placeholder="== История обнаружения ==&#10;Текст статьи..." oninput="generate()"></textarea>
+            </div>
+
+            <button onclick="copyToClipboard()">📋 Копировать код</button>
+            <button class="secondary" onclick="downloadFile()">💾 Скачать .wiki файл</button>
+        </div>
+
+        <!-- Превью результата -->
+        <div class="preview-box">
+            <div class="preview-header">
+                <strong>Результат (Wikitext)</strong>
+                <small id="charCount">0 символов</small>
+            </div>
+            <code id="outputCode"></code>
+        </div>
+    </div>
+
+    <div class="info-link">
+        Основано на логике <a href="https://github.com/kpblm4ik/a51bfcts_wikipedia/blob/main/.github/scripts/new_page.py" target="_blank">new_page.py</a> | 
+        <a href="https://kpblm4ik.github.io/a51bfcts_wikipedia/" target="_blank">Вернуться на главную Wiki</a>
+    </div>
+</div>
+
+<script>
+    function generate() {
+        const title = document.getElementById('pageTitle').value.trim() || 'Без названия';
+        const category = document.getElementById('category').value;
+        const status = document.getElementById('status').value.trim() || 'Не указан';
+        const desc = document.getElementById('description').value.trim();
+        const content = document.getElementById('content').value;
+
+        // Формируем шаблон, аналогичный тому, что обычно используется в new_page.py
+        // Адаптируйте структуру ниже под ваш реальный шаблон в Python-скрипте
+        let template = `{{Инфокарточка\n`;
+        template += `| название       = ${title}\n`;
+        template += `| тип            = ${category}\n`;
+        template += `| статус         = ${status}\n`;
+        template += `}}\n\n`;
+
+        if (desc) {
+            template += `'''${title}''' — ${desc}\n\n`;
+        }
+
+        if (content) {
+            template += `${content}\n\n`;
+        } else {
+            template += `== Описание ==\nTODO: Заполнить описание\n\n`;
+            template += `== Примечания ==\n* [Источник данных]\n`;
+        }
+
+        template += `[[Категория:${category}]]\n`;
+        template += `[[Категория:A51BFCTS]]`;
+
+        const output = document.getElementById('outputCode');
+        output.textContent = template;
+        document.getElementById('charCount').textContent = `${template.length} символов`;
+    }
+
+    function copyToClipboard() {
+        const code = document.getElementById('outputCode').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Код скопирован в буфер обмена!');
+        });
+    }
+
+    function downloadFile() {
+        const code = document.getElementById('outputCode').textContent;
+        const title = document.getElementById('pageTitle').value.trim() || 'new_page';
+        const blob = new Blob([code], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${title.replace(/[^a-zа-яё0-9]/gi, '_')}.wiki`;
+        a.click();
+    }
+
+    // Инициализация при загрузке
+    generate();
+</script>
+</body>
+</html>
