@@ -5,6 +5,8 @@ custom_css: /css/main.css
 ---
 {% assign avif = site.static_files | where: "extname", ".avif" %}
 <script>window.AVIF = {{ avif | map: "path" | jsonify }}; window.BASE = {{ site.baseurl | jsonify }};</script>
+<script>window.DZ_CFG = { tokens: {{ '/data/danger-tokens.json' | relative_url | jsonify }}, engine: {{ '/js/ecm/' | relative_url | jsonify }} };</script>
+<script defer src="{{ '/js/danger.js' | relative_url }}?v=1"></script>
 <script type="importmap">{"imports":{"wasm-feature-detect":"https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.8.0/dist/esm/index.js"}}</script>
 {% raw %}
 <style>
@@ -84,6 +86,8 @@ custom_css: /css/main.css
   <div class="ed-row"><a class="ed-btn" href="kit.html">🎨 Открыть редактор тем</a></div>
   <div class="hint" id="kitnow"></div>
 </div>
+
+<danger-zone></danger-zone>
 
 <script>
 const $ = s => document.querySelector(s);

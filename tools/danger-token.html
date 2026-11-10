@@ -1,0 +1,44 @@
+---
+layout: default
+title: Выдача токенов — Опасная зона
+custom_css: /css/main.css
+---
+<script>window.DZ_TOKENS = {{ '/data/danger-tokens.json' | relative_url | jsonify }};</script>
+{% raw %}
+<h1>🔑 Выдача токенов</h1>
+<p>Страница для владельца сайта. Токен генерируется только в вашем браузере и никуда не отправляется. Токен заработает только после того, как вы добавите его хэш в <code>data/danger-tokens.json</code>.</p>
+<div style="margin:12px 0">
+  <label>Кому (метка) <input id="lab" type="text" value="friend" maxlength="30"></label>
+  <label>Действует до <input id="exp" type="date"></label>
+  <button id="gen">🎲 Выдать токен</button>
+</div>
+<div id="out" hidden>
+  <p><b>Токен (показывается один раз, передайте человеку):</b></p>
+  <pre id="tk" style="font-size:20px;user-select:all"></pre>
+  <p><b>Строка для data/danger-tokens.json</b> (добавьте в массив <code>tokens</code>, между элементами — запятая):</p>
+  <pre id="js" style="white-space:pre-wrap;word-break:break-all;user-select:all"></pre>
+  <p>Чтобы отозвать токен, удалите его строку из файла. Доступ у всех открытых вкладок пропадёт при ближайшей проверке.</p>
+</div>
+<p id="msg"></p>
+<script>
+const $ = s => document.querySelector(s);
+const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const norm = s => String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+function gen() {
+  const b = new Uint8Array(16); crypto.getRandomValues(b);
+  let s = ''; for (const x of b) s += A[x & 31];
+  return 'DZ-' + s.match(/.{4}/g).join('-');
+}
+$('#gen').onclick = async () => {
+  try {
+    const r = await fetch(window.DZ_TOKENS, { cache: 'no-store' }), j = await r.json();
+    const t = gen(), id = ($('#lab').value || 'token').replace(/[^\w.-]/g, '-').slice(0, 30);
+    const e = { id: id, hash: await sha(j.salt + ':' + norm(t)) };
+    if ($('#exp').value) e.expires = $('#exp').value;
+    $('#tk').textContent = t; $('#js').textContent = JSON.stringify(e);
+    $('#out').hidden = false; $('#msg').textContent = '';
+  } catch (err) { $('#msg').textContent = 'Ошибка: ' + (err.message || err); }
+};
+</script>
+{% endraw %}
