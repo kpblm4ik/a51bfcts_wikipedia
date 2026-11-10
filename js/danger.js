@@ -6,7 +6,9 @@
      Важно: сайт статический, проверка идёт в браузере. Это предохранитель от случайного запуска, а не защита от
      человека, который разберётся в коде. Секретов здесь нет и быть не должно.
    • Настоящее кодирование делает внешний движок js/ecm/ecm-engine.js (сборка ECM в WebAssembly, контракт — в js/ecm/README.md).
-     Пока его нет, кнопка «Начать» неактивна и зона честно пишет об этом. */
+     Пока его нет, кнопка «Начать» неактивна и зона честно пишет об этом.
+   • Все ядра: тест процессора гоняет по воркеру на каждое ядро, а кодирование делится на независимые сегменты
+     (по одному воркеру движка на сегмент). Потоки внутри самого движка (pthreads) работают только при изоляции страницы. */
 (function () {
   'use strict';
   const CFG = Object.assign({ tokens: 'data/danger-tokens.json', engine: 'js/ecm/' }, window.DZ_CFG || {});
@@ -14,9 +16,11 @@
   /* Пороги проверки железа. Числа подбирайте под свои устройства: реальные значения видны в панели «Проверка железа». */
   const HW = {
     minCores: 4, okCores: 8,       // ядра процессора (navigator.hardwareConcurrency)
-    minMem: 4, okMem: 8,           // ГБ, navigator.deviceMemory (только Chromium, больше 8 не показывает)
-    benchMin: 40, benchOk: 150,    // млн итераций в секунду в тесте процессора
+    minMem: 4, okMem: 8,           // ГБ, navigator.deviceMemory (только Chromium, больше 8 не показывает) или ваше значение
+    benchMin: 40,                  // минимум для одного ядра, млн итераций в секунду
+    parOk: 400,                    // сумма по всем ядрам для полного режима, млн итераций в секунду
     minBattery: 0.4,               // ниже этого заряда без зарядки не пускаем
+    maxParts: 8,                   // не больше стольких параллельных сегментов (каждый держит свой экземпляр движка в памяти)
     tiers: {
       ok:      { w: 1280, h: 720, frames: 150, fps: 30 },
       limited: { w: 640,  h: 360, frames: 30,  fps: 15 }
@@ -73,8 +77,8 @@
   function failAdd() { const f = failGet() || { n: 0, t: 0 }; f.n++; f.t = Date.now(); LS.set(FK, JSON.stringify(f)); }
 
   /* ---------- проверка железа ---------- */
-  /* Тест процессора в воркере, ограничен по времени (500 мс), чтобы не мучить слабые устройства. Возвращает млн итер./с. */
-  function bench() {
+  /* Тест процессора в воркере, ограничен по времени (500 мс). Возвращает млн итер./с одного воркера. */
+  function benchOne() {
     return new Promise(res => {
       let w, url;
       try {
@@ -89,11 +93,22 @@
       setTimeout(() => done(null), 4000);
     });
   }
+  /* Сначала одно ядро, потом по воркеру на каждое ядро одновременно: видно, сколько ядер реально работает. */
+  async function bench(cores) {
+    const single = await benchOne();
+    let par = null;
+    const n = Math.min(Math.max(cores, 1), 16);
+    if (single !== null && n > 1) {
+      const r = await Promise.all(Array.from({ length: n }, benchOne));
+      if (r.every(v => v !== null)) par = r.reduce((a, b) => a + b, 0);
+    }
+    return { single: single, par: par, n: n };
+  }
   async function probe() {
     const n = navigator;
     const h = {
       cores: n.hardwareConcurrency || 0,
-      mem: typeof n.deviceMemory === 'number' ? n.deviceMemory : null,
+      memReported: typeof n.deviceMemory === 'number' ? n.deviceMemory : null,
       mobile: !!((n.userAgentData && n.userAgentData.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(n.userAgent)),
       secure: !!window.isSecureContext,
       wasm: typeof WebAssembly === 'object',
@@ -104,8 +119,18 @@
       bench: null
     };
     try { if (n.getBattery) { const b = await n.getBattery(); h.bat = { level: b.level, charging: b.charging }; } } catch (e) {}
-    h.bench = h.worker ? await bench() : null;
+    h.bench = h.worker ? await bench(h.cores) : null;
     return h;
+  }
+  /* Учитываем то, что указал пользователь: ОЗУ (браузер не показывает больше 8 ГБ) и подтверждение зарядки. */
+  function eff(h, ov) {
+    const e = Object.assign({}, h);
+    e.mem = ov.mem !== null ? ov.mem : h.memReported;
+    e.memManual = ov.mem !== null;
+    /* 100% и «на зарядке» ровно в таком виде отдают браузеры-заглушки и ПК без батареи: настоящим это считать нельзя */
+    e.batFake = !!(h.bat && h.bat.level >= 0.999 && h.bat.charging);
+    e.ack = !!ov.ack;
+    return e;
   }
   function classify(h) {
     const why = [];
@@ -116,19 +141,28 @@
     else if (h.cores < HW.minCores) why.push('ядер ' + h.cores + ', нужно не меньше ' + HW.minCores);
     if (h.mem !== null && h.mem < HW.minMem) why.push('памяти ' + h.mem + ' ГБ, нужно не меньше ' + HW.minMem);
     if (h.worker) {
-      if (h.bench === null) why.push('тест процессора не прошёл');
-      else if (h.bench < HW.benchMin) why.push('процессор слишком медленный (' + h.bench.toFixed(0) + ' млн итер./с, нужно не меньше ' + HW.benchMin + ')');
+      if (!h.bench || h.bench.single === null) why.push('тест процессора не прошёл');
+      else if (h.bench.single < HW.benchMin) why.push('процессор слишком медленный (' + h.bench.single.toFixed(0) + ' млн итер./с на ядро, нужно не меньше ' + HW.benchMin + ')');
     }
-    if (h.bat && !h.bat.charging && (h.mobile || h.bat.level < HW.minBattery)) why.push(h.mobile ? 'телефон должен быть на зарядке' : 'батарея ' + Math.round(h.bat.level * 100) + '%, подключите зарядку');
+    if (h.bat && !h.batFake) {
+      if (!h.bat.charging && (h.mobile || h.bat.level < HW.minBattery)) why.push(h.mobile ? 'телефон должен быть на зарядке' : 'батарея ' + Math.round(h.bat.level * 100) + '%, подключите зарядку');
+    } else if (h.mobile && !h.ack) {
+      why.push('браузер не сообщает настоящий заряд: подключите зарядку и поставьте галочку «Подтверждаю: телефон на зарядке»');
+    }
     if (why.length) return { tier: 'blocked', why: why };
-    const strong = h.cores >= HW.okCores && (h.mem === null || h.mem >= HW.okMem) && h.bench >= HW.benchOk && !h.mobile;
+    const par = h.bench && h.bench.par !== null ? h.bench.par : (h.bench ? h.bench.single : 0);
+    const strong = h.cores >= HW.okCores && (h.mem === null || h.mem >= HW.okMem) && par >= HW.parOk && !h.mobile;
     return { tier: strong ? 'ok' : 'limited', why: strong ? [] : ['среднее железо или мобильное устройство: лимиты снижены'] };
   }
   function describe(h) {
+    const b = h.bench;
+    const memTxt = h.memManual ? h.mem + ' ГБ (указано вами)' : (h.mem === null ? 'браузер не сообщает' : h.mem + ' ГБ (оценка браузера, больше 8 он не показывает)');
+    let batTxt = 'браузер не сообщает';
+    if (h.bat) batTxt = Math.round(h.bat.level * 100) + '%, ' + (h.bat.charging ? 'на зарядке' : 'без зарядки') + (h.batFake ? ' (похоже на заглушку: настоящий заряд страница узнать не может)' : '');
     return [
-      'Ядер: ' + (h.cores || '?') + ' · Память: ' + (h.mem === null ? 'браузер не сообщает' : h.mem + ' ГБ (оценка браузера)') + ' · Мобильное: ' + (h.mobile ? 'да' : 'нет'),
-      'Тест процессора: ' + (h.bench === null ? 'нет данных' : h.bench.toFixed(0) + ' млн итер./с') + ' (полный режим от ' + HW.benchOk + ', минимум ' + HW.benchMin + ')',
-      'Батарея: ' + (h.bat ? Math.round(h.bat.level * 100) + '%, ' + (h.bat.charging ? 'на зарядке' : 'без зарядки') : 'браузер не сообщает'),
+      'Ядер: ' + (h.cores || '?') + ' · Память: ' + memTxt + ' · Мобильное: ' + (h.mobile ? 'да' : 'нет'),
+      'Тест процессора: ' + (!b || b.single === null ? 'нет данных' : '1 ядро ' + b.single.toFixed(0) + ' млн итер./с' + (b.par !== null ? ' · все ' + b.n + ' ядер ' + b.par.toFixed(0) + ' млн итер./с (×' + (b.par / b.single).toFixed(1) + ')' : '')) + ' (минимум на ядро ' + HW.benchMin + ', полный режим от ' + HW.parOk + ' по всем ядрам)',
+      'Батарея: ' + batTxt,
       'WebAssembly: ' + (h.wasm ? 'да' : 'нет') + ' · HTTPS: ' + (h.secure ? 'да' : 'нет') + ' · WebGPU: ' + (h.gpu ? 'есть' : 'нет') + ' · изоляция страницы (потоки WASM): ' + (h.coi ? 'есть' : 'нет')
     ].join('\n');
   }
@@ -191,19 +225,32 @@
   async function engineAvailable() {
     try { const r = await fetch(CFG.engine + 'ecm-engine.js', { method: 'HEAD', cache: 'no-store' }); return r.ok; } catch (e) { return false; }
   }
+  /* Кадры делятся на независимые сегменты, на каждый сегмент свой воркер: так загружаются все выбранные ядра
+     и без изоляции страницы. Готовые потоки склеиваются по порядку (в начале каждого сегмента точка произвольного доступа). */
   function encode(frames, o, onp, job) {
-    return new Promise((res, rej) => {
+    const parts = Math.max(1, Math.min(o.threads, HW.maxParts, Math.floor(frames.length / 2) || 1));
+    const per = Math.ceil(frames.length / parts), groups = [];
+    for (let i = 0; i < frames.length; i += per) groups.push(frames.slice(i, i + per));
+    const prog = groups.map(() => ({ d: 0, t: 1 })), outs = new Array(groups.length);
+    job.workers = [];
+    const report = () => onp(prog.reduce((a, p) => a + p.d, 0), prog.reduce((a, p) => a + p.t, 0));
+    const killAll = () => job.workers.forEach(w => { try { w.terminate(); } catch (e) {} });
+    return Promise.all(groups.map((g, k) => new Promise((res, rej) => {
       const w = new Worker(CFG.engine + 'ecm-engine.js');
-      job.worker = w;
+      job.workers.push(w);
       w.onmessage = e => {
         const m = e.data || {};
-        if (m.type === 'progress') onp(m.done, m.total);
-        else if (m.type === 'done') { w.terminate(); res(new Uint8Array(m.data)); }
+        if (m.type === 'progress') { prog[k] = { d: m.done, t: m.total }; report(); }
+        else if (m.type === 'done') { w.terminate(); outs[k] = new Uint8Array(m.data); res(); }
         else if (m.type === 'error') { w.terminate(); rej(new Error(m.message || 'ошибка движка')); }
       };
       w.onerror = e => { w.terminate(); rej(new Error(e.message || 'сбой движка')); };
-      w.postMessage({ cmd: 'encode', width: o.w, height: o.h, fps: o.fps, qp: o.qp, config: o.config, frames: frames }, frames);
-    });
+      w.postMessage({ cmd: 'encode', width: o.w, height: o.h, fps: o.fps, qp: o.qp, config: o.config, threads: Math.max(1, Math.floor(o.threads / groups.length)), segment: k, segments: groups.length, frames: g }, g);
+    }))).then(() => {
+      const total = outs.reduce((a, b) => a + b.length, 0), out = new Uint8Array(total);
+      let p = 0; outs.forEach(b => { out.set(b, p); p += b.length; });
+      return { data: out, parts: groups.length };
+    }).catch(e => { killAll(); throw e; });
   }
 
   /* ---------- внешний вид: все цвета зашиты, переменные темы не используются ---------- */
@@ -225,6 +272,7 @@
     button.go{background:#c40000;font-weight:700}
     input,select{background:#0e0303;color:#ffe3e3;border:1px solid #b02020;border-radius:8px;padding:7px 9px;font:inherit;max-width:100%}
     input[type=range]{padding:0;accent-color:#ff2a2a}
+    input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:#ff2a2a}
     input[type=file]{max-width:100%}
     label{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:#ffbcbc;font-size:13px}
     .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
@@ -240,6 +288,12 @@
       <b>Проверка железа</b>
       <div id='hwst' class='st'>Проверяю…</div>
       <pre id='hwinfo'></pre>
+      <div class='row'>
+        <label>ОЗУ, ГБ <select id='memsel'></select></label>
+        <label>Ядер в работе <select id='thr'></select></label>
+      </div>
+      <div class='row' id='chgrow' hidden><label><input type='checkbox' id='chg'> Подтверждаю: телефон на зарядке</label></div>
+      <p class='hint'>Браузер не сообщает больше 8 ГБ памяти, а некоторые браузеры на телефонах подставляют 100% заряда и «на зарядке». Если оценка неверна, укажите значения сами: за них отвечаете вы.</p>
       <div class='row'><button id='hwre'>🔄 Перепроверить</button></div>
     </div>
     <div class='sec' id='sTok' hidden>
@@ -252,6 +306,7 @@
       <b>Кодирование в ECM</b>
       <div id='who' class='st'></div>
       <div id='eng' class='st'></div>
+      <div id='par' class='hint'></div>
       <div class='row'><label>Видео <input id='file' type='file' accept='video/*'></label></div>
       <div id='fst' class='st'></div>
       <div class='row'>
@@ -281,25 +336,47 @@
 
   function init(r) {
     const q = s => r.querySelector(s);
-    let hw = null, tier = 'blocked', engineOk = false, job = null, file = null, meta = null;
+    let hw = null, tier = 'blocked', engineOk = false, job = null, file = null, meta = null, access = null, ack = false, view = null;
+    const memLS = LS.get('dz.mem'), thrLS = LS.get('dz.thr');
+    const ov = { mem: memLS && isFinite(+memLS) && +memLS > 0 ? +memLS : null, get ack() { return ack; } };
     const T = () => HW.tiers[tier];
     const say = (el, t, bad) => { el.textContent = t; el.className = 'st' + (bad ? ' bad' : ''); };
     const updGo = () => { q('#go').disabled = !(engineOk && file && meta && !job); };
+    const maxThr = () => Math.max(1, Math.min((hw && hw.cores) || 1, 16));
+
+    /* списки ОЗУ и ядер */
+    q('#memsel').innerHTML = '<option value="">Авто (по данным браузера)</option>' + [4, 6, 8, 12, 16, 24, 32, 64].map(g => '<option value="' + g + '">' + g + ' ГБ</option>').join('');
+    q('#memsel').value = ov.mem !== null && [4, 6, 8, 12, 16, 24, 32, 64].indexOf(ov.mem) >= 0 ? String(ov.mem) : '';
+    function fillThr() {
+      const n = maxThr(), want = thrLS && +thrLS >= 1 && +thrLS <= n ? +thrLS : n;
+      q('#thr').innerHTML = Array.from({ length: n }, (_, i) => '<option value="' + (i + 1) + '">' + (i + 1) + (i + 1 === n ? ' (все)' : '') + '</option>').join('');
+      q('#thr').value = String(want);
+    }
 
     async function runCheck() {
       q('#hwre').disabled = true; q('#sTok').hidden = true; q('#sEnc').hidden = true;
-      say(q('#hwst'), 'Проверяю железо (до 1 с)…');
+      say(q('#hwst'), 'Проверяю железо (до 2 с)…');
       hw = await probe();
-      const c = classify(hw);
-      tier = c.tier;
-      q('#hwinfo').textContent = describe(hw);
-      if (tier === 'blocked') say(q('#hwst'), '⛔ Доступ закрыт: ' + c.why.join('; ') + '.', true);
-      else {
-        say(q('#hwst'), (tier === 'ok' ? '✔ Железо подходит.' : '⚠ Режим щадящий: ' + c.why.join('; ') + '.'));
-        const s = await restore();
-        if (s) openEnc(s.id); else q('#sTok').hidden = false;
-      }
+      q('#chgrow').hidden = !hw.mobile;
+      fillThr();
+      await show();
       q('#hwre').disabled = false;
+    }
+    /* пересчёт без повторного теста: после смены ОЗУ или галочки зарядки */
+    async function show() {
+      if (!hw) return;
+      view = eff(hw, ov);
+      const c = classify(view);
+      tier = c.tier;
+      q('#hwinfo').textContent = describe(view);
+      if (tier === 'blocked') {
+        say(q('#hwst'), '⛔ Доступ закрыт: ' + c.why.join('; ') + '.', true);
+        q('#sTok').hidden = true; q('#sEnc').hidden = true;
+        return;
+      }
+      say(q('#hwst'), tier === 'ok' ? '✔ Железо подходит.' : '⚠ Режим щадящий: ' + c.why.join('; ') + '.');
+      if (!access) { const s = await restore(); if (s) access = s; }
+      if (access) { q('#sTok').hidden = true; openEnc(access.id); } else q('#sTok').hidden = false;
     }
 
     async function unlock() {
@@ -310,17 +387,23 @@
       q('#unlock').disabled = true;
       try {
         const res = await checkToken(v);
-        if (res && res.hash) { SS.set('dz.ok', res.hash); q('#tok').value = ''; LS.del(FK); q('#sTok').hidden = true; openEnc(res.id); }
+        if (res && res.hash) { SS.set('dz.ok', res.hash); q('#tok').value = ''; LS.del(FK); q('#sTok').hidden = true; access = { id: res.id }; openEnc(res.id); }
         else { failAdd(); say(q('#tokst'), res && res.expired ? 'Срок действия токена истёк.' : 'Токен не подходит.', true); }
       } catch (e) { say(q('#tokst'), String(e.message || e), true); }
       q('#unlock').disabled = false;
     }
 
+    function parInfo() {
+      const n = +q('#thr').value || 1, iso = !!window.crossOriginIsolated;
+      q('#par').textContent = 'Ядер в работе: ' + n + '. Кодирование делится на независимые сегменты, на каждый свой воркер (до ' + HW.maxParts + '), так что нагружаются все выбранные ядра. ' +
+        (iso ? 'Страница изолирована: движок с pthreads сможет использовать потоки внутри сегмента.' : 'Изоляция страницы выключена: потоки внутри движка недоступны, параллелизм идёт только за счёт сегментов (включить изоляцию можно ниже).');
+    }
     function openEnc(id) {
       const t = T();
       q('#sEnc').hidden = false;
       say(q('#who'), 'Доступ: ' + id + '. Режим «' + (tier === 'ok' ? 'полный' : 'щадящий') + '»: до ' + t.w + '×' + t.h + ', ' + t.frames + ' кадров, ' + t.fps + ' к/с.');
       q('#fps').innerHTML = [t.fps, Math.round(t.fps * 2 / 3), Math.round(t.fps / 2)].map(f => '<option value="' + f + '">' + f + '</option>').join('');
+      parInfo();
       engineCheck();
     }
     async function engineCheck() {
@@ -349,32 +432,37 @@
     }
 
     function progress(p, text) { q('#pb').style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%'; if (text) say(q('#jst'), text); }
-    function stopJob(reason) { if (!job) return; job.stop = true; job.reason = reason; if (job.worker) { try { job.worker.terminate(); } catch (e) {} } }
+    function stopJob(reason) { if (!job) return; job.stop = true; job.reason = reason; (job.workers || []).forEach(w => { try { w.terminate(); } catch (e) {} }); }
     async function guard() {
       try { if (navigator.getBattery) { const b = await navigator.getBattery(); if (!b.charging && b.level < 0.2) stopJob('Батарея ниже 20%: остановлено, чтобы не посадить устройство.'); } } catch (e) {}
     }
     async function start() {
       if (job || !file || !meta || !engineOk) return;
       const t = T(), d = q('#res').value.split('x').map(Number);
-      const o = { w: d[0], h: d[1], fps: +q('#fps').value, frames: +q('#nfr').value, qp: +q('#qp').value, config: q('#cfg').value };
+      /* число параллельных сегментов ограничено ещё и памятью: каждый воркер держит свой экземпляр движка */
+      const memCap = view && view.mem !== null ? Math.max(1, Math.floor(view.mem / 1.5)) : 2;
+      const o = { w: d[0], h: d[1], fps: +q('#fps').value, frames: +q('#nfr').value, qp: +q('#qp').value, config: q('#cfg').value, threads: Math.max(1, Math.min(+q('#thr').value || 1, memCap)) };
       if (!(o.w >= 16 && o.h >= 16) || o.w > t.w || o.h > t.h || o.frames < 1 || o.frames > t.frames || o.fps > t.fps || o.w * o.h * 1.5 * o.frames > HW.maxBytes) return say(q('#jst'), 'Параметры выходят за лимиты вашего устройства.', true);
-      job = { stop: false, reason: '', worker: null };
+      job = { stop: false, reason: '', workers: [] };
       q('#dl').hidden = true; q('#stop').disabled = false; updGo(); progress(0, 'Извлекаю кадры…');
       const timer = setInterval(guard, 3000);
       try {
         const frames = await grab(file, o, (p, i) => progress(p * 0.25, 'Извлекаю кадры: ' + i + ' из ' + o.frames), job);
         if (job.stop) throw new Error(job.reason || 'Остановлено.');
         progress(0.25, 'Кодирую в ECM…');
-        const data = await encode(frames, o, (done, total) => progress(0.25 + 0.75 * (done / Math.max(1, total)), 'Кодирую в ECM: ' + done + ' из ' + total), job);
-        const url = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' })), a = q('#dl');
+        const res = await encode(frames, o, (done, total) => progress(0.25 + 0.75 * (done / Math.max(1, total)), 'Кодирую в ECM: ' + done + ' из ' + total), job);
+        const url = URL.createObjectURL(new Blob([res.data], { type: 'application/octet-stream' })), a = q('#dl');
         a.href = url; a.download = 'video.ecm.bin'; a.hidden = false;
-        progress(1, 'Готово: ' + (data.length / 1024).toFixed(1) + ' КБ.');
+        progress(1, 'Готово: ' + (res.data.length / 1024).toFixed(1) + ' КБ, сегментов: ' + res.parts + '.');
       } catch (e) {
         say(q('#jst'), job && job.stop ? (job.reason || 'Остановлено.') : 'Ошибка: ' + (e.message || e), true);
       } finally { clearInterval(timer); job = null; q('#stop').disabled = true; updGo(); }
     }
 
     q('#hwre').onclick = runCheck;
+    q('#memsel').onchange = e => { ov.mem = e.target.value ? +e.target.value : null; if (ov.mem === null) LS.del('dz.mem'); else LS.set('dz.mem', String(ov.mem)); show(); };
+    q('#thr').onchange = e => { LS.set('dz.thr', e.target.value); parInfo(); };
+    q('#chg').onchange = e => { ack = e.target.checked; show(); };
     q('#unlock').onclick = unlock;
     q('#tok').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
     q('#file').onchange = onFile;
