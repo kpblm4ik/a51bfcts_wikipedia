@@ -1,0 +1,48 @@
+name: Build ECM WebAssembly (experimental)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.64'
+
+      - name: Build and smoke-test
+        shell: bash
+        run: |
+          mkdir -p ecm-logs
+          set -o pipefail
+
+          python3 tools/ecm/build.py 2>&1 | tee ecm-logs/build.log
+          node tools/ecm/smoke.cjs 2>&1 | tee ecm-logs/smoke.log
+
+      - name: Save diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecm-build-logs
+          path: |
+            ecm-logs/
+            .ecm-work/build/CMakeCache.txt
+            .ecm-work/build/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: warn
+
+      - name: Save tested package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecm-wasm-experimental
+          path: ecm-dist/
+          if-no-files-found: error
