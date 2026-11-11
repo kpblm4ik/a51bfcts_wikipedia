@@ -7,7 +7,7 @@ custom_css: /css/main.css
 # Катушка пустоты
 
 <div class="item-card">
-<!-- Вставь скриншоты, пример: <img loading="lazy" decoding="async" src="images/IMG_20261111_215049.avif" alt="Катушка пустоты"> -->
+<img loading="lazy" decoding="async" src="images/IMG_20261111_215049.avif" alt="Катушка пустоты">
 </div>
 
 ***Описание*** *- нет*
