@@ -1,0 +1,5 @@
+{
+  "ai": "/cfg/encoder_intra_ecm.cfg",
+  "ra": "/cfg/encoder_randomaccess_ecm.cfg",
+  "ld": "/cfg/encoder_lowdelay_ecm.cfg"
+}

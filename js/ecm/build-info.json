@@ -1,0 +1,37 @@
+{
+  "source": "https://vcgit.hhi.fraunhofer.de/ecm/ECM.git",
+  "ref": "ECM-20.0",
+  "commit": "3391a5f0e7d89e594d2ca61e9fae570982c03d49",
+  "emscripten": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.64 (a1fe3902bf73a3802eae0357d273d0e37ea79898)",
+  "cmake_patches": [
+    "CMakeLists.txt",
+    "source/Lib/CommonAnalyserLib/CMakeLists.txt",
+    "source/Lib/CommonLib/CMakeLists.txt",
+    "source/Lib/EncoderLib/CMakeLists.txt"
+  ],
+  "simd_patches": [
+    {
+      "file": "source/Lib/CommonLib/TypeDef.h",
+      "macros": [
+        "ENABLE_SIMD_OPT",
+        "ENABLE_SIMD_OPT_MCIF",
+        "ENABLE_SIMD_OPT_BUFFER",
+        "ENABLE_SIMD_OPT_DIST",
+        "ENABLE_SIMD_OPT_AFFINE_ME",
+        "ENABLE_SIMD_OPT_ALF",
+        "ENABLE_SIMD_OPT_ALF_CHOLESKY",
+        "ENABLE_SIMD_OPT_BCW"
+      ]
+    }
+  ],
+  "malloc_patches": [
+    "source/Lib/CommonLib/IntraNnip/tensor.h"
+  ],
+  "configs": {
+    "ai": "/cfg/encoder_intra_ecm.cfg",
+    "ra": "/cfg/encoder_randomaccess_ecm.cfg",
+    "ld": "/cfg/encoder_lowdelay_ecm.cfg"
+  },
+  "status": "compiled; one-frame Node AI round-trip passed; experimental",
+  "threading": "single-thread per Worker"
+}

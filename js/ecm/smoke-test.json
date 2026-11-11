@@ -1,0 +1,13 @@
+{
+  "test": "one-frame AI round-trip, 128x128 YUV420 8-bit",
+  "encodedBytes": 139,
+  "decodedBytes": 24576,
+  "decodedSHA256": "5690aa92219b065fc7307e011160bcd548b5d2c66f46c84d2bde68a604e8c0db",
+  "limitations": [
+    "RA/LD untested",
+    "multi-segment concatenation untested",
+    "browser Worker untested",
+    "resource limits unvalidated",
+    "no native parity test"
+  ]
+}
