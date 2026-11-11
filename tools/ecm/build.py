@@ -61,7 +61,8 @@ def build_keep_going(targets):
             last = i
             shown += 1
             for l in lines[max(0, i - 1):i + 6]:
-                print(l, flush=True)
+                # the em++ link command line is huge and useless; cut it
+                print(l if len(l) < 400 else l[:400] + ' ...[cut]', flush=True)
             print('-----', flush=True)
             if shown >= 25:
                 print('... more errors in ecm-logs/compile.log', flush=True)
@@ -71,6 +72,19 @@ def build_keep_going(targets):
             print('\n'.join(lines[-40:]), flush=True)
         print('==== END SUMMARY ====', flush=True)
         raise RuntimeError(f'Build failed with exit code {code}')
+
+
+def find_output(name):
+    """Upstream ECM CMake sets its own output dir (source/bin/umake/...),
+    which overrides ours, so look in every place the file may end up."""
+    roots = [BUILD / 'wasm', BUILD, SRC / 'bin']
+    for root in roots:
+        if not root.exists():
+            continue
+        hits = sorted(p for p in root.rglob(name) if p.is_file())
+        if hits:
+            return hits[0]
+    return None
 
 
 def choose_config(cfg_root, names, mode):
@@ -225,6 +239,9 @@ def main():
         configs[mode] = '/cfg/' + selected.relative_to(SRC / 'cfg').as_posix()
         print(f'Config {mode}: {configs[mode]}', flush=True)
 
+    # INITIAL_MEMORY: the static data/bss of ECM alone is ~383 MB
+    # (wasm-ld: "initial memory too small, 383413984 bytes needed"),
+    # so the module must start with more than that. 512 MiB < MAXIMUM 2 GiB.
     extra = r"""
 if(EMSCRIPTEN)
   foreach(app EncoderApp DecoderApp)
@@ -236,6 +253,7 @@ if(EMSCRIPTEN)
       "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']"
       "-sFORCE_FILESYSTEM=1"
       "-sALLOW_MEMORY_GROWTH=1"
+      "-sINITIAL_MEMORY=536870912"
       "-sMAXIMUM_MEMORY=2147483648"
       "-sSTACK_SIZE=8388608"
       "-sEXIT_RUNTIME=0"
@@ -267,9 +285,11 @@ endif()
     ENGINE.mkdir(parents=True)
     for app in ['EncoderApp', 'DecoderApp']:
         for suffix in ['.js', '.wasm']:
-            path = BUILD / 'wasm' / (app + suffix)
-            if not path.is_file():
-                raise RuntimeError('Missing build output: ' + str(path))
+            path = find_output(app + suffix)
+            if path is None:
+                raise RuntimeError('Missing build output: ' + app + suffix)
+            print(f'Output {app}{suffix}: {path} '
+                  f'({path.stat().st_size / 1048576:.1f} MiB)', flush=True)
             shutil.copy2(path, ENGINE / path.name)
     worker = (ROOT / 'tools/ecm/ecm-engine.js.in').read_text(encoding='utf-8')
     if '__ECM_CONFIGS__' not in worker:
