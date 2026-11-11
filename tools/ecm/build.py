@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Experimental ECM -> Wasm build. Compilation must be verified in Actions."""
+"""Experimental ECM Wasm build; validate compilation and tests in Actions."""
 import json
 from pathlib import Path
 import re
@@ -21,32 +21,35 @@ def run(*args, cwd=None):
     subprocess.run(list(map(str, args)), cwd=cwd, check=True)
 
 
-def edit(path, fn):
-    text = path.read_text(encoding='utf-8')
-    updated = fn(text)
-    path.write_text(updated, encoding='utf-8')
-    return text != updated
-
-
 def choose_config(cfg_root, names, mode):
-    # Prefer all top-level candidates before looking in subdirectories.
-    for name in names:
-        candidate = cfg_root / name
-        if candidate.is_file():
-            return candidate
-    for name in names:
-        hits = sorted(cfg_root.rglob(name))
-        if len(hits) > 1:
-            paths = '\n'.join(str(p.relative_to(cfg_root)) for p in hits)
-            raise RuntimeError(
-                f'Ambiguous config for {mode}: {name}\nCandidates:\n{paths}'
-            )
-        if hits:
+    preferred_names = [name.replace('_vtm.cfg', '_ecm.cfg')
+                       for name in names if '_vtm.cfg' in name]
+    preferred_names = list(dict.fromkeys(preferred_names + names))
+    available = sorted(cfg_root.rglob('*.cfg'))
+    print(f'Looking for config: {mode}', flush=True)
+    for name in preferred_names:
+        hits = [path for path in available if path.name == name]
+        if not hits:
+            continue
+        for candidate in [cfg_root / name,
+                          cfg_root / 'tool-on' / name,
+                          cfg_root / 'base' / name]:
+            if candidate in hits:
+                print('Selected config: ' + str(candidate.relative_to(cfg_root)),
+                      flush=True)
+                return candidate
+        if len(hits) == 1:
+            print('Selected config: ' + str(hits[0].relative_to(cfg_root)),
+                  flush=True)
             return hits[0]
-    available = '\n'.join(str(p.relative_to(cfg_root))
-                          for p in sorted(cfg_root.rglob('encoder*.cfg')))
+        paths = '\n'.join(str(path.relative_to(cfg_root)) for path in hits)
+        raise RuntimeError(
+            f'Unrecognized config layout for {mode}: {name}\nCandidates:\n{paths}'
+        )
+    paths = '\n'.join(str(path.relative_to(cfg_root)) for path in available
+                      if path.name.startswith('encoder'))
     raise RuntimeError(
-        f'Cannot locate config for {mode}. Available encoder configs:\n{available}'
+        f'Cannot locate config for {mode}.\nAvailable encoder configs:\n{paths}'
     )
 
 
@@ -59,10 +62,8 @@ def main():
         ['git', 'rev-parse', 'HEAD'], cwd=SRC, text=True
     ).strip()
     print('Source commit:', commit, flush=True)
-
     required = [
-        'CMakeLists.txt',
-        'source/Lib/CommonLib/CMakeLists.txt',
+        'CMakeLists.txt', 'source/Lib/CommonLib/CMakeLists.txt',
         'source/Lib/CommonLib/TypeDef.h',
         'source/App/EncoderApp/CMakeLists.txt',
         'source/App/DecoderApp/CMakeLists.txt',
@@ -71,16 +72,20 @@ def main():
         if not (SRC / name).is_file():
             raise RuntimeError('Required upstream file missing: ' + name)
 
+    print('Available encoder configurations:', flush=True)
+    for path in sorted((SRC / 'cfg').rglob('encoder*.cfg')):
+        print('  ' + str(path.relative_to(SRC / 'cfg')), flush=True)
+
     changed = []
     for path in SRC.rglob('CMakeLists.txt'):
-        def patch(text):
-            text = re.sub(
-                r'NOT\s*\(\s*CMAKE_SYSTEM_PROCESSOR\s+STREQUAL\s+"arm64"\s*\)',
-                'NOT EMSCRIPTEN AND NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")',
-                text,
-            )
-            return text.replace('warnings-as-errors', '')
-        if edit(path, patch):
+        old = path.read_text(encoding='utf-8')
+        new = re.sub(
+            r'NOT\s*\(\s*CMAKE_SYSTEM_PROCESSOR\s+STREQUAL\s+"arm64"\s*\)',
+            'NOT EMSCRIPTEN AND NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")',
+            old,
+        ).replace('warnings-as-errors', '')
+        if old != new:
+            path.write_text(new, encoding='utf-8')
             changed.append(str(path.relative_to(SRC)))
 
     simd_changes = []
@@ -103,8 +108,7 @@ def main():
             })
     if not simd_changes:
         raise RuntimeError(
-            'No recognized ENABLE_SIMD_OPT macros. '
-            'Inspect upstream SIMD dispatch before building.'
+            'No recognized ENABLE_SIMD_OPT macros. Inspect upstream SIMD dispatch.'
         )
 
     choices = {
@@ -145,16 +149,12 @@ endif()
         file.write(extra)
     if BUILD.exists():
         shutil.rmtree(BUILD)
-    run(
-        'emcmake', 'cmake', '-S', SRC, '-B', BUILD,
+    run('emcmake', 'cmake', '-S', SRC, '-B', BUILD,
         '-DCMAKE_BUILD_TYPE=Release',
         '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
-        '-DCMAKE_CXX_FLAGS=-O2 -fexceptions',
-        '-DCMAKE_C_FLAGS=-O2',
-        '-DEXTENSION_NNLF=OFF',
-        '-DEXTENSION_360_VIDEO=OFF',
-        '-DEXTENSION_HDRTOOLS=OFF',
-    )
+        '-DCMAKE_CXX_FLAGS=-O2 -fexceptions', '-DCMAKE_C_FLAGS=-O2',
+        '-DEXTENSION_NNLF=OFF', '-DEXTENSION_360_VIDEO=OFF',
+        '-DEXTENSION_HDRTOOLS=OFF')
     run('cmake', '--build', BUILD, '--target', 'EncoderApp', 'DecoderApp',
         '--parallel', '2')
 
@@ -167,40 +167,32 @@ endif()
             if not path.is_file():
                 raise RuntimeError('Missing build output: ' + str(path))
             shutil.copy2(path, ENGINE / path.name)
-    template = ROOT / 'tools/ecm/ecm-engine.js.in'
-    worker = template.read_text(encoding='utf-8')
+    worker = (ROOT / 'tools/ecm/ecm-engine.js.in').read_text(encoding='utf-8')
     if '__ECM_CONFIGS__' not in worker:
         raise RuntimeError('Worker template lacks __ECM_CONFIGS__ placeholder')
     worker = worker.replace('__ECM_CONFIGS__', json.dumps(configs))
     (ENGINE / 'ecm-engine.js').write_text(worker, encoding='utf-8')
     (ENGINE / 'configs.json').write_text(
-        json.dumps(configs, indent=2), encoding='utf-8'
-    )
-
-    licenses = [
-        p for p in SRC.iterdir() if p.is_file()
-        and any(x in p.name.lower() for x in ['copying', 'license', 'licence'])
-    ]
+        json.dumps(configs, indent=2), encoding='utf-8')
+    licenses = [p for p in SRC.iterdir() if p.is_file()
+                and any(x in p.name.lower()
+                        for x in ['copying', 'license', 'licence'])]
     if not licenses:
         raise RuntimeError(
-            'Upstream license file not located; review licensing '
-            'before distributing binaries.'
+            'Upstream license file not located; review before distributing binaries.'
         )
     for path in licenses:
         shutil.copy2(path, ENGINE / path.name)
     metadata = {
         'source': REMOTE, 'ref': REF, 'commit': commit,
         'emscripten': subprocess.check_output(
-            ['emcc', '--version'], text=True
-        ).splitlines()[0],
+            ['emcc', '--version'], text=True).splitlines()[0],
         'cmake_patches': changed, 'simd_patches': simd_changes,
-        'configs': configs,
-        'status': 'compiled; smoke test must run separately',
+        'configs': configs, 'status': 'compiled; smoke test must run separately',
         'threading': 'single-thread per Worker',
     }
     (ENGINE / 'build-info.json').write_text(
-        json.dumps(metadata, indent=2), encoding='utf-8'
-    )
+        json.dumps(metadata, indent=2), encoding='utf-8')
     print('Compiled files prepared. Run smoke.cjs before deploying.', flush=True)
 
 
