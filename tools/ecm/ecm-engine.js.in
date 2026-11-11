@@ -2,9 +2,49 @@
 'use strict';
 const configs = __ECM_CONFIGS__;
 let started = false;
+
+/* Исключение C++ из wasm приходит в JS числом (указателем), у числа нет .message.
+   Пытаемся достать текст: через getExceptionMessage (если модуль собран с
+   -sEXPORT_EXCEPTION_HANDLING_HELPERS), иначе читаем читаемые строки из памяти рядом с объектом исключения. */
+function describeError(e, mod, tail) {
+  if (typeof e !== 'number') return String(e && e.message || e);
+  const parts = ['Исключение C++ (указатель ' + e + ')'];
+  try {
+    if (mod && typeof mod.getExceptionMessage === 'function') {
+      const r = mod.getExceptionMessage(e);
+      parts.push(Array.isArray(r) ? r.filter(Boolean).join(': ') : String(r));
+    }
+  } catch (_) {}
+  try {
+    if (mod && mod.HEAPU8) {
+      const h = mod.HEAPU8, dv = new DataView(h.buffer), seen = [];
+      parts.push('память wasm ' + Math.round(h.length / 1048576) + ' МиБ');
+      const scan = (start, len) => {
+        let s = '';
+        const end = Math.min(start + len, h.length);
+        for (let i = start; i <= end; i++) {
+          const c = i < end ? h[i] : 0;
+          if (c >= 32 && c < 127) s += String.fromCharCode(c);
+          else { if (s.length >= 6 && !seen.includes(s)) seen.push(s); s = ''; }
+        }
+      };
+      scan(e, 64);
+      for (let o = 0; o < 32 && e + o + 4 <= h.length; o += 4) {
+        const p = dv.getUint32(e + o, true);
+        if (p > 1024 && p < h.length) scan(p, 200);
+      }
+      if (seen.length) parts.push('возможный текст: ' + seen.slice(0, 4).join(' | '));
+    }
+  } catch (_) {}
+  if (tail.length) parts.push('последние строки лога: ' + tail.slice(-6).join(' | '));
+  return parts.join(' · ');
+}
+
 self.onmessage = async ({data: m}) => {
   if (started) return postMessage({type:'error', message:'Worker already used; create a new instance.'});
   started = true;
+  let mod = null;
+  const logTail = [];
   try {
     if (!m || !['encode','decode'].includes(m.cmd)) throw new Error('Expected encode or decode');
     const encoding = m.cmd === 'encode';
@@ -15,13 +55,15 @@ self.onmessage = async ({data: m}) => {
     let done = 0;
     const emit = line => {
       const text = String(line);
+      logTail.push(text);
+      if (logTail.length > 30) logTail.shift();
       postMessage({type:'log', message:text});
       if (encoding && /^\s*POC\s+\d+\b/.test(text)) {
         done = Math.min(total, done + 1);
         postMessage({type:'progress', done, total});
       }
     };
-    const mod = await factory({noInitialRun:true,
+    mod = await factory({noInitialRun:true,
       locateFile:p => new URL(p, base).href, print:emit, printErr:emit});
     let args;
     if (encoding) {
@@ -63,5 +105,5 @@ self.onmessage = async ({data: m}) => {
     if (!bytes.byteLength) throw new Error('Empty output');
     if (encoding) postMessage({type:'progress',done:total,total});
     postMessage({type:'done',data:bytes.buffer},[bytes.buffer]);
-  } catch(e) { postMessage({type:'error',message:String(e.message||e)}); }
+  } catch(e) { postMessage({type:'error',message:describeError(e, mod, logTail)}); }
 };
