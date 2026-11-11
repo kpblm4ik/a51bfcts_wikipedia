@@ -33,7 +33,7 @@ custom_css: /css/main.css
 # {title}
 
 <div class="item-card">
-<!-- Вставь скриншоты, пример: <img src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="{title}"> -->
+<img loading="lazy" decoding="async" src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="{title}">
 </div>
 
 ***Описание*** *- ВПИШИ ОДНУ ФРАЗУ: что делает {thing}*
@@ -45,17 +45,10 @@ custom_css: /css/main.css
 <!-- Какой значок нужен, где его взять, шаги по порядку -->
 ВПИШИ СЮДА
 
-## Характеристики
-
-<!-- Скорость, прыжок, особенности, всё что измерял -->
-ВПИШИ СЮДА
-
 ## Мелочи:
 
 <!-- Любые наблюдения, баги, трюки. Если есть координаты или видео, добавь -->
 ВПИШИ СЮДА
-
-<p align="center"><a href="{parent}.html">🔙 Назад к {parent_title}</a></p>
 """
 
 CARD = """
