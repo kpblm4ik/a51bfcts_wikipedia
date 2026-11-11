@@ -10,6 +10,11 @@
       "id": "ecm",
       "hash": "34c1b1a4060bfce90c502fc788e4e2760d566de868223e9033f660d755c210d6",
       "expires": "2026-11-12"
+    },
+    {
+      "id": "emc",
+      "hash": "3af7d86bd074837830afae8b54d6021ef3fb917863bb9c37190b14adfd7d35ad",
+      "expires": "2026-11-12"
     }
   ]
 }
