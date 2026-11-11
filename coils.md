@@ -35,7 +35,7 @@ custom_css: /css/main.css
   </a>
 
   <a href="voidcoil.html" class="item-card">
-    <img loading="lazy" decoding="async" src="images/covers/coil.svg" alt="Катушка пустоты">
+    <img loading="lazy" decoding="async" src="images/covers/voidcoil.svg" alt="Катушка пустоты">
     <h3>Катушка пустоты</h3>
   </a>
 </div>
