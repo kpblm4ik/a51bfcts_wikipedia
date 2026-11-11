@@ -1,0 +1,87 @@
+name: Convert images to AVIF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.jpg'
+      - '**/*.JPG'
+      - '**/*.jpeg'
+      - '**/*.JPEG'
+      - '**/*.jfif'
+      - '**/*.png'
+      - '**/*.PNG'
+      - '**/*.webp'
+      - '**/*.bmp'
+      - '**/*.gif'
+      - '**/*.tif'
+      - '**/*.tiff'
+  workflow_dispatch:
+    inputs:
+      all:
+        description: 'Сконвертировать также все картинки, которые уже лежат в репозитории'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: avif-convert
+  cancel-in-progress: false
+
+jobs:
+  convert:
+    # коммит самого бота не должен запускать конвертацию снова
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install sharp (AVIF encoder)
+        run: npm install --prefix "$RUNNER_TEMP/avif" sharp@0.33.5 --no-audit --no-fund
+
+      - name: Convert images
+        shell: bash
+        env:
+          ALL: ${{ inputs.all }}
+          BEFORE: ${{ github.event.before }}
+          NODE_PATH: ${{ runner.temp }}/avif/node_modules
+        run: |
+          set -euo pipefail
+          if [ "${ALL:-}" = "true" ]; then
+            node tools/avif/convert.cjs --all
+          else
+            LIST="$RUNNER_TEMP/changed.txt"
+            if [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              git diff-tree -z --no-commit-id --name-only -r --diff-filter=AM HEAD > "$LIST"
+            else
+              git diff -z --name-only --diff-filter=AM "$BEFORE" "$GITHUB_SHA" > "$LIST"
+            fi
+            node tools/avif/convert.cjs --list "$LIST"
+          fi
+
+      - name: Commit result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Convert images to AVIF [skip ci]"
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
