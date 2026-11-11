@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECM wasm — тест скорости и памяти</title>
+<style>
+:root{--bg:#fff;--fg:#1b1b1f;--mut:#667;--card:#f3f4f7;--bd:#d5d8e0;--acc:#2a5bd7;--ok:#17803d;--bad:#c4281c}
+@media (prefers-color-scheme:dark){:root{--bg:#14151a;--fg:#e8e9ee;--mut:#9aa0b2;--card:#1e2028;--bd:#343744;--acc:#7aa2ff;--ok:#4cc27a;--bad:#ff7b72}}
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,sans-serif;max-width:720px;margin-inline:auto}
+h1{font-size:19px;margin:4px 0 2px}
+p.sub{color:var(--mut);margin:0 0 12px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:10px}
+.card h2{font-size:14px;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+label{display:block;font-size:13px;color:var(--mut);margin:6px 0 2px}
+input,select,button,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px;width:100%}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{cursor:pointer;background:var(--acc);color:#fff;border:0;font-weight:600}
+button.sec{background:var(--bg);color:var(--fg);border:1px solid var(--bd)}
+button:disabled{opacity:.5}
+.btns{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:10px}
+progress{width:100%;height:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td{padding:4px 2px;border-bottom:1px solid var(--bd)}
+td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+pre{margin:0;white-space:pre-wrap;word-break:break-all;font:12px/1.35 ui-monospace,monospace;max-height:220px;overflow:auto}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+#files-status span{display:inline-block;margin-right:8px}
+</style>
+</head>
+<body>
+<h1>ECM wasm — тест скорости и памяти</h1>
+<p class="sub">Отдельная страница: ничего не подключает к сайту. Кодирует и декодирует на твоём устройстве и показывает время, память и качество.</p>
+
+<div class="card">
+  <h2>1. Файлы сборки</h2>
+  <p class="sub" style="margin-top:0">Распакуй артефакт <b>ecm-wasm-experimental</b> и выбери сразу четыре файла из <code>js/ecm/</code>: EncoderApp.js, EncoderApp.wasm, DecoderApp.js, DecoderApp.wasm.</p>
+  <input id="files" type="file" multiple accept=".js,.wasm">
+  <div id="files-status" style="margin-top:6px;font-size:13px"></div>
+</div>
+
+<div class="card">
+  <h2>2. Параметры</h2>
+  <div class="row">
+    <div><label for="src">Источник</label>
+      <select id="src"><option value="synth">Синтетика (с шумом)</option><option value="video">Своё видео</option></select></div>
+    <div><label for="cfg">Режим</label>
+      <select id="cfg"><option value="ai">ai — только I-кадры</option><option value="ld">ld — low delay</option><option value="ra">ra — random access</option></select></div>
+  </div>
+  <div id="videorow" style="display:none"><label for="video">Видеофайл</label><input id="video" type="file" accept="video/*"></div>
+  <div class="row">
+    <div><label for="w">Ширина (чётная, 64–640)</label><input id="w" type="number" value="128" step="2"></div>
+    <div><label for="h">Высота (чётная, 64–360)</label><input id="h" type="number" value="128" step="2"></div>
+  </div>
+  <div class="row">
+    <div><label for="n">Кадров (1–16)</label><input id="n" type="number" value="2"></div>
+    <div><label for="qp">QP (0–63)</label><input id="qp" type="number" value="37"></div>
+  </div>
+  <div class="row">
+    <div><label for="fps">fps (для битрейта)</label><input id="fps" type="number" value="30"></div>
+    <div></div>
+  </div>
+  <div class="btns"><button id="go" disabled>Запустить</button><button id="stop" class="sec" disabled>Стоп</button></div>
+</div>
+
+<div class="card">
+  <h2>3. Ход</h2>
+  <div id="status">Выбери файлы.</div>
+  <progress id="bar" value="0" max="1"></progress>
+</div>
+
+<div class="card">
+  <h2>4. Результат</h2>
+  <table id="res"><tbody></tbody></table>
+</div>
+
+<div class="card">
+  <h2>Отчёт (скопируй и пришли)</h2>
+  <textarea id="report" rows="8" readonly></textarea>
+  <div class="btns" style="grid-template-columns:1fr"><button id="copy" class="sec">Копировать отчёт</button></div>
+</div>
+
+<div class="card">
+  <h2>Лог кодека</h2>
+  <pre id="log"></pre>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const CFG = {ai:'/cfg/encoder_intra_ecm.cfg', ra:'/cfg/encoder_randomaccess_ecm.cfg', ld:'/cfg/encoder_lowdelay_ecm.cfg'};
+const files = {};
+let current = null, stopped = false;
+const logLines = [];
+
+/* ---------- worker (собирается из функции, свой, не js/ecm/ecm-engine.js) ---------- */
+function workerMain() {
+  self.onmessage = async ({data: m}) => {
+    try {
+      const tStart = performance.now();
+      importScripts(m.jsUrl);
+      const factory = m.kind === 'enc' ? self.createECMEncoder : self.createECMDecoder;
+      if (typeof factory !== 'function') throw new Error('В js-файле не найден загрузчик модуля');
+      const pocTimes = [];
+      const emit = line => {
+        const text = String(line);
+        postMessage({type: 'log', message: text});
+        if (/^\s*POC\s+\d+\b/.test(text)) { pocTimes.push(performance.now()); postMessage({type: 'poc', n: pocTimes.length}); }
+      };
+      const mod = await factory({noInitialRun: true, wasmBinary: m.wasm, print: emit, printErr: emit});
+      const tLoaded = performance.now();
+      let args, outPath;
+      if (m.kind === 'enc') {
+        const st = mod.FS.open('/input.yuv', 'w');
+        let off = 0;
+        for (const fr of m.frames) { const b = new Uint8Array(fr); mod.FS.write(st, b, 0, b.length, off); off += b.length; }
+        mod.FS.close(st);
+        args = ['-c', m.cfg, '-i', '/input.yuv', '-b', '/output.bin', '-o', '/dev/null',
+          '-wdt', String(m.w), '-hgt', String(m.h), '-fr', String(m.fps), '-f', String(m.frames.length),
+          '-q', String(m.qp), '--InputBitDepth=8', '--InputChromaFormat=420'];
+        outPath = '/output.bin';
+      } else {
+        mod.FS.writeFile('/input.bin', new Uint8Array(m.data));
+        args = ['-b', '/input.bin', '-o', '/output.yuv', '--OutputBitDepth=8'];
+        outPath = '/output.yuv';
+      }
+      const tRunStart = performance.now();
+      try {
+        const code = mod.callMain(args);
+        if (typeof code === 'number' && code !== 0) throw new Error('Код выхода ' + code);
+      } catch (e) { if (!(e && e.name === 'ExitStatus' && e.status === 0)) throw e; }
+      const tRunEnd = performance.now();
+      const out = mod.FS.readFile(outPath).slice();
+      if (!out.byteLength) throw new Error('Пустой результат');
+      postMessage({type: 'done', data: out.buffer, tLoad: tLoaded - tStart, tRun: tRunEnd - tRunStart,
+        pocTimes: pocTimes.map(t => t - tRunStart), mem: (mod.HEAPU8 && mod.HEAPU8.length) || null}, [out.buffer]);
+    } catch (e) { postMessage({type: 'error', message: String(e && e.message || e)}); }
+  };
+}
+const workerUrl = URL.createObjectURL(new Blob(['(' + workerMain.toString() + ')()'], {type: 'text/javascript'}));
+
+function runWorker(kind, jsUrl, wasm, payload, onPoc) {
+  return new Promise((resolve, reject) => {
+    const w = new Worker(workerUrl);
+    current = w;
+    w.onmessage = ({data: d}) => {
+      if (d.type === 'log') pushLog(d.message);
+      else if (d.type === 'poc') onPoc && onPoc(d.n);
+      else if (d.type === 'done') { w.terminate(); current = null; resolve(d); }
+      else if (d.type === 'error') { w.terminate(); current = null; reject(new Error(d.message)); }
+    };
+    w.onerror = e => { w.terminate(); current = null; reject(new Error(e.message || 'Ошибка Worker (возможно, не хватило памяти)')); };
+    w.postMessage(Object.assign({kind, jsUrl, wasm}, payload));
+  });
+}
+
+/* ---------- источники кадров ---------- */
+function genSynthetic(w, h, n) {
+  const frames = []; let seed = 12345;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let f = 0; f < n; f++) {
+    const buf = new Uint8Array(w * h * 3 / 2);
+    const sx = (f * 5) % (w - 32), sy = Math.floor(h / 3);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let v = 40 + ((x * 2 + y + f * 3) % 160);
+      if (x >= sx && x < sx + 32 && y >= sy && y < sy + 32) v = 220 - ((x + y) % 40);
+      v += Math.floor(rnd() * 7) - 3;
+      buf[y * w + x] = Math.max(16, Math.min(235, v));
+    }
+    const cw = w / 2, ch = h / 2, uo = w * h, vo = uo + cw * ch;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      buf[uo + y * cw + x] = 128 + ((x + f) % 40) - 20;
+      buf[vo + y * cw + x] = 128 + ((y + 2 * f) % 40) - 20;
+    }
+    frames.push(buf.buffer);
+  }
+  return frames;
+}
+function rgbaToI420(d, w, h) {
+  const buf = new Uint8Array(w * h * 3 / 2), cw = w / 2, uo = w * h, vo = uo + cw * (h / 2);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    buf[y * w + x] = Math.max(16, Math.min(235, 16 + 0.257 * d[i] + 0.504 * d[i + 1] + 0.098 * d[i + 2]));
+  }
+  for (let y = 0; y < h / 2; y++) for (let x = 0; x < cw; x++) {
+    let r = 0, g = 0, b = 0;
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const i = ((2 * y + dy) * w + 2 * x + dx) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2];
+    }
+    r /= 4; g /= 4; b /= 4;
+    buf[uo + y * cw + x] = Math.max(16, Math.min(240, 128 - 0.148 * r - 0.291 * g + 0.439 * b));
+    buf[vo + y * cw + x] = Math.max(16, Math.min(240, 128 + 0.439 * r - 0.368 * g - 0.071 * b));
+  }
+  return buf.buffer;
+}
+async function framesFromVideo(file, w, h, n, fps) {
+  const url = URL.createObjectURL(file), v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+  await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('Не удалось открыть видео')); });
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d', {willReadFrequently: true});
+  const dur = v.duration || 1, step = Math.min(1 / fps, dur / n), frames = [];
+  for (let i = 0; i < n; i++) {
+    const seeked = new Promise(r => { v.onseeked = r; });
+    v.currentTime = Math.min(i * step, Math.max(0, dur - 0.05));
+    await seeked;
+    ctx.drawImage(v, 0, 0, w, h);
+    frames.push(rgbaToI420(ctx.getImageData(0, 0, w, h).data, w, h));
+  }
+  URL.revokeObjectURL(url);
+  return frames;
+}
+
+/* ---------- метрики ---------- */
+function psnrY(src, dec, w, h, n) {
+  const fsz = w * h * 3 / 2, per = [];
+  for (let f = 0; f < n; f++) {
+    const s = new Uint8Array(src[f]), o = f * fsz; let se = 0;
+    for (let i = 0; i < w * h; i++) { const d = s[i] - dec[o + i]; se += d * d; }
+    const mse = se / (w * h);
+    per.push(mse === 0 ? 100 : 10 * Math.log10(255 * 255 / mse));
+  }
+  return per;
+}
+const fmt = (x, d = 1) => (x == null || !isFinite(x)) ? '—' : x.toFixed(d);
+const mib = b => b == null ? '—' : fmt(b / 1048576, 0) + ' МиБ';
+
+/* ---------- UI ---------- */
+function pushLog(line) { logLines.push(line); if (logLines.length > 300) logLines.shift(); }
+setInterval(() => { const el = $('log'); const t = logLines.join('\n'); if (el.textContent !== t) { el.textContent = t; el.scrollTop = el.scrollHeight; } }, 250);
+function setStatus(t, cls) { const s = $('status'); s.textContent = t; s.className = cls || ''; }
+function setRows(rows) { $('res').tBodies[0].innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join(''); }
+
+function refreshFiles() {
+  const need = [['encJs', 'EncoderApp.js'], ['encWasm', 'EncoderApp.wasm'], ['decJs', 'DecoderApp.js'], ['decWasm', 'DecoderApp.wasm']];
+  $('files-status').innerHTML = need.map(([k, n]) => '<span class="' + (files[k] ? 'ok' : 'bad') + '">' + (files[k] ? '✓ ' : '✗ ') + n + '</span>').join('');
+  const ok = need.every(([k]) => files[k]);
+  $('go').disabled = !ok || !!current;
+  if (ok) setStatus('Файлы выбраны. Можно запускать.');
+}
+$('files').addEventListener('change', e => {
+  for (const k of ['encJs', 'encWasm', 'decJs', 'decWasm']) files[k] = null;
+  for (const f of e.target.files) {
+    if (/EncoderApp.*\.js$/i.test(f.name)) files.encJs = f;
+    else if (/EncoderApp.*\.wasm$/i.test(f.name)) files.encWasm = f;
+    else if (/DecoderApp.*\.js$/i.test(f.name)) files.decJs = f;
+    else if (/DecoderApp.*\.wasm$/i.test(f.name)) files.decWasm = f;
+  }
+  refreshFiles();
+});
+$('src').addEventListener('change', () => { $('videorow').style.display = $('src').value === 'video' ? 'block' : 'none'; });
+$('stop').addEventListener('click', () => { stopped = true; if (current) { current.terminate(); current = null; } setStatus('Остановлено.', 'bad'); $('stop').disabled = true; refreshFiles(); });
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('report').value); $('copy').textContent = 'Скопировано ✓'; }
+  catch (e) { $('report').select(); $('copy').textContent = 'Выдели и скопируй вручную'; }
+  setTimeout(() => $('copy').textContent = 'Копировать отчёт', 2000);
+});
+
+function readParams() {
+  const p = {w: +$('w').value, h: +$('h').value, n: +$('n').value, qp: +$('qp').value, fps: +$('fps').value, mode: $('cfg').value, src: $('src').value};
+  const bad = (c, m) => { if (c) throw new Error(m); };
+  bad(!Number.isInteger(p.w) || p.w % 2 || p.w < 64 || p.w > 640, 'Ширина: чётное число 64–640');
+  bad(!Number.isInteger(p.h) || p.h % 2 || p.h < 64 || p.h > 360, 'Высота: чётное число 64–360');
+  bad(!Number.isInteger(p.n) || p.n < 1 || p.n > 16, 'Кадров: 1–16');
+  bad(!Number.isInteger(p.qp) || p.qp < 0 || p.qp > 63, 'QP: 0–63');
+  bad(!Number.isInteger(p.fps) || p.fps < 1, 'fps: целое от 1');
+  bad(p.src === 'video' && !$('video').files[0], 'Выбери видеофайл');
+  return p;
+}
+
+$('go').addEventListener('click', async () => {
+  stopped = false; logLines.length = 0; $('go').disabled = true; $('stop').disabled = false;
+  $('bar').value = 0; setRows([]); $('report').value = '';
+  try {
+    const p = readParams();
+    setStatus('Готовлю кадры…');
+    const frames = p.src === 'video' ? await framesFromVideo($('video').files[0], p.w, p.h, p.n, p.fps) : genSynthetic(p.w, p.h, p.n);
+    const [encWasm, decWasm] = await Promise.all([files.encWasm.arrayBuffer(), files.decWasm.arrayBuffer()]);
+    const encUrl = URL.createObjectURL(files.encJs), decUrl = URL.createObjectURL(files.decJs);
+    $('bar').max = p.n * 2; $('bar').value = 0;
+
+    setStatus('Кодирование (модуль загружается, на телефоне это может занять время)…');
+    const t0 = performance.now();
+    const enc = await runWorker('enc', encUrl, encWasm, {frames, w: p.w, h: p.h, fps: p.fps, qp: p.qp, cfg: CFG[p.mode]},
+      n => { $('bar').value = n; setStatus('Кодирование: кадр ' + n + ' из ' + p.n); });
+    if (stopped) return;
+    const stream = enc.data;
+    $('bar').value = p.n;
+
+    setStatus('Декодирование…');
+    const dec = await runWorker('dec', decUrl, decWasm, {data: stream.slice(0)},
+      n => { $('bar').value = p.n + n; setStatus('Декодирование: кадр ' + n + ' из ' + p.n); });
+    if (stopped) return;
+    $('bar').value = p.n * 2;
+
+    const decoded = new Uint8Array(dec.data), expect = p.w * p.h * 3 / 2 * p.n;
+    let psnr = null, psnrNote = '';
+    if (decoded.length === expect) { const per = psnrY(frames, decoded, p.w, p.h, p.n); psnr = per.reduce((a, b) => a + b, 0) / per.length; }
+    else psnrNote = 'размер ' + decoded.length + ' ≠ ожидаемого ' + expect;
+
+    const encMs = enc.tRun, perFrame = encMs / p.n, pixelMs = encMs / (p.w * p.h * p.n);
+    const est720 = pixelMs * 1280 * 720 * 30 / 60000;
+    const kbps = stream.byteLength * 8 / (p.n / p.fps) / 1000;
+    const heap = performance.memory ? performance.memory.usedJSHeapSize : null;
+
+    setRows([
+      ['Загрузка энкодера (compile+init)', fmt(enc.tLoad / 1000, 2) + ' с'],
+      ['Кодирование всего', fmt(encMs / 1000, 2) + ' с'],
+      ['На кадр (кодирование)', fmt(perFrame / 1000, 2) + ' с'],
+      ['Первый кадр', enc.pocTimes.length ? fmt(enc.pocTimes[0] / 1000, 2) + ' с' : '—'],
+      ['Размер потока', stream.byteLength + ' Б'],
+      ['Битрейт при ' + p.fps + ' fps', fmt(kbps, 1) + ' кбит/с'],
+      ['Загрузка декодера', fmt(dec.tLoad / 1000, 2) + ' с'],
+      ['Декодирование всего', fmt(dec.tRun / 1000, 2) + ' с'],
+      ['PSNR по Y (декодер vs исходник)', psnr == null ? psnrNote : fmt(psnr, 2) + ' дБ'],
+      ['Память wasm: энкодер / декодер', mib(enc.mem) + ' / ' + mib(dec.mem)],
+      ['Грубая оценка: 720p × 30 кадров', '~' + fmt(est720, 0) + ' мин'],
+    ]);
+    const report = {
+      params: p, device: {ua: navigator.userAgent, cores: navigator.hardwareConcurrency || null, deviceMemoryGB: navigator.deviceMemory || null, jsHeapMiB: heap && Math.round(heap / 1048576)},
+      encoder: {loadSec: +(enc.tLoad / 1000).toFixed(2), encodeSec: +(encMs / 1000).toFixed(2), secPerFrame: +(perFrame / 1000).toFixed(2), wasmMemMiB: enc.mem && Math.round(enc.mem / 1048576), streamBytes: stream.byteLength},
+      decoder: {loadSec: +(dec.tLoad / 1000).toFixed(2), decodeSec: +(dec.tRun / 1000).toFixed(2), wasmMemMiB: dec.mem && Math.round(dec.mem / 1048576), outputBytes: decoded.length, expectedBytes: expect},
+      psnrYdB: psnr == null ? null : +psnr.toFixed(2), est720p30Min: +est720.toFixed(1),
+      note: 'оценка 720p грубая: линейная по числу пикселей, зависит от режима и контента'
+    };
+    $('report').value = JSON.stringify(report, null, 2);
+    setStatus('Готово ✓', 'ok');
+  } catch (e) {
+    if (!stopped) setStatus('Ошибка: ' + (e.message || e), 'bad');
+  } finally {
+    $('stop').disabled = true; refreshFiles();
+  }
+});
+refreshFiles();
+</script>
+</body>
+</html>
