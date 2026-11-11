@@ -6,16 +6,20 @@ custom_css: /css/main.css
 <script>window.DZ_TOKENS = {{ '/data/danger-tokens.json' | relative_url | jsonify }};</script>
 {% raw %}
 <h1>🔑 Выдача токенов</h1>
-<p>Страница для владельца сайта. Токен генерируется только в вашем браузере и никуда не отправляется. Токен заработает только после того, как вы добавите его хэш в <code>data/danger-tokens.json</code>.</p>
+<p>Страница для владельца сайта. Токен генерируется только в вашем браузере. Если указать GitHub-токен, хэш автоматически добавится в <code>data/danger-tokens.json</code>; без него строку нужно добавить вручную.</p>
 <div style="margin:12px 0">
   <label>Кому (метка) <input id="lab" type="text" value="friend" maxlength="30"></label>
   <label>Действует до <input id="exp" type="date"></label>
   <button id="gen">🎲 Выдать токен</button>
 </div>
+<div style="margin:12px 0">
+  <label>GitHub-токен <input id="pat" type="password" placeholder="github_pat_..." autocomplete="off"></label>
+  <label><input id="rem" type="checkbox"> запомнить в этом браузере</label>
+</div>
 <div id="out" hidden>
   <p><b>Токен (показывается один раз, передайте человеку):</b></p>
   <pre id="tk" style="font-size:20px;user-select:all"></pre>
-  <p><b>Строка для data/danger-tokens.json</b> (добавьте в массив <code>tokens</code>, между элементами — запятая):</p>
+  <p><b>Строка для data/danger-tokens.json</b> (нужна только если автодобавление не сработало; добавьте в массив <code>tokens</code>, между элементами — запятая):</p>
   <pre id="js" style="white-space:pre-wrap;word-break:break-all;user-select:all"></pre>
   <p>Чтобы отозвать токен, удалите его строку из файла. Доступ у всех открытых вкладок пропадёт при ближайшей проверке.</p>
 </div>
@@ -30,14 +34,51 @@ function gen() {
   let s = ''; for (const x of b) s += A[x & 31];
   return 'DZ-' + s.match(/.{4}/g).join('-');
 }
+
+const API = 'https://api.github.com/repos/kpblm4ik/a51bfcts_wikipedia/contents/data/danger-tokens.json';
+const hdr = p => ({ Authorization: 'Bearer ' + p, Accept: 'application/vnd.github+json' });
+const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, '')), c => c.charCodeAt(0)));
+const b64e = s => { let r = ''; new TextEncoder().encode(s).forEach(x => r += String.fromCharCode(x)); return btoa(r); };
+try { $('#pat').value = localStorage.getItem('dz_pat') || ''; } catch (_) {}
+
 $('#gen').onclick = async () => {
   try {
-    const r = await fetch(window.DZ_TOKENS, { cache: 'no-store' }), j = await r.json();
-    const t = gen(), id = ($('#lab').value || 'token').replace(/[^\w.-]/g, '-').slice(0, 30);
+    const pat = $('#pat').value.trim();
+    const t = gen();
+    const id = ($('#lab').value || 'token').replace(/[^\w.-]/g, '-').slice(0, 30);
+    let j, f;
+
+    if (pat) {
+      const r = await fetch(API, { headers: hdr(pat), cache: 'no-store' });
+      if (!r.ok) throw new Error('GitHub ' + r.status);
+      f = await r.json();
+      j = JSON.parse(b64d(f.content));
+    } else {
+      j = await (await fetch(window.DZ_TOKENS, { cache: 'no-store' })).json();
+    }
+
     const e = { id: id, hash: await sha(j.salt + ':' + norm(t)) };
     if ($('#exp').value) e.expires = $('#exp').value;
-    $('#tk').textContent = t; $('#js').textContent = JSON.stringify(e);
-    $('#out').hidden = false; $('#msg').textContent = '';
+
+    $('#tk').textContent = t;
+    $('#js').textContent = JSON.stringify(e);
+    $('#out').hidden = false;
+
+    if (!pat) { $('#msg').textContent = 'GitHub-токен не указан: добавьте строку вручную.'; return; }
+
+    j.tokens.push(e);
+    const w = await fetch(API, {
+      method: 'PUT',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, hdr(pat)),
+      body: JSON.stringify({
+        message: 'Add token ' + id,
+        content: b64e(JSON.stringify(j, null, 2) + '\n'),
+        sha: f.sha
+      })
+    });
+    if (!w.ok) throw new Error('коммит не удался (' + w.status + '), добавьте строку вручную');
+    try { if ($('#rem').checked) localStorage.setItem('dz_pat', pat); } catch (_) {}
+    $('#msg').textContent = '✅ Хэш добавлен в репозиторий. Токен заработает после пересборки Pages (~1 минута).';
   } catch (err) { $('#msg').textContent = 'Ошибка: ' + (err.message || err); }
 };
 </script>
