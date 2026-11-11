@@ -19,7 +19,10 @@ custom_css: /css/main.css
   .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
   .ed-btn.on { background: rgba(160,102,255,.45); box-shadow: 0 0 10px rgba(160,102,255,.5); }
   .ed-btn:disabled { opacity: .5; }
-  #cv { width: 100%; height: auto; display: block; touch-action: none; border: 1.5px solid rgba(160,102,255,.75); border-radius: 10px; image-rendering: pixelated; cursor: crosshair; margin: 8px 0; }
+  [hidden] { display: none !important; }
+  .cvwrap { position: relative; border: 1.5px solid rgba(160,102,255,.75); border-radius: 10px; overflow: hidden; margin: 8px 0; }
+  #cv { width: 100%; height: auto; display: block; touch-action: none; image-rendering: pixelated; cursor: crosshair; }
+  #ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
   .layer { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid rgba(160,102,255,.25); border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 14px; }
   .layer.sel { border-color: #a066ff; background: rgba(160,102,255,.18); }
   .layer .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -46,10 +49,33 @@ custom_css: /css/main.css
     <button class="ed-btn on" data-tool="pen">✏️ Кисть</button>
     <button class="ed-btn" data-tool="eraser">🧽 Ластик</button>
     <button class="ed-btn" data-tool="fill">🪣 Заливка</button>
+    <button class="ed-btn" data-tool="pick">🧪 Пипетка</button>
     <button class="ed-btn" id="undo">↩️ Отмена</button>
     <button class="ed-btn" id="clr">🗑 Очистить слой</button>
   </div>
-  <canvas id="cv"></canvas>
+  <div class="ed-row">
+    <button class="ed-btn" id="rulerBtn">📏 Линейка</button>
+    <button class="ed-btn" id="symBtn">🪞 Симметрия</button>
+  </div>
+  <div class="ed-row" id="rulerBox" hidden>
+    <label>Угол, ° <input type="number" id="rAng" min="-180" max="180" step="1" value="0"></label>
+    <label>Длина <input type="number" id="rLen" min="1" max="200" step="0.5" value="10"></label>
+    <button class="ed-btn" id="rReset">↺ Сбросить</button>
+  </div>
+  <div class="ed-row" id="symBox" hidden>
+    <label>Тип
+      <select id="sMode">
+        <option value="mirror">Зеркало</option>
+        <option value="rays">Лучи</option>
+        <option value="both">Лучи + зеркало</option>
+      </select>
+    </label>
+    <label id="sNLabel" hidden>Лучей <input type="number" id="sN" min="2" max="16" step="1" value="4"></label>
+    <label id="sAngLabel">Угол, ° <input type="number" id="sAng" min="-180" max="180" step="1" value="-90"></label>
+    <button class="ed-btn" id="sReset">↺ Сбросить</button>
+  </div>
+  <p class="hint">🧪 Пипетка берёт цвет пикселя с верхнего видимого слоя и сама возвращает прошлый инструмент. 📏 Линейка: жёлтые края поворачивают и растягивают её, средний кружок двигает. Кисть и ластик рисуют строго по её средней линии, где бы ты ни вёл пальцем (углы кратные 15° «магнитятся»). 🪞 Симметрия: бирюзовый кружок — центр, второй поворачивает ось; всё, что рисуешь, повторяется зеркально или лучами.</p>
+  <div class="cvwrap"><canvas id="cv"></canvas><canvas id="ov"></canvas></div>
 </div>
 
 <div class="ed-card">
@@ -120,8 +146,9 @@ custom_css: /css/main.css
 
 <script>
 const $ = s => document.querySelector(s);
-const cv = $('#cv'), ctx = cv.getContext('2d');
-let W = 32, H = 32, tool = 'pen', cur = 0, drawing = false, last = null, undoStack = [];
+const cv = $('#cv'), ctx = cv.getContext('2d'), ov = $('#ov'), octx = ov.getContext('2d');
+let W = 32, H = 32, tool = 'pen', prevTool = 'pen', cur = 0, undoStack = [];
+let drag = null, st = null, geomV = 0;   // drag — тянут кружок линейки/симметрии; st — идёт мазок или пипетка
 const mkLayer = n => ({ name: n, vis: true, mode: 'static', dur: 3, smooth: 50, glow: 0, px: new Map() });
 const layers = [mkLayer('Слой 1')];
 const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -173,6 +200,195 @@ function layerKeys(it, T) {
   return { kt: ts.map(t => +(t / T).toFixed(5)), vals: ts.map(t => +g(t).toFixed(3)) };
 }
 
+/* ---------- линейка и линейка симметрии (координаты в клетках, дробные) ---------- */
+const ruler = { on: false, a: [0, 0], b: [0, 0] };
+const sym = { on: false, mode: 'mirror', n: 4, c: [0, 0], deg: -90, r: 8 };
+const cl0 = v => Math.abs(v) < 1e-12 ? 0 : v;
+const dirOf = deg => { const r = deg * Math.PI / 180; return [cl0(Math.cos(r)), cl0(Math.sin(r))]; };
+const clampPt = p => [Math.min(W, Math.max(0, p[0])), Math.min(H, Math.max(0, p[1]))];
+const rMid = () => [(ruler.a[0] + ruler.b[0]) / 2, (ruler.a[1] + ruler.b[1]) / 2];
+const ppcNow = () => ((cv.getBoundingClientRect().width || 300) / W);   // CSS-пикселей в одной клетке
+function resetRuler() {
+  const y = Math.min(H - 0.5, Math.floor(H * 0.75) + 0.5);   // по центру строки клеток
+  ruler.a = [W * 0.15, y]; ruler.b = [W * 0.85, y]; geomV++;
+}
+function resetSym() {
+  sym.c = [W / 2, H / 2]; sym.deg = -90; sym.r = Math.max(Math.min(W, H) * 0.3, 34 / ppcNow()); geomV++;
+}
+const symHandle = () => { const u = dirOf(sym.deg); return clampPt([sym.c[0] + u[0] * sym.r, sym.c[1] + u[1] * sym.r]); };
+
+function handles() {
+  const hs = [];
+  if (ruler.on) hs.push({ id: 'ra', p: ruler.a }, { id: 'rb', p: ruler.b }, { id: 'rm', p: rMid() });
+  if (sym.on) { hs.push({ id: 'sc', p: sym.c }); if (sym.mode !== 'rays') hs.push({ id: 'sr', p: symHandle() }); }
+  return hs;
+}
+function hitHandle(pf) {
+  let best = null, bd = 26 / ppcNow();
+  handles().forEach(h => {
+    const d = Math.hypot(h.p[0] - pf[0], h.p[1] - pf[1]);
+    if (d < bd) { bd = d; best = h.id; }
+  });
+  return best;
+}
+/* Где на отрезке линейки (0..1) оказывается проекция точки. Рисуем только в пределах линейки. */
+function rProject(pf) {
+  const ax = ruler.a[0], ay = ruler.a[1], dx = ruler.b[0] - ax, dy = ruler.b[1] - ay, L2 = dx * dx + dy * dy || 1;
+  return Math.min(1, Math.max(0, ((pf[0] - ax) * dx + (pf[1] - ay) * dy) / L2));
+}
+const rAt = t => [ruler.a[0] + (ruler.b[0] - ruler.a[0]) * t, ruler.a[1] + (ruler.b[1] - ruler.a[1]) * t];
+
+/* Преобразования симметрии: тождественное + отражения/повороты вокруг центра. */
+function transforms() {
+  const T = [p => p];
+  if (!sym.on) return T;
+  const c = sym.c, u = dirOf(sym.deg);
+  const mirror = p => {
+    const vx = p[0] - c[0], vy = p[1] - c[1], d = 2 * (vx * u[0] + vy * u[1]);
+    return [c[0] + d * u[0] - vx, c[1] + d * u[1] - vy];
+  };
+  if (sym.mode === 'mirror') { T.push(mirror); return T; }
+  for (let k = 0; k < sym.n; k++) {
+    const t = 2 * Math.PI * k / sym.n, cs = cl0(Math.cos(t)), sn = cl0(Math.sin(t));
+    const rot = p => {
+      const vx = p[0] - c[0], vy = p[1] - c[1];
+      return [c[0] + vx * cs - vy * sn, c[1] + vx * sn + vy * cs];
+    };
+    if (k) T.push(rot);
+    if (sym.mode === 'both') T.push(p => rot(mirror(p)));
+  }
+  return T;
+}
+const cellF = p => [Math.floor(p[0] + 1e-9), Math.floor(p[1] + 1e-9)];
+function drawSeg(a, b) { transforms().forEach(T => line(cellF(T(a)), cellF(T(b)))); }
+
+function snapDeg(d) { const s = Math.round(d / 15) * 15; return Math.abs(d - s) < 2.5 ? s : d; }
+
+function moveHandle(pf) {
+  const dx = pf[0] - drag.s[0], dy = pf[1] - drag.s[1];
+  if (drag.id === 'rm') {
+    const minX = Math.min(drag.a[0], drag.b[0]), maxX = Math.max(drag.a[0], drag.b[0]);
+    const minY = Math.min(drag.a[1], drag.b[1]), maxY = Math.max(drag.a[1], drag.b[1]);
+    const mx = Math.min(W - maxX, Math.max(-minX, dx)), my = Math.min(H - maxY, Math.max(-minY, dy));
+    ruler.a = [drag.a[0] + mx, drag.a[1] + my]; ruler.b = [drag.b[0] + mx, drag.b[1] + my];
+  } else if (drag.id === 'ra' || drag.id === 'rb') {
+    const o = drag.id === 'ra' ? drag.b : drag.a;
+    const vx = pf[0] - o[0], vy = pf[1] - o[1], L = Math.hypot(vx, vy);
+    if (L < 1) return;
+    const u = dirOf(snapDeg(Math.atan2(vy, vx) * 180 / Math.PI));
+    const np = clampPt([o[0] + u[0] * L, o[1] + u[1] * L]);
+    if (Math.hypot(np[0] - o[0], np[1] - o[1]) < 1) return;
+    if (drag.id === 'ra') ruler.a = np; else ruler.b = np;
+  } else if (drag.id === 'sc') {
+    sym.c = clampPt([drag.c[0] + dx, drag.c[1] + dy]);
+  } else if (drag.id === 'sr') {
+    const vx = pf[0] - sym.c[0], vy = pf[1] - sym.c[1], L = Math.hypot(vx, vy);
+    if (L < 0.5) return;
+    sym.deg = snapDeg(Math.atan2(vy, vx) * 180 / Math.PI);
+    sym.r = Math.max(34 / ppcNow(), L);
+  }
+  geomV++; drawOverlay(); syncUI();
+}
+
+function drawOverlay() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (!r.width) return;
+  const pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
+  if (ov.width !== pw || ov.height !== ph) { ov.width = pw; ov.height = ph; }
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  octx.clearRect(0, 0, r.width, r.height);
+  const sx = r.width / W, sy = r.height / H;
+  const P = p => [p[0] * sx, p[1] * sy];
+
+  if (sym.on) {   // оси / лучи симметрии
+    const c = P(sym.c), big = (r.width + r.height) * 2;
+    octx.save();
+    octx.strokeStyle = 'rgba(94,234,212,.95)'; octx.lineWidth = 1.5; octx.setLineDash([7, 5]);
+    octx.beginPath();
+    const addLine = (deg, full) => {
+      const u = dirOf(deg);
+      octx.moveTo(c[0] - (full ? u[0] * big : 0), c[1] - (full ? u[1] * big : 0));
+      octx.lineTo(c[0] + u[0] * big, c[1] + u[1] * big);
+    };
+    if (sym.mode === 'mirror') addLine(sym.deg, true);
+    else if (sym.mode === 'rays') for (let k = 0; k < sym.n; k++) addLine(sym.deg + 360 * k / sym.n, false);
+    else for (let k = 0; k < sym.n; k++) addLine(sym.deg + 180 * k / sym.n, true);
+    octx.stroke(); octx.restore();
+  }
+
+  if (ruler.on) {   // тело линейки с делениями; рисуется по средней линии
+    const a = P(ruler.a), b = P(ruler.b), len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), hw = 14;
+    octx.save(); octx.translate(a[0], a[1]); octx.rotate(ang);
+    octx.fillStyle = 'rgba(255,200,60,.16)'; octx.strokeStyle = 'rgba(255,200,60,.85)'; octx.lineWidth = 1.5;
+    octx.fillRect(0, -hw, len, 2 * hw); octx.strokeRect(0, -hw, len, 2 * hw);
+    octx.strokeStyle = 'rgba(255,235,160,.95)';
+    octx.beginPath(); octx.moveTo(0, 0); octx.lineTo(len, 0); octx.stroke();
+    octx.strokeStyle = 'rgba(255,200,60,.85)'; octx.lineWidth = 1; octx.beginPath();
+    const step = sx < 5 ? 5 : 1, n = Math.floor(len / sx);
+    for (let i = 0; i <= n; i += step) {
+      const x = i * sx, t = i % 5 === 0 ? 9 : 4;
+      octx.moveTo(x, -hw); octx.lineTo(x, -hw + t);
+    }
+    octx.stroke(); octx.restore();
+  }
+
+  handles().forEach(h => {   // кружки управления
+    const p = P(h.p), isR = h.id[0] === 'r', small = h.id === 'rm' || h.id === 'sr';
+    octx.beginPath(); octx.arc(p[0], p[1], small ? 8 : 10, 0, Math.PI * 2);
+    octx.fillStyle = isR ? 'rgba(255,200,60,.95)' : 'rgba(94,234,212,.95)'; octx.fill();
+    octx.lineWidth = 2; octx.strokeStyle = '#0b090f'; octx.stroke();
+    if (h.id === 'rm' || h.id === 'sc') {
+      octx.beginPath(); octx.arc(p[0], p[1], 2.5, 0, Math.PI * 2); octx.fillStyle = '#0b090f'; octx.fill();
+    }
+  });
+}
+
+function setVal(el, v) { if (document.activeElement !== el) el.value = v; }
+function syncUI() {
+  const dx = ruler.b[0] - ruler.a[0], dy = ruler.b[1] - ruler.a[1];
+  setVal($('#rAng'), +(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1));
+  setVal($('#rLen'), +Math.hypot(dx, dy).toFixed(1));
+  setVal($('#sAng'), +((((sym.deg + 180) % 360) + 360) % 360 - 180).toFixed(1));
+}
+function symUI() {
+  $('#sNLabel').hidden = sym.mode === 'mirror';
+  $('#sAngLabel').hidden = sym.mode === 'rays';
+}
+function setRuler(deg, len) {   // задать угол и длину вокруг центра линейки
+  const m = rMid(), u = dirOf(deg);
+  const hx = Math.abs(u[0]) > 1e-9 ? Math.min(m[0], W - m[0]) / Math.abs(u[0]) : Infinity;
+  const hy = Math.abs(u[1]) > 1e-9 ? Math.min(m[1], H - m[1]) / Math.abs(u[1]) : Infinity;
+  const L = Math.max(1, Math.min(len, 2 * hx, 2 * hy));
+  ruler.a = [m[0] - u[0] * L / 2, m[1] - u[1] * L / 2];
+  ruler.b = [m[0] + u[0] * L / 2, m[1] + u[1] * L / 2];
+  geomV++; drawOverlay(); syncUI();
+}
+const rAngNow = () => Math.atan2(ruler.b[1] - ruler.a[1], ruler.b[0] - ruler.a[0]) * 180 / Math.PI;
+const rLenNow = () => Math.hypot(ruler.b[0] - ruler.a[0], ruler.b[1] - ruler.a[1]);
+$('#rAng').addEventListener('input', e => { const v = parseFloat(e.target.value); if (!isNaN(v)) setRuler(v, rLenNow()); });
+$('#rLen').addEventListener('input', e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) setRuler(rAngNow(), v); });
+$('#rReset').addEventListener('click', () => { resetRuler(); syncUI(); drawOverlay(); });
+$('#rulerBtn').addEventListener('click', e => {
+  ruler.on = !ruler.on; e.currentTarget.classList.toggle('on', ruler.on);
+  $('#rulerBox').hidden = !ruler.on; geomV++; syncUI(); drawOverlay();
+});
+$('#symBtn').addEventListener('click', e => {
+  sym.on = !sym.on; e.currentTarget.classList.toggle('on', sym.on);
+  $('#symBox').hidden = !sym.on; geomV++; syncUI(); drawOverlay();
+});
+$('#sMode').addEventListener('change', e => { sym.mode = e.target.value; symUI(); geomV++; drawOverlay(); });
+$('#sN').addEventListener('input', e => {
+  const v = parseInt(e.target.value);
+  if (!isNaN(v)) { sym.n = Math.min(16, Math.max(2, v)); geomV++; drawOverlay(); }
+});
+$('#sAng').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (!isNaN(v)) { sym.deg = v; geomV++; drawOverlay(); }
+});
+$('#sReset').addEventListener('click', () => { resetSym(); syncUI(); drawOverlay(); });
+window.addEventListener('resize', drawOverlay);
+
 /* ---------- холст ---------- */
 function render() {
   const cell = Math.max(4, Math.floor(560 / Math.max(W, H)));
@@ -196,11 +412,17 @@ function render() {
     for (let y = 0; y <= H; y++) { ctx.moveTo(0, y * cell + .5); ctx.lineTo(W * cell, y * cell + .5); }
     ctx.stroke();
   }
+  drawOverlay();
 }
 function cellAt(e) {
   const r = cv.getBoundingClientRect();
   return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)];
 }
+const ptrF = e => {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
+};
+const ctr = pf => [Math.floor(pf[0]) + 0.5, Math.floor(pf[1]) + 0.5];   // центр клетки под пальцем
 function pushUndo() {
   undoStack.push({ i: cur, m: new Map(layers[cur].px) });
   if (undoStack.length > 40) undoStack.shift();
@@ -235,24 +457,74 @@ function fill(x, y) {
     stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
   }
 }
+/* Пипетка: цвет берётся с верхнего видимого слоя, где в этой клетке есть пиксель. */
+function pickAt(pf) {
+  const x = Math.floor(pf[0]), y = Math.floor(pf[1]);
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  for (let i = layers.length - 1; i >= 0; i--) {
+    if (!layers[i].vis) continue;
+    const c = layers[i].px.get(key(x, y));
+    if (c) { $('#col').value = c; return; }
+  }
+}
+/* Мазок по линейке: всё, что провёл палец, — это отрезок линейки от самой дальней проекции в одну сторону
+   до самой дальней в другую. Перерисовываем его целиком от снимка слоя, поэтому линия ровная без изломов. */
+function redrawRuler() {
+  layers[cur].px = new Map(st.base);
+  drawSeg(rAt(st.t0), rAt(st.t1));
+  render();
+}
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  const pf = ptrF(e), h = hitHandle(pf);
+  if (h) { drag = { pid: e.pointerId, id: h, s: pf, a: ruler.a.slice(), b: ruler.b.slice(), c: sym.c.slice() }; return; }
+  if (st) return;
+  if (tool === 'pick') { st = { pid: e.pointerId, pick: true }; pickAt(pf); return; }
   pushUndo();
-  const p = cellAt(e);
-  if (tool === 'fill') { fill(p[0], p[1]); render(); refresh(); return; }
-  drawing = true; last = p; plot(p[0], p[1]); render();
+  if (tool === 'fill') { const p = cellAt(e); fill(p[0], p[1]); render(); refresh(); return; }
+  st = { pid: e.pointerId, v: geomV, ruler: ruler.on };
+  if (st.ruler) {
+    st.base = undoStack[undoStack.length - 1].m;
+    st.t0 = st.t1 = rProject(pf);
+    redrawRuler();
+  } else {
+    st.last = ctr(pf); drawSeg(st.last, st.last); render();
+  }
 });
 cv.addEventListener('pointermove', e => {
-  if (!drawing) return;
-  const p = cellAt(e); line(last, p); last = p; render();
+  if (drag && e.pointerId === drag.pid) { moveHandle(ptrF(e)); return; }
+  if (!st || e.pointerId !== st.pid) return;
+  const pf = ptrF(e);
+  if (st.pick) { pickAt(pf); return; }
+  if (st.ruler) {
+    const t = rProject(pf);
+    if (st.v !== geomV) { st.base = new Map(layers[cur].px); st.v = geomV; st.t0 = st.t1 = t; }
+    else { if (t < st.t0) st.t0 = t; if (t > st.t1) st.t1 = t; }
+    redrawRuler();
+  } else {
+    const q = ctr(pf);
+    if (q[0] === st.last[0] && q[1] === st.last[1]) return;
+    drawSeg(st.last, q); st.last = q; render();
+  }
 });
-const stop = () => { if (drawing) { drawing = false; renderLayers(); refresh(); } };
+const stop = e => {
+  if (drag && e.pointerId === drag.pid) { drag = null; syncUI(); }
+  if (st && e.pointerId === st.pid) {
+    const wasPick = st.pick; st = null;
+    if (wasPick) setTool(prevTool === 'eraser' ? 'pen' : prevTool);
+    else { renderLayers(); refresh(); }
+  }
+};
 cv.addEventListener('pointerup', stop);
 cv.addEventListener('pointercancel', stop);
 
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('[data-tool]').forEach(x => x.classList.toggle('on', x.dataset.tool === t));
+}
 document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => {
-  tool = b.dataset.tool;
-  document.querySelectorAll('[data-tool]').forEach(x => x.classList.toggle('on', x === b));
+  if (b.dataset.tool === 'pick' && tool !== 'pick') prevTool = tool;
+  setTool(b.dataset.tool);
 }));
 $('#undo').addEventListener('click', () => {
   const u = undoStack.pop(); if (!u || !layers[u.i]) return;
@@ -262,7 +534,9 @@ $('#clr').addEventListener('click', () => { pushUndo(); layers[cur].px.clear(); 
 ['#w', '#h'].forEach(id => $(id).addEventListener('change', () => {
   W = Math.min(128, Math.max(4, parseInt($('#w').value) || 32));
   H = Math.min(128, Math.max(4, parseInt($('#h').value) || 32));
-  $('#w').value = W; $('#h').value = H; render(); refresh();
+  $('#w').value = W; $('#h').value = H;
+  resetRuler(); resetSym(); syncUI();
+  render(); refresh();
 }));
 
 /* ---------- слои ---------- */
@@ -419,6 +693,7 @@ $('#up').addEventListener('click', async () => {
   btn.disabled = false;
 });
 
-renderLayers(); loadSettings(); render(); refresh();
+resetRuler(); resetSym();
+renderLayers(); loadSettings(); render(); refresh(); syncUI(); symUI();
 </script>
 {% endraw %}
