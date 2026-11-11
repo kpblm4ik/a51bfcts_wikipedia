@@ -33,6 +33,11 @@ custom_css: /css/main.css
     <img src="images/covers/guardiancoil.svg" alt="Guardian Coil">
     <h3>Защитная катушка</h3>
   </a>
+
+  <a href="voidcoil.html" class="item-card">
+    <img loading="lazy" decoding="async" src="images/covers/coil.svg" alt="Катушка пустоты">
+    <h3>Катушка пустоты</h3>
+  </a>
 </div>
 
 <br>
