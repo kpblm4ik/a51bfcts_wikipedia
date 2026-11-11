@@ -84,7 +84,7 @@ custom_css: /css/main.css
 # ${t}
 
 <div class="item-card">
-<!-- Вставь скриншоты, пример: <img src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="${t}"> -->
+<img loading="lazy" decoding="async" src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="${t}">
 </div>
 
 ***Описание*** *- ВПИШИ ОДНУ ФРАЗУ: что делает ${k.thing}*
@@ -96,17 +96,10 @@ custom_css: /css/main.css
 <!-- Какой значок нужен, где его взять, шаги по порядку -->
 ВПИШИ СЮДА
 
-## Характеристики
-
-<!-- Скорость, прыжок, особенности, всё что измерял -->
-ВПИШИ СЮДА
-
 ## Мелочи:
 
 <!-- Любые наблюдения, баги, трюки. Если есть координаты или видео, добавь -->
 ВПИШИ СЮДА
-
-<p align="center"><a href="${k.parent}.html">🔙 Назад к ${k.parent_title}</a></p>
 `;
 
 const CARD = (name, img, t) => `
