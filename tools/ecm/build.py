@@ -12,6 +12,7 @@ SRC = WORK / 'source'
 BUILD = WORK / 'build'
 DIST = ROOT / 'ecm-dist'
 ENGINE = DIST / 'js/ecm'
+LOGS = ROOT / 'ecm-logs'
 REF = 'ECM-20.0'
 REMOTE = 'https://vcgit.hhi.fraunhofer.de/ecm/ECM.git'
 
@@ -19,6 +20,52 @@ REMOTE = 'https://vcgit.hhi.fraunhofer.de/ecm/ECM.git'
 def run(*args, cwd=None):
     print('+', ' '.join(map(str, args)), flush=True)
     subprocess.run(list(map(str, args)), cwd=cwd, check=True)
+
+
+def build_keep_going(targets):
+    """Compile with make -k so ALL errors are collected in one run, then
+    print a compact summary of the errors (the full log is in ecm-logs/)."""
+    LOGS.mkdir(exist_ok=True)
+    log_path = LOGS / 'compile.log'
+    cmd = ['cmake', '--build', str(BUILD), '--target', *targets,
+           '--parallel', '2', '--', '-k']
+    print('+', ' '.join(cmd), flush=True)
+    lines = []
+    with log_path.open('w', encoding='utf-8') as log:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True,
+                                errors='replace')
+        for line in proc.stdout:
+            log.write(line)
+            lines.append(line.rstrip('\n'))
+            if not line.startswith(('[', 'In file included', '  ')):
+                print(line, end='', flush=True)
+            elif line.startswith('['):
+                print(line, end='', flush=True)
+        code = proc.wait()
+    if code != 0:
+        print('\n==== COMPILE ERRORS SUMMARY ====', flush=True)
+        hits = [i for i, l in enumerate(lines)
+                if re.search(r'\berror\b|fatal error|undefined symbol|'
+                             r'wasm-ld: error', l)]
+        shown = 0
+        last = -10
+        for i in hits:
+            if i - last < 6:
+                continue
+            last = i
+            shown += 1
+            for l in lines[max(0, i - 1):i + 6]:
+                print(l, flush=True)
+            print('-----', flush=True)
+            if shown >= 25:
+                print('... more errors in ecm-logs/compile.log', flush=True)
+                break
+        if not hits:
+            print('No "error" lines found; last 40 lines:', flush=True)
+            print('\n'.join(lines[-40:]), flush=True)
+        print('==== END SUMMARY ====', flush=True)
+        raise RuntimeError(f'Build failed with exit code {code}')
 
 
 def choose_config(cfg_root, names, mode):
@@ -75,6 +122,16 @@ def main():
     print('Available encoder configurations:', flush=True)
     for path in sorted((SRC / 'cfg').rglob('encoder*.cfg')):
         print('  ' + str(path.relative_to(SRC / 'cfg')), flush=True)
+
+    # Diagnostics: where does upstream pick x86 SIMD sources/flags?
+    print('x86/SIMD-related lines in CMake files:', flush=True)
+    for path in sorted(SRC.rglob('CMakeLists.txt')):
+        for no, line in enumerate(
+                path.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
+            if re.search(r'x86|SSE|AVX|SIMD|arm64|SYSTEM_PROCESSOR|Werror|'
+                         r'warnings-as-errors', line, re.I):
+                print(f'  {path.relative_to(SRC)}:{no}: {line.strip()}',
+                      flush=True)
 
     changed = []
     for path in SRC.rglob('CMakeLists.txt'):
@@ -149,14 +206,16 @@ endif()
         file.write(extra)
     if BUILD.exists():
         shutil.rmtree(BUILD)
+    # -w: silence upstream warnings (wasm32 size_t shifts etc.) so real errors
+    # are visible in the log and -Werror from upstream cannot fail the build.
     run('emcmake', 'cmake', '-S', SRC, '-B', BUILD,
         '-DCMAKE_BUILD_TYPE=Release',
         '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
-        '-DCMAKE_CXX_FLAGS=-O2 -fexceptions', '-DCMAKE_C_FLAGS=-O2',
+        '-DCMAKE_CXX_FLAGS=-O2 -fexceptions -w',
+        '-DCMAKE_C_FLAGS=-O2 -w',
         '-DEXTENSION_NNLF=OFF', '-DEXTENSION_360_VIDEO=OFF',
         '-DEXTENSION_HDRTOOLS=OFF')
-    run('cmake', '--build', BUILD, '--target', 'EncoderApp', 'DecoderApp',
-        '--parallel', '2')
+    build_keep_going(['EncoderApp', 'DecoderApp'])
 
     if DIST.exists():
         shutil.rmtree(DIST)
