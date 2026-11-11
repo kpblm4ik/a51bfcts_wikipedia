@@ -50,9 +50,14 @@ def build_keep_going(targets):
                              r'wasm-ld: error', l)]
         shown = 0
         last = -10
+        seen = set()
         for i in hits:
             if i - last < 6:
                 continue
+            key = re.sub(r'^.*?/source/', '', lines[i])
+            if key in seen:
+                continue
+            seen.add(key)
             last = i
             shown += 1
             for l in lines[max(0, i - 1):i + 6]:
@@ -98,6 +103,44 @@ def choose_config(cfg_root, names, mode):
     raise RuntimeError(
         f'Cannot locate config for {mode}.\nAvailable encoder configs:\n{paths}'
     )
+
+
+# macOS-only <malloc/malloc.h> (used by IntraNnip/tensor.h) does not exist in
+# Emscripten. Use <malloc.h> there and map malloc_size -> malloc_usable_size.
+MAC_MALLOC_INCLUDE = re.compile(
+    r'^[ \t]*#[ \t]*include[ \t]*<malloc/malloc\.h>[^\n]*', re.M)
+MALLOC_COMPAT = (
+    '#if defined(__APPLE__)\n'
+    '#include <malloc/malloc.h>\n'
+    '#else\n'
+    '#include <malloc.h>\n'
+    '#endif\n'
+    '#if defined(__EMSCRIPTEN__) && !defined(malloc_size)\n'
+    '#define malloc_size(p) malloc_usable_size(p) /* ECM wasm port */\n'
+    '#endif'
+)
+
+
+def patch_mac_malloc(src_root):
+    patched = []
+    for path in sorted(src_root.rglob('*')):
+        if path.suffix not in {'.h', '.hpp', '.cpp', '.cc', '.inl'}:
+            continue
+        if not path.is_file():
+            continue
+        old = path.read_text(encoding='utf-8', errors='surrogateescape')
+        if '<malloc/malloc.h>' not in old:
+            continue
+        new = MAC_MALLOC_INCLUDE.sub(lambda m: MALLOC_COMPAT, old)
+        path.write_text(new, encoding='utf-8', errors='surrogateescape')
+        patched.append(str(path.relative_to(SRC)))
+        print('Patched mac malloc include in ' + patched[-1], flush=True)
+        # diagnostics: other allocator APIs that may need a port
+        for no, line in enumerate(new.splitlines(), 1):
+            if re.search(r'malloc_size|malloc_good_size|posix_memalign|'
+                         r'aligned_alloc|_aligned_|memalign', line):
+                print(f'  {path.name}:{no}: {line.strip()}', flush=True)
+    return patched
 
 
 def main():
@@ -167,6 +210,8 @@ def main():
         raise RuntimeError(
             'No recognized ENABLE_SIMD_OPT macros. Inspect upstream SIMD dispatch.'
         )
+
+    malloc_patches = patch_mac_malloc(SRC / 'source')
 
     choices = {
         'ai': ['encoder_intra_vtm.cfg', 'encoder_intra.cfg'],
@@ -247,6 +292,7 @@ endif()
         'emscripten': subprocess.check_output(
             ['emcc', '--version'], text=True).splitlines()[0],
         'cmake_patches': changed, 'simd_patches': simd_changes,
+        'malloc_patches': malloc_patches,
         'configs': configs, 'status': 'compiled; smoke test must run separately',
         'threading': 'single-thread per Worker',
     }
