@@ -2,9 +2,14 @@ name: Build ECM WebAssembly (experimental)
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Опубликовать собранный движок в js/ecm/ на сайте (после успешного smoke-теста)'
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -46,3 +51,23 @@ jobs:
           name: ecm-wasm-experimental
           path: ecm-dist/
           if-no-files-found: error
+
+      # Только если при запуске включена галочка publish и сборка с тестом прошли.
+      # Кладёт движок в js/ecm/ (там его ищет опасная зона). В git попадает ~50 МБ бинарников
+      # на каждую публикацию, поэтому включайте галочку только когда нужно обновить движок.
+      - name: Publish engine to site
+        if: ${{ inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p js/ecm
+          cp ecm-dist/js/ecm/* js/ecm/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/ecm
+          if git diff --cached --quiet; then
+            echo "Nothing new to publish."
+          else
+            git commit -m "ECM wasm engine (built by workflow)"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
