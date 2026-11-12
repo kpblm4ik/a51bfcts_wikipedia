@@ -1,4 +1,5 @@
 ---
+permalink: /zowkycoil.html
 layout: default
 title: Зовки-катушка — a51bfcts Вики
 custom_css: /css/main.css

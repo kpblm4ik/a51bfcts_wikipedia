@@ -1,4 +1,5 @@
 ---
+permalink: /fissioncoil.html
 layout: default
 title: Катушка расщепления — a51bfcts Вики
 custom_css: /css/main.css

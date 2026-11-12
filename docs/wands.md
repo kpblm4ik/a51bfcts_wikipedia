@@ -1,4 +1,5 @@
 ---
+permalink: /wands.html
 layout: default
 title: Главная — a51bfcts Вики
 custom_css: /css/main.css
@@ -8,12 +9,12 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="horrificwand.html" class="item-card">
-    <img src="images/covers/horrificwand.svg" alt="Ужасная палочка">
+    <img src="../images/covers/horrificwand.svg" alt="Ужасная палочка">
     <h3>Ужасная палочка</h3>
   </a>
 
   <div class="item-card">
-    <img src="images/covers/wand.svg" alt="None" style="filter: grayscale(1) brightness(0.7);">
+    <img src="../images/covers/wand.svg" alt="None" style="filter: grayscale(1) brightness(0.7);">
     <h3>Пока пусто</h3>
   </div>
 </div>

@@ -1,4 +1,5 @@
 ---
+permalink: /guardiancoil.html
 layout: default
 title: Защитная катушка — a51bfcts Вики
 custom_css: /css/main.css

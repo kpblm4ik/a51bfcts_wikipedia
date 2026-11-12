@@ -1,4 +1,5 @@
 ---
+permalink: /flexcoil.html
 layout: default
 title: Флекс-катушка — a51bfcts Вики
 custom_css: /css/main.css

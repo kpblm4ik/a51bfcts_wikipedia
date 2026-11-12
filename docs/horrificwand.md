@@ -1,4 +1,5 @@
 ---
+permalink: /horrificwand.html
 layout: default
 title: Ужасная палочка — a51bfcts Вики
 custom_css: /css/main.css

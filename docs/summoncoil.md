@@ -1,4 +1,5 @@
 ---
+permalink: /summoncoil.html
 layout: default
 title: Главная — a51bfcts Вики
 custom_css: /css/main.css
@@ -6,8 +7,8 @@ custom_css: /css/main.css
 
 # Катушка призыва
 <div class="item-card">
-<img src="images/Screenshot_20261006_083912.avif" alt="Summon Coil">
-<img src="images/Screenshot_20261006_083941.avif" alt="Summon Coil">
+<img src="../images/Screenshot_20261006_083912.avif" alt="Summon Coil">
+<img src="../images/Screenshot_20261006_083941.avif" alt="Summon Coil">
 </div>
 
 ***Описание*** *- призовите случайные и бесполезные блоки с помощью заклинания*

@@ -1,4 +1,5 @@
 ---
+permalink: /voidcoil.html
 layout: default
 title: Катушка пустоты — a51bfcts Вики
 custom_css: /css/main.css
@@ -7,7 +8,7 @@ custom_css: /css/main.css
 # Катушка пустоты
 
 <div class="item-card">
-<img loading="lazy" decoding="async" src="images/IMG_20261111_215049.avif" alt="Катушка пустоты">
+<img loading="lazy" decoding="async" src="../images/IMG_20261111_215049.avif" alt="Катушка пустоты">
 </div>
 
 ***Описание*** *- нет*

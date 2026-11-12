@@ -1,4 +1,5 @@
 ---
+permalink: /coils.html
 layout: default
 title: Главная — a51bfcts Вики
 custom_css: /css/main.css
@@ -10,32 +11,32 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="summoncoil.html" class="item-card">
-    <img src="images/covers/summoncoil.svg" alt="Summon Coil">
+    <img src="../images/covers/summoncoil.svg" alt="Summon Coil">
     <h3>Катушка призыва</h3>
   </a>
 
   <a href="fissioncoil.html" class="item-card">
-    <img src="images/covers/fissiocoil.svg" alt="Fission Coil">
+    <img src="../images/covers/fissiocoil.svg" alt="Fission Coil">
     <h3>Катушка расщепления</h3>
   </a>
 
   <a href="flexcoil.html" class="item-card">
-    <img src="images/covers/flexcoil.svg" alt="Flex Coil">
+    <img src="../images/covers/flexcoil.svg" alt="Flex Coil">
     <h3>Флекс-катушка</h3>
   </a>
 
   <a href="zowkycoil.html" class="item-card">
-    <img src="images/covers/zowkycoil.svg" alt="Zowky Coil">
+    <img src="../images/covers/zowkycoil.svg" alt="Zowky Coil">
     <h3>Зовки-катушка</h3>
   </a>
 
   <a href="guardiancoil.html" class="item-card">
-    <img src="images/covers/guardiancoil.svg" alt="Guardian Coil">
+    <img src="../images/covers/guardiancoil.svg" alt="Guardian Coil">
     <h3>Защитная катушка</h3>
   </a>
 
   <a href="voidcoil.html" class="item-card">
-    <img loading="lazy" decoding="async" src="images/covers/voidcoil.svg" alt="Катушка пустоты">
+    <img loading="lazy" decoding="async" src="../images/covers/voidcoil.svg" alt="Катушка пустоты">
     <h3>Катушка пустоты</h3>
   </a>
 </div>
