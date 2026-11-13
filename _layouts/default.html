@@ -81,7 +81,8 @@
 </head>
 <body>
     <div class="wrapper">
-        {{ content | replace: '<img ', '<img loading="lazy" decoding="async" ' }}
+        {% capture img_base %}{{ '/images/' | relative_url }}{% endcapture %}
+        {{ content | replace: '../images/', img_base | replace: '<img ', '<img loading="lazy" decoding="async" ' }}
                 <footer>
   <img src="{{ '/images/1000033782.avif' | relative_url }}" loading="lazy" decoding="async" alt="Area 51 But Find Coils To Survive">
   <p>kpblm4ik 2026 ©</p>
