@@ -39,3 +39,42 @@ custom_css: /css/main.css
     <p>Архивы вспомогательных ресурсов, логов исследования и предметов экипировки Старой Зоны.</p>
   </div>
 </div>
+
+<!-- КАРТОЧКА 4: МЕСТА -->
+<div class="main-sector-card">
+  <img src="images/places.avif" alt="Места" class="sector-preview-img">
+  <div class="card-text">
+    <h4>🗺️ <a href="places.html">Картография: Места</a></h4>
+    <p>Локации Зоны 51 и их особенности: что где находится и как туда добраться.</p>
+  </div>
+</div>
+
+<!-- КАРТОЧКА 5: МОБЫ -->
+<div class="main-sector-card">
+  <img src="images/mobs.avif" alt="Мобы" class="sector-preview-img">
+  <div class="card-text">
+    <h4>👾 <a href="mobs.html">Бестиарий: Мобы</a></h4>
+    <p>Обитатели Зоны: где встречаются и чем опасны.</p>
+  </div>
+</div>
+
+<!-- КАРТОЧКА 6: СОЗДАТЕЛИ -->
+<div class="main-sector-card">
+  <div class="card-text">
+    <h4>👥 Создатели</h4>
+  </div>
+
+  <img src="images/kpblm4ik.avif" alt="крымчик" class="sector-preview-img">
+  <div class="card-text">
+    <h4>крымчик</h4>
+    <p><em>Создатель сайта</em></p>
+    <p>Контакты: <!-- впиши контакты --></p>
+  </div>
+
+  <img src="images/kris.avif" alt="ьешок" class="sector-preview-img">
+  <div class="card-text">
+    <h4>ьешок</h4>
+    <p><em>Редактор страниц</em></p>
+    <p>Контакты: <!-- впиши контакты --></p>
+  </div>
+</div>
