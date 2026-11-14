@@ -68,7 +68,8 @@ custom_css: /css/main.css
   <div class="card-text">
     <h4>крымчик</h4>
     <p><em>Создатель сайта</em></p>
-    <p>Контакты: <!-- впиши контакты --></p>
+    <p>Контакты:
+      Telegram: (@Kpblm4ik_ru)[t.me/Kpblm4ik_ru]</p>
   </div>
 
   <img src="images/kris.avif" alt="ьешок" class="sector-preview-img">
