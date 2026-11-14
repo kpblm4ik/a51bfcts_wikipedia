@@ -69,7 +69,7 @@ custom_css: /css/main.css
     <h4>крымчик</h4>
     <p><em>Создатель сайта</em></p>
     <p>Контакты:
-  Telegram: <a href="https://t.me" target="_blank" rel="noopener noreferrer">@Kpblm4ik_ru</a>
+  Telegram: <a href="https://t.me/Kpblm4ik_ru" target="_blank" rel="noopener noreferrer">@Kpblm4ik_ru</a>
 </p>
   </div>
 
