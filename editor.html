@@ -1152,7 +1152,7 @@ function shapeEditor(type) {
     '<button class="ed-btn s-rev">🔁 Развернуть порядок</button></div>' +
     '<div class="s-parts"></div>' +
     '<div class="ed-row"><label style="flex:1">Направление делений <input type="range" class="s-ang" min="0" max="179" value="0"> <span class="s-angV">0°</span></label></div>' +
-    '<p class="hint">Части делят ' + (isCube ? 'кубик' : 'ключ') + ' поровну, как полосы флага: при 0° полосы вертикальные, при 90° — горизонтальные. Каждую часть можно покрасить отдельно.</p>' +
+    '<p class="hint">Части делят ' + (isCube ? 'кубик' : 'ключ') + ' поровну, как полосы флага: при 0° полосы вертикальные, при 90° — горизонтальные. У 0°, 45°, 90° и 135° ползунок «прилипает», чтобы линии получались ровными. Каждую часть можно покрасить отдельно.</p>' +
     '<div class="ed-row"><label>Контур <input type="color" class="s-ol" value="#1a1a1a"></label>' +
     '<label style="flex:1">Толщина <input type="range" class="s-ow" min="0" max="6" step="0.2" value="2.2"></label></div>' +
     (isCube ? '<div class="ed-row"><label><input type="checkbox" class="s-edges" checked> показывать рёбра куба</label></div>'
@@ -1302,7 +1302,12 @@ function shapeEditor(type) {
     e.target.value = v; setParts(cur(), v); S.part = 0; partRows(); refresh();
   });
   $('.s-rev').addEventListener('click', () => { cur().colors.reverse(); partRows(); refresh(); });
-  $('.s-ang').addEventListener('input', e => { cur().ang = +e.target.value; $('.s-angV').textContent = e.target.value + '°'; refresh(); });
+  /* «Магнит»: у 0°, 45°, 90° и 135° (180° = 0°) ползунок прилипает, чтобы деления получались ровными */
+  const snapAng = v => { const m = Math.round(v / 45) * 45; return Math.abs(v - m) <= 3 ? m % 180 : v; };
+  $('.s-ang').addEventListener('input', e => {
+    const v = snapAng(+e.target.value);
+    e.target.value = v; cur().ang = v; $('.s-angV').textContent = v + '°'; refresh();
+  });
   $('.s-ol').addEventListener('input', e => { cur().ol = e.target.value; refresh(); });
   $('.s-ow').addEventListener('input', e => { cur().ow = +e.target.value; refresh(); });
   if (isCube) $('.s-edges').addEventListener('change', e => { cur().edges = e.target.checked; refresh(); });
