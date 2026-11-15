@@ -3,8 +3,10 @@ layout: default
 title: Редактор обложек — a51bfcts Вики
 custom_css: /css/main.css
 ---
-<div id="cfg" data-src="{{ '/images/covers/coil.svg' | relative_url }}" hidden></div>
+<div id="cfg" data-src="{{ '/images/covers/coil.svg' | relative_url }}" data-root="{{ '/' | relative_url }}" hidden></div>
+<datalist id="coverList">{% for f in site.static_files %}{% if f.path contains '/images/covers/' and f.extname == '.svg' %}<option value="{{ f.name }}">{% endif %}{% endfor %}</datalist>
 <script src="{{ '/js/fx.js' | relative_url }}?v=3"></script>
+<script src="{{ '/js/cover-import.js' | relative_url }}?v=1"></script>
 {% raw %}
 <style>
   /* карточка как «сектор» Вики: неоновая линия сверху, мягкая тень */
@@ -13,9 +15,11 @@ custom_css: /css/main.css
   .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
   .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
   .ed-row label { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
-  .ed-card input[type=number], .ed-card input[type=text], .ed-card input[type=password], .ed-card select {
+  .ed-card input[type=number], .ed-card input[type=text], .ed-card input[type=password], .ed-card select, .ed-card textarea {
     background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; box-sizing: border-box;
   }
+  .ed-card textarea { flex: 1 1 240px; font-family: monospace; font-size: 12px; resize: vertical; }
+  .ed-card input[type=file] { font-size: 13px; color: var(--ink-soft); max-width: 100%; }
   .ed-card input[type=number] { width: 70px; }
   .ed-card input[type=text], .ed-card input[type=password] { flex: 1 1 200px; }
   .ed-card input[type=color] { width: 44px; height: 34px; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; background: none; padding: 2px; }
@@ -55,12 +59,29 @@ custom_css: /css/main.css
   .prow .pn { font-size: 14px; color: var(--ink); }
 
   #status { font-size: 13px; margin-top: 8px; word-break: break-word; }
+  #ldStatus { word-break: break-word; }
   .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
   input[type=range] { flex: 1 1 120px; }
 </style>
 
 <h1>🎨 Редактор обложек</h1>
 <p><em>Палочки, катушки, кубики и ключи — векторные SVG-обложки для Вики</em></p>
+
+<!-- ====================== ОТКРЫТЬ ГОТОВУЮ ОБЛОЖКУ ====================== -->
+<div class="ed-card">
+  <h3>Открыть готовую обложку</h3>
+  <div class="ed-row">
+    <label style="flex:1">Файл из images/covers/ <input type="text" id="ldName" list="coverList" placeholder="wand.svg" autocomplete="off"></label>
+    <button class="ed-btn" id="ldBtn">📂 Открыть</button>
+  </div>
+  <div class="ed-row"><label>или SVG-файл с устройства <input type="file" id="ldFile" accept=".svg,image/svg+xml"></label></div>
+  <div class="ed-row">
+    <textarea id="ldText" rows="3" placeholder="…или вставьте код SVG сюда" spellcheck="false"></textarea>
+    <button class="ed-btn" id="ldTextBtn">Открыть код</button>
+  </div>
+  <p class="hint">Тип обложки (палочка, катушка, кубики или ключи) определяется сам: откроется нужная вкладка со слоями, цветами и эффектами из файла. В поле «Файл» в блоке «Залить в репозиторий» подставится тот же путь, так что обложка перезапишется после подтверждения. Старые файлы не хранят названия слоёв (будет «Слой N») и режим покрытия эффекта («по краям» / «весь предмет»): они восстанавливаются по умолчанию. Новые экспорты сохраняют настройки эффекта точно.</p>
+  <div id="ldStatus" class="hint"></div>
+</div>
 
 <div class="lang-switcher" role="tablist">
   <button class="lang-btn on" data-tab="pixel" role="tab">🪄 Палочка</button>
@@ -270,7 +291,7 @@ custom_css: /css/main.css
 /* ====================== ОБЩЕЕ ====================== */
 const G = id => document.getElementById(id);
 const say = (t, ok) => { const s = G('status'); s.textContent = t; s.style.color = ok ? '#5cf2c8' : '#ff8a8a'; };
-const EDITORS = {};   // имя вкладки -> { build(), show(), ready?() }
+const EDITORS = {};   // имя вкладки -> { build(), show(), load(data), ready?() }
 let activeTab = 'pixel';
 
 /* Блок «Эффекты» (классы fx-sel, fx-n, fx-sp, fx-auto, fx-col, fx-edge, fx-all) внутри root -> объект состояния o.
@@ -296,6 +317,19 @@ function bindFx(root, o, cb) {
     };
     ed.onchange = upd; al.onchange = upd;
   }
+}
+/* Записывает настройки эффекта из открытой обложки в состояние вкладки и в её поля. */
+function setFxUI(root, o, s) {
+  Object.assign(o, s);
+  const q = c => root.querySelector(c);
+  q('.fx-sel').value = o.type; q('.fx-n').value = o.n; q('.fx-sp').value = o.sp;
+  q('.fx-auto').checked = !!o.auto; q('.fx-col').value = o.col;
+  q('.fx-edge').checked = o.edge !== false; q('.fx-all').checked = !!o.all;
+}
+/* Помечает группу частиц настройками эффекта (data-fx), чтобы при открытии файла они восстановились точно. */
+function tagFx(s, o) {
+  return s ? s.replace('<g pointer-events="none">', '<g pointer-events="none" data-fx="' +
+    [o.type, o.n, o.sp, o.auto ? 1 : 0, o.col, o.edge !== false ? 1 : 0, o.all ? 1 : 0].join('|') + '">') : s;
 }
 function download(svg, fallback) {
   const a = document.createElement('a');
@@ -818,11 +852,29 @@ function perimPts() {
 function fxSVG() {
   if (!window.FX || !FX.outline || FXS.type === 'none') return '';
   const cols = FXS.auto ? [...new Set(layers.filter(l => l.vis).flatMap(l => [...l.px.values()]))].slice(0, 8) : [FXS.col];
-  return FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, scale: 1.6, pts: perimPts(), seed: 7, auto: FXS.auto, id: 'fxp' });
+  return tagFx(FX.svg({ type: FXS.type, count: FXS.n, speed: FXS.sp, colors: cols.length ? cols : ['#ffffff'], w: W, h: H, scale: 1.6, pts: perimPts(), seed: 7, auto: FXS.auto, id: 'fxp' }), FXS);
 }
 bindFx(root, FXS, refresh);
 
-EDITORS.pixel = { build: buildSVG, show: () => { render(); refresh(); } };
+/* ---------- открытие готовой обложки (данные от CoverImport.pixel) ---------- */
+function loadData(d) {
+  W = d.W; H = d.H; $('#w').value = W; $('#h').value = H;
+  layers.length = 0;
+  d.layers.forEach(l => {
+    const nl = mkLayer(l.name);
+    nl.mode = l.mode; nl.dur = l.dur; nl.smooth = l.smooth; nl.glow = l.glow;
+    l.px.forEach(p => nl.px.set(key(p[0], p[1]), p[2]));
+    layers.push(nl);
+  });
+  if (!layers.length) layers.push(mkLayer('Слой 1'));
+  cur = layers.length - 1; undoStack = [];
+  seqMode = d.seqMode; $('#seqMode').value = seqMode;
+  setFxUI(root, FXS, d.fx);
+  resetRuler(); resetSym();
+  renderLayers(); loadSettings(); render(); refresh(); syncUI();
+}
+
+EDITORS.pixel = { build: buildSVG, show: () => { render(); refresh(); }, load: loadData };
 
 resetRuler(); resetSym();
 renderLayers(); loadSettings(); render(); refresh(); syncUI(); symUI();
@@ -833,7 +885,7 @@ renderLayers(); loadSettings(); render(); refresh(); syncUI(); symUI();
 const root = G('tab-coil');
 const $ = s => root.querySelector(s);
 const S = { stops: [], ang: 315, len: 311, hl: '#d9ccff', bg: '#000000', clear: false, anim: 'none', dur: 6 };
-let TPL = '', ORIG = null;
+let TPL = '', ORIG = null, imported = false;
 const norm = c => {
   c = (c || '').trim().toLowerCase();
   if (/^#[0-9a-f]{6}$/.test(c)) return c;
@@ -1024,7 +1076,7 @@ function buildMulti() {
     if (!pts.length) { const m = Math.max(12, Math.round(90 / S.coils.length)); S.coils.forEach(c => { pts = pts.concat(coilPts(c, m)); }); }
   }
   const sc = Math.max(0.6, S.coils.reduce((a, c) => a + c.size, 0) / S.coils.length / 100);
-  const fx = window.FX ? FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, scale: sc, pts: pts, seed: 7, auto: o.auto, id: 'fxc' }) : '';
+  const fx = window.FX ? tagFx(FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, scale: sc, pts: pts, seed: 7, auto: o.auto, id: 'fxc' }), o) : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Катушка">' +
     '<defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400"><feGaussianBlur stdDeviation="8"/></filter></defs>' +
     (S.clear ? '' : '<rect width="400" height="400" fill="' + S.bg + '"/>') + body + fx + '</svg>';
@@ -1081,7 +1133,9 @@ function parseTpl(txt) {
   try {
     const res = await fetch(G('cfg').dataset.src, { cache: 'no-cache' });
     if (!res.ok) throw new Error('Не удалось загрузить images/covers/coil.svg (' + res.status + ').');
-    TPL = await res.text();
+    const txt = await res.text();
+    if (imported) return;   // пока грузился каркас, человек уже открыл свою обложку: не затираем её
+    TPL = txt;
     parseTpl(TPL);
     buildPresets(); renderStops(); syncUI(); refresh();
   } catch (e) { say(String(e.message || e)); }
@@ -1092,8 +1146,23 @@ $('#cdl').addEventListener('click', () => {
   download(buildSVG(), 'coil.svg');
 });
 
+/* ---------- открытие готовой обложки (данные от CoverImport.coil) ---------- */
+function loadData(d) {
+  imported = true;
+  S.coils = d.coils.map(c => ({ stops: c.stops, ang: c.ang, len: c.len, turns: c.turns, cx: c.cx, cy: c.cy, size: c.size, rot: c.rot }));
+  S.sel = 0; S.hl = d.hl; S.bg = d.bg; S.clear = d.clear; S.anim = d.anim; S.dur = d.dur; S.uiInit = 1;
+  loadCur();
+  if (!ORIG) { ORIG = S.stops.map(p => ({ c: p.c, o: p.o })); buildPresets(); }
+  if (!TPL) TPL = 'imported';
+  setFxUI(root, S.fxo, d.fx);
+  renderStops(); ui(); syncUI();
+  $('#anim').value = S.anim; $('#dur').value = S.dur; $('#durV').textContent = S.dur;
+  $('#durRow').style.display = S.anim === 'none' ? 'none' : '';
+  refresh();
+}
+
 EDITORS.coil = {
-  build: buildSVG, show: refresh,
+  build: buildSVG, show: refresh, load: loadData,
   ready: () => TPL ? '' : 'Каркас катушки ещё не загружен.'
 };
 })();
@@ -1242,7 +1311,7 @@ function shapeEditor(type) {
       let pts = [];
       try { pts = outline(); } catch (e) { pts = []; }
       const sc = Math.max(0.6, S.items.reduce((a, it) => a + it.size, 0) / S.items.length / 100);
-      fx = FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, scale: sc, pts: pts, seed: 7, auto: o.auto, id: 'fx' + type });
+      fx = tagFx(FX.svg({ type: o.type, count: o.n, speed: o.sp, colors: cols, w: 400, h: 400, scale: sc, pts: pts, seed: 7, auto: o.auto, id: 'fx' + type }), o);
     }
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="' + (isCube ? 'Кубики' : 'Ключи') + '">' +
       (S.clear ? '' : '<rect width="400" height="400" fill="' + S.bg + '"/>') + body + fx + '</svg>';
@@ -1330,7 +1399,15 @@ function shapeEditor(type) {
   bindFx(root, S.fx, refresh);
   $('.s-dl').addEventListener('click', () => download(buildSVG(false), isCube ? 'cubes.svg' : 'keys.svg'));
 
-  EDITORS[tab] = { build: () => buildSVG(false), show: () => { ui(); refresh(); } };
+  /* открытие готовой обложки (данные от CoverImport.shapes) */
+  function loadData(d) {
+    S.items = d.items.map(i => Object.assign(DEF[type](), i));
+    S.sel = 0; S.part = 0; S.bg = d.bg; S.clear = d.clear;
+    setFxUI(root, S.fx, d.fx);
+    ui(); refresh();
+  }
+
+  EDITORS[tab] = { build: () => buildSVG(false), show: () => { ui(); refresh(); }, load: loadData };
   ui(); refresh();
 }
 shapeEditor('cube');
@@ -1350,6 +1427,53 @@ function showTab(name) {
 document.querySelectorAll('.lang-switcher .lang-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 if (location.hash.length > 1) showTab(location.hash.slice(1));
+
+/* ====================== ОТКРЫТЬ ГОТОВУЮ ОБЛОЖКУ ====================== */
+const sayL = (t, ok) => { const s = G('ldStatus'); s.textContent = t; s.style.color = ok ? '#5cf2c8' : '#ff8a8a'; };
+const KIND_RU = { pixel: 'палочка', coil: 'катушка', cubes: 'кубики', keys: 'ключи' };
+/* Разбирает SVG (в страницу он не вставляется, только читается), определяет тип и загружает в нужную вкладку. */
+function openCover(txt, file) {
+  if (!window.CoverImport) throw new Error('Не загрузился js/cover-import.js.');
+  if (txt.length > 3e6) throw new Error('Файл слишком большой.');
+  const d = new DOMParser().parseFromString(txt, 'image/svg+xml'), svg = d.documentElement;
+  if (!svg || svg.localName !== 'svg' || d.querySelector('parsererror')) throw new Error('Это не SVG или файл повреждён.');
+  const kind = CoverImport.detect(svg);
+  const data = kind === 'pixel' ? CoverImport.pixel(svg) : kind === 'coil' ? CoverImport.coil(svg) : CoverImport.shapes(svg, kind);
+  EDITORS[kind].load(data);
+  showTab(kind);
+  if (file) G('path').value = file;
+  return kind;
+}
+async function openByName() {
+  let n = G('ldName').value.trim().replace(/^\/+/, '');
+  if (!n) return sayL('Введите имя файла, например wand.svg.');
+  if (!/^[\w\-./]+$/.test(n) || n.includes('..')) return sayL('Имя: латиница, цифры, - _ . /, без «..».');
+  if (!/\.svg$/i.test(n)) n += '.svg';
+  if (!/^images\//.test(n)) n = 'images/covers/' + n;
+  const btn = G('ldBtn'); btn.disabled = true; sayL('Загружаю…', true);
+  try {
+    const res = await fetch(G('cfg').dataset.root.replace(/\/*$/, '/') + n, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('Не удалось загрузить ' + n + ' (' + res.status + ').');
+    const kind = openCover(await res.text(), n);
+    sayL('Открыто: ' + n + ' (' + KIND_RU[kind] + '). После правок нажмите «Залить» — файл заменится.', true);
+  } catch (e) { sayL(String(e.message || e)); }
+  btn.disabled = false;
+}
+G('ldBtn').addEventListener('click', openByName);
+G('ldName').addEventListener('keydown', e => { if (e.key === 'Enter') openByName(); });
+G('ldFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const safe = f.name.replace(/[^\w\-.]/g, '_'), kind = openCover(await f.text(), /\.svg$/i.test(safe) ? 'images/covers/' + safe : '');
+    sayL('Открыто из файла: ' + f.name + ' (' + KIND_RU[kind] + ').', true);
+  } catch (err) { sayL(String(err.message || err)); }
+  e.target.value = '';
+});
+G('ldTextBtn').addEventListener('click', () => {
+  const t = G('ldText').value.trim();
+  if (!t) return sayL('Вставьте код SVG.');
+  try { sayL('Открыто из текста (' + KIND_RU[openCover(t, '')] + ').', true); } catch (err) { sayL(String(err.message || err)); }
+});
 
 /* ====================== ЗАЛИВКА В GITHUB (SVG открытой вкладки) ====================== */
 G('up').addEventListener('click', async () => {
