@@ -14,8 +14,9 @@ custom_css: /css/main.css
   </a>
 
   <div class="item-card">
-    <img src="../images/covers/wand.svg" alt="None" style="filter: grayscale(1) brightness(0.7);">
-    <h3>Пока пусто</h3>
+    <a href="moonhail.html" class="item-card">
+    <img src="../images/covers/moonhail.svg" alt="Лунный град">
+    <h3>Лунный град</h3>
   </div>
 </div>
 
