@@ -12,14 +12,14 @@ custom_css: /css/main.css
     <img src="../images/covers/horrificwand.svg" alt="Ужасная палочка">
     <h3>Ужасная палочка</h3>
   </a>
-</div>
+  </div>
 
-  <div class="item-card">
+  <div class="item-grid">
     <a href="moonhail.html" class="item-card">
     <img src="../images/covers/moonhail.svg" alt="Лунный град">
     <h3>Лунный град</h3>
-    </a>
-</div>
+  </a>
+  </div>
 
 <br>
 
