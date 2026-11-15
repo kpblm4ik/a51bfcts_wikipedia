@@ -68,8 +68,8 @@ custom_css: /css/main.css
   <div class="card-text">
     <h4>крымчик</h4>
     <p><em>Создатель сайта</em></p>
-    <p>Контакты:
-  Telegram: <a href="https://t.me/Kpblm4ik_ru" target="_blank" rel="noopener noreferrer">@Kpblm4ik_ru</a>
+    <p>Контакты:</p>
+    <p>Telegram: <a href="https://t.me/Kpblm4ik_ru" target="_blank" rel="noopener noreferrer">@Kpblm4ik_ru</a>
 </p>
   </div>
 
@@ -77,6 +77,7 @@ custom_css: /css/main.css
   <div class="card-text">
     <h4>ьешок</h4>
     <p><em>Редактор страниц</em></p>
-    <p>Контакты: <!-- впиши контакты --></p>
+    <p>Контакты:</p>
+    <p>Discord: <a href="https://discord.com/users/1226246781445083160" target="_blank" rel="noopener noreferrer">@bewok1074</a></p>
   </div>
 </div>
