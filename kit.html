@@ -13,10 +13,11 @@ custom_css: /css/main.css
   .ed-card textarea { width: 100%; min-height: 150px; font-family: monospace; font-size: 12px; }
   .ed-card input[type=color] { width: 44px; height: 34px; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; background: none; padding: 2px; }
   .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-btn.on { background: rgba(160,102,255,.45); }
   .hint { font-size: 12px; color: #bcaada; line-height: 1.5; }
   .ed-card input[type=range] { flex: 1 1 120px; }
   #errs div { font-size: 13px; margin: 3px 0; color: #ffb86b; }
-  #st { font-size: 13px; margin-top: 8px; }
+  #st, #sky-st { font-size: 13px; margin-top: 8px; }
 </style>
 
 <h1>🎨 Темы и UI kit</h1>
@@ -30,6 +31,12 @@ custom_css: /css/main.css
 <div class="items-grid"><a class="item-card" href="#" onclick="return false"><h3>Пример предмета</h3><p>Скорость: <span class="stat">+30%</span></p></a></div>
 <hr>
 
+<div class="ed-row" id="tabs">
+  <button class="ed-btn on" data-tab="kit">🎨 Тема</button>
+  <button class="ed-btn" data-tab="sky">☁️ Небо (эксперимент)</button>
+</div>
+
+<div id="pane-kit">
 <div class="ed-card"><h3>Готовые темы</h3><div class="ed-row" id="presets"></div></div>
 
 <div class="ed-card">
@@ -65,6 +72,34 @@ custom_css: /css/main.css
   </div>
   <p class="hint">Пока вы не нажмёте «Сохранить», тема видна только на этой странице.</p>
   <div id="st"></div>
+</div>
+</div>
+
+<div id="pane-sky" style="display:none">
+<div class="ed-card">
+  <h3>☁️ Стеклянное небо (экспериментально)</h3>
+  <p class="hint">Рисует живое небо с солнцем, луной, звёздами и облаками позади страницы. Линии карточек становятся прозрачными с бликом стекла, а текст слегка парит. Раскладку, виджет с кнопками и баннер не трогает.</p>
+  <div class="ed-row"><label><input type="checkbox" id="sk-on"> Включить небо</label></div>
+  <div class="ed-row">
+    <button class="ed-btn" id="sk-auto">🕒 По часам телефона</button>
+    <button class="ed-btn" id="sk-fix">📌 Фиксированное время</button>
+  </div>
+  <div class="ed-row"><label style="flex:1">Время <input type="range" id="sk-t" min="0" max="24" step="0.05"></label><span id="sk-tv"></span></div>
+  <div class="ed-row" id="sk-pr"></div>
+  <div class="ed-row"><label style="flex:1">Облака <input type="range" id="sk-cl" min="0" max="1" step="0.05"></label></div>
+  <div class="ed-row"><label style="flex:1">Ветер <input type="range" id="sk-wd" min="0" max="1" step="0.05"></label></div>
+  <div class="ed-row"><label style="flex:1">Стекло <input type="range" id="sk-gl" min="0" max="1" step="0.05"></label></div>
+  <p class="hint">«По часам телефона» берёт местное время устройства и плавно меняет небо в течение суток. «Фиксированное время» держит выбранный час, его можно задать ползунком или кнопками рассвета, дня, заката и ночи.</p>
+</div>
+<div class="ed-card">
+  <h3>Сохранить небо</h3>
+  <div class="ed-row">
+    <button class="ed-btn" id="sk-save">💾 Сохранить</button>
+    <button class="ed-btn" id="sk-reset">↩️ Выключить и сбросить</button>
+  </div>
+  <p class="hint">Пока не нажмёте «Сохранить», небо видно только на этой странице. После сохранения оно включается на всех страницах сайта. Отключить: <code>?theme=off</code> в адресе.</p>
+  <div id="sky-st"></div>
+</div>
 </div>
 
 <script>
@@ -141,5 +176,48 @@ else {
   $('#reset').addEventListener('click', () => { KIT.reset(); kit = KIT.validate(KIT.DEF).kit; fill(false); say('Тема сброшена. Стандартный вид вернётся после обновления страницы.', true); });
   fill(false);
 }
+</script>
+
+<script>
+/* Вкладки и экспериментальное небо */
+(function () {
+  const $ = s => document.querySelector(s);
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
+    $('#pane-kit').style.display = b.dataset.tab === 'kit' ? '' : 'none';
+    $('#pane-sky').style.display = b.dataset.tab === 'sky' ? '' : 'none';
+  }));
+  const say = (t, ok) => { const s = $('#sky-st'); s.textContent = t; s.style.color = ok ? '#5cf2c8' : '#ff8a8a'; };
+  if (!window.SKY) { say('Не загрузился js/sky.js.'); return; }
+  const fmt = t => { let m = Math.round(t * 60) % 1440, h = Math.floor(m / 60); m %= 60; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); };
+  let s = SKY.get();
+  function ui() {
+    const auto = s.mode === 'auto';
+    $('#sk-on').checked = s.on;
+    $('#sk-auto').classList.toggle('on', auto);
+    $('#sk-fix').classList.toggle('on', !auto);
+    $('#sk-t').value = s.t; $('#sk-t').disabled = auto;
+    $('#sk-cl').value = s.clouds; $('#sk-wd').value = s.wind; $('#sk-gl').value = s.glass;
+    $('#sk-tv').textContent = auto ? fmt(SKY.clock()) + ' (часы телефона)' : fmt(s.t);
+  }
+  function push(p) { s = SKY.set(p); ui(); }
+  const pr = $('#sk-pr');
+  Object.keys(SKY.PRESETS).forEach(n => {
+    const b = document.createElement('button'); b.className = 'ed-btn'; b.textContent = n;
+    b.addEventListener('click', () => push({ on: true, mode: 'fixed', t: SKY.PRESETS[n] }));
+    pr.appendChild(b);
+  });
+  $('#sk-on').addEventListener('change', e => push({ on: e.target.checked }));
+  $('#sk-auto').addEventListener('click', () => push({ on: true, mode: 'auto' }));
+  $('#sk-fix').addEventListener('click', () => push({ on: true, mode: 'fixed' }));
+  $('#sk-t').addEventListener('input', e => push({ on: true, mode: 'fixed', t: +e.target.value }));
+  $('#sk-cl').addEventListener('input', e => push({ clouds: +e.target.value }));
+  $('#sk-wd').addEventListener('input', e => push({ wind: +e.target.value }));
+  $('#sk-gl').addEventListener('input', e => push({ glass: +e.target.value }));
+  $('#sk-save').addEventListener('click', () => { const ok = SKY.save(); say(ok ? 'Небо сохранено: оно включится на всех страницах.' : 'Не удалось сохранить: браузер не даёт писать в память.', ok); });
+  $('#sk-reset').addEventListener('click', () => { s = SKY.reset(); ui(); say('Небо выключено и сброшено.', true); });
+  setInterval(() => { if (s.mode === 'auto') ui(); }, 20000);
+  ui();
+})();
 </script>
 {% endraw %}
