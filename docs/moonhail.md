@@ -8,10 +8,10 @@ custom_css: /css/main.css
 # Лунный град
 
 <div class="item-card">
-<img loading="lazy" decoding="async" src="images/moonhail.avif" alt="Лунный град">
+<img loading="lazy" decoding="async" src="../images/moonhail.avif" alt="Лунный град">
 </div>
 <div class="item-card">
-<img loading="lazy" decoding="async" src="images/moonhail_logo.avif" alt="Лунный град">
+<img loading="lazy" decoding="async" src="../images/moonhail_logo.avif" alt="Лунный град">
 </div>
 
 ***Описание*** *- Sunhiausa - Take it Easy*
