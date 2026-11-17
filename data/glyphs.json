@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Словарь символов для VPE: всё из этого списка считается текстом/знаком и контуры таких объектов рисуются максимально точно (меньше сглаживания, острые углы).",
+  "profile": { "sigmaScale": 0.5, "epsScale": 0.55, "passes": 0, "cornerDeg": 135, "arc": 1.2, "minScore": 0.62 },
+  "limits": { "minSize": 4, "maxSize": 160 },
+  "fonts": [
+    { "family": "Arial, Helvetica, sans-serif", "style": "400" },
+    { "family": "Arial, Helvetica, sans-serif", "style": "700" },
+    { "family": "Georgia, 'Times New Roman', serif", "style": "400" },
+    { "family": "Georgia, 'Times New Roman', serif", "style": "italic 400" },
+    { "family": "'Courier New', monospace", "style": "400" }
+  ],
+  "categories": {
+    "latin_upper": { "label": "Латиница, заглавные", "chars": "ABCDEFGHIJKLMNOPQRSTUVWXYZ" },
+    "latin_lower": { "label": "Латиница, строчные", "chars": "abcdefghijklmnopqrstuvwxyz" },
+    "latin_ext": { "label": "Латиница с диакритикой", "chars": "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿŁłŒœŠšŽžĀāĒēĪīŌōŪū" },
+    "cyrillic_upper": { "label": "Кириллица, заглавные", "chars": "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" },
+    "cyrillic_lower": { "label": "Кириллица, строчные", "chars": "абвгдеёжзийклмнопрстуфхцчшщъыьэюя" },
+    "cyrillic_ext": { "label": "Кириллица, расширенная (укр., бел., серб., каз. и др.)", "chars": "ІіЇїЄєҐґЎўЉљЊњЋћЏџӘәҒғҚқҢңӨөҰұҮүҺһ" },
+    "greek": { "label": "Греческий", "chars": "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω" },
+    "digits": { "label": "Цифры", "chars": "0123456789" },
+    "punctuation": { "label": "Пунктуация", "chars": ".,:;!?¡¿'\"‘’‚“”„«»‹›-‐–—…·_" },
+    "brackets": { "label": "Скобки", "chars": "()[]{}<>⟨⟩" },
+    "math": { "label": "Математика", "chars": "+−×÷=≠≈≤≥±∞√∑∏∫∂∆%‰°′″µ∈∉∩∪⊂⊃∧∨¬∀∃∅" },
+    "currency": { "label": "Валюты", "chars": "$€£¥₽₴₸₿¢₹₩₪₺₫" },
+    "symbols": { "label": "Прочие знаки", "chars": "@#&*§¶©®™†‡^~`№/\\|" },
+    "arrows": { "label": "Стрелки и указатели", "cornerDeg": 140, "chars": "←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔➔➜➝➞➡⬅⬆⬇⬈⬉⬊⬋➤➢►◄▲▼▶◀◁▷△▽↩↪↺↻⟵⟶" },
+    "marks": { "label": "Маркеры, галочки, значки", "cornerDeg": 140, "chars": "•◦○●◎■□▪▫◆◇★☆✓✔✗✘✕✖☐☑☒♥♡♪♫☎✉☀☁☂⚠⚑⚐ℹ☰≡⋮⋯" }
+  }
+}

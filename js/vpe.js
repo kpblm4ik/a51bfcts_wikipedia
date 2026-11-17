@@ -1,14 +1,52 @@
 /* VPE-α (Vector Pixel Enhancement alpha): самописный апскейлер. Читает пиксели и перерисовывает картинку в SVG.
-   Конвейер: (опц.) лёгкое подавление шума → квантизация цветов (k-means++) → для каждого цвета маска «этот цвет и всё, что поверх него» (без щелей между слоями)
-   → гауссово размытие маски → marching squares с линейной интерполяцией (контур без «лестницы», точность до доли пикселя)
-   → сглаживание контура → упрощение (Дуглас–Пойкер) → кривые Безье с сохранением резких углов. Всё в браузере, без внешних библиотек. */
+   Конвейер (v0.2):
+   0) быстрая оценка резкости (дисперсия Лапласиана) → адаптация σ / порога слияния цветов
+   1) (опц.) лёгкое подавление шума → квантизация цветов (k-means++)
+   2) слияние близких по цвету СМЕЖНЫХ кластеров (ΔE в CIE Lab) → меньше слоёв, нет «ступенек» на антиалиасинге внутри букв
+   3) для каждого цвета маска «этот цвет и всё, что поверх» → лёгкое гауссово размытие → marching squares (субпиксельный контур)
+   4) поиск углов (угол < ~120°), восстановление острой вершины пересечением линий, подогнанных по обеим сторонам угла (как в Potrace)
+   5) сглаживание (углы заморожены) → Дуглас–Пойкер (углы — обязательные узлы) → кривые Безье, на углах касательная = 0
+   6) словарь символов (data/glyphs.json): компоненты, похожие на букву/цифру/знак, рисуются точнее (σ меньше, без сглаживания, углы острее).
+   Всё в браузере, без внешних библиотек. */
 window.VPE = (function () {
   'use strict';
-  const VERSION = 'VPE-α 0.1';
+  const VERSION = 'VPE-α 0.2';
+  const SRC = (document.currentScript && document.currentScript.src) || '';
   const tick = () => new Promise(r => setTimeout(r, 0));
   const r2 = v => Math.round(v * 100) / 100;
   const hex = c => '#' + [0, 1, 2].map(i => ('0' + Math.max(0, Math.min(255, Math.round(c[i]))).toString(16)).slice(-2)).join('');
   function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- 0. резкость: дисперсия Лапласиана (ядро 0 1 0 / 1 -4 1 / 0 1 0) по яркости ---------- */
+  const SHARP_BLURRY = 50, SHARP_SOFT = 250; // пороги: < 50 размыто, < 250 мягко, иначе резко
+  function sharpness(im) {
+    const w = im.width, h = im.height, d = im.data;
+    if (w < 3 || h < 3) return { variance: 0, level: 'unknown' };
+    const ys = Math.max(1, Math.floor(w * h / 1000000)); // на больших картинках берём не все строки (по x разрешение полное)
+    const g = i => 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    let s = 0, s2 = 0, c = 0;
+    for (let y = 1; y < h - 1; y += ys) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        if (d[i * 4 + 3] < 128) continue;
+        const l = g(i - w) + g(i + w) + g(i - 1) + g(i + 1) - 4 * g(i);
+        s += l; s2 += l * l; c++;
+      }
+    }
+    if (!c) return { variance: 0, level: 'unknown' };
+    const m = s / c, v = s2 / c - m * m;
+    return { variance: v, level: v < SHARP_BLURRY ? 'blurry' : v < SHARP_SOFT ? 'soft' : 'sharp' };
+  }
+
+  /* ---------- цвет: sRGB → CIE Lab, ΔE76 ---------- */
+  function lab(r, g, b) {
+    const f = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const R = f(r), G = f(g), B = f(b);
+    const q = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = q((0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047), Y = q(0.2126 * R + 0.7152 * G + 0.0722 * B), Z = q((0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883);
+    return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
+  }
+  const dE = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
   /* разделимое гауссово размытие с повтором краёв */
   function gblur(src, w, h, sigma, tmp, out) {
@@ -33,8 +71,51 @@ window.VPE = (function () {
     }
   }
 
-  /* квантизация: k-means++ по выборке пикселей, потом назначаем метку каждому пикселю (-1 = прозрачный) */
-  function quantize(d, w, h, K, seed) {
+  /* ---------- слияние близких смежных цветов (агломеративно, по ΔE в Lab) ----------
+     T — порог ΔE для смежных кластеров; несмежные сливаются только при ΔE < T/3;
+     совсем мелкие кластеры (антиалиасинг-«кольца») втягиваются в ближайший смежный при ΔE < 4T. */
+  function mergeClose(C, labels, counts, K, w, h, T, minShare) {
+    const n = w * h, adj = new Uint8Array(K * K);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x, a = labels[i];
+        if (a < 0) continue;
+        if (x + 1 < w) { const b = labels[i + 1]; if (b >= 0 && b !== a) { adj[a * K + b] = 1; adj[b * K + a] = 1; } }
+        if (y + 1 < h) { const b = labels[i + w]; if (b >= 0 && b !== a) { adj[a * K + b] = 1; adj[b * K + a] = 1; } }
+      }
+    }
+    const cnt = Float64Array.from(counts), sum = new Float64Array(K * 3), alive = new Uint8Array(K), map = new Int16Array(K);
+    for (let c = 0; c < K; c++) { map[c] = c; alive[c] = cnt[c] > 0 ? 1 : 0; for (let j = 0; j < 3; j++) sum[3 * c + j] = C[3 * c + j] * cnt[c]; }
+    const tiny = minShare * n;
+    for (;;) {
+      const L = [];
+      for (let c = 0; c < K; c++) if (alive[c]) L[c] = lab(sum[3 * c] / cnt[c], sum[3 * c + 1] / cnt[c], sum[3 * c + 2] / cnt[c]);
+      let bi = -1, bj = -1, bd = 1e9;
+      for (let i = 0; i < K; i++) {
+        if (!alive[i]) continue;
+        for (let j = i + 1; j < K; j++) {
+          if (!alive[j]) continue;
+          const e = dE(L[i], L[j]), ad = adj[i * K + j];
+          const ok = e < (ad ? T : T / 3) || (ad && (cnt[i] < tiny || cnt[j] < tiny) && e < 4 * T);
+          if (ok && e < bd) { bd = e; bi = i; bj = j; }
+        }
+      }
+      if (bi < 0) break;
+      for (let j = 0; j < 3; j++) sum[3 * bi + j] += sum[3 * bj + j];
+      cnt[bi] += cnt[bj]; alive[bj] = 0;
+      for (let k = 0; k < K; k++) if (adj[bj * K + k]) { adj[bi * K + k] = 1; adj[k * K + bi] = 1; }
+      for (let c = 0; c < K; c++) if (map[c] === bj) map[c] = bi;
+    }
+    for (let i = 0; i < n; i++) { const l = labels[i]; if (l >= 0) labels[i] = map[l]; }
+    counts.fill(0);
+    for (let c = 0; c < K; c++) {
+      if (alive[c]) for (let j = 0; j < 3; j++) C[3 * c + j] = sum[3 * c + j] / cnt[c];
+      if (alive[c]) counts[c] = cnt[c];
+    }
+  }
+
+  /* квантизация: k-means++ по выборке пикселей, потом назначаем метку каждому пикселю (-1 = прозрачный), потом слияние близких цветов */
+  function quantize(d, w, h, K, seed, T, minShare) {
     const n = w * h, rnd = rng(seed), S = [], step = Math.max(1, Math.floor(n / 16000));
     for (let i = 0; i < n; i += step) if (d[i * 4 + 3] >= 128) S.push(i);
     if (!S.length) return null;
@@ -71,14 +152,129 @@ window.VPE = (function () {
       for (let c = 0; c < K; c++) { const dr = r - C[3 * c], dg = g - C[3 * c + 1], db = b - C[3 * c + 2], e = dr * dr + dg * dg + db * db; if (e < bd) { bd = e; best = c; } }
       labels[i] = best; counts[best]++;
     }
+    let raw = 0;
+    for (let c = 0; c < K; c++) if (counts[c]) raw++;
+    if (T > 0) mergeClose(C, labels, counts, K, w, h, T, minShare);
     const order = [];
     for (let c = 0; c < K; c++) if (counts[c]) order.push(c);
     order.sort((a, b) => counts[b] - counts[a]);
     const rank = new Int16Array(K).fill(-1);
     order.forEach((c, i) => { rank[c] = i; });
-    return { C: C, labels: labels, order: order, rank: rank };
+    return { C: C, labels: labels, order: order, rank: rank, raw: raw };
   }
 
+  /* ---------- словарь символов: шаблоны из JSON, сравнение битовых масок 12×12 (IoU) ---------- */
+  const G = 12, WORDS = 5; // 144 бита = 5 слов по 32
+  const pc = v => { v = v - ((v >>> 1) & 0x55555555); v = (v & 0x33333333) + ((v >>> 2) & 0x33333333); return Math.imul((v + (v >>> 4)) & 0x0F0F0F0F, 0x01010101) >>> 24; };
+  function bitsOf(test, x0, y0, bw, bh) {
+    const bits = new Uint32Array(WORDS);
+    for (let gy = 0; gy < G; gy++) {
+      const ya = y0 + Math.floor(gy * bh / G), yb = Math.max(ya + 1, y0 + Math.floor((gy + 1) * bh / G));
+      for (let gx = 0; gx < G; gx++) {
+        const xa = x0 + Math.floor(gx * bw / G), xb = Math.max(xa + 1, x0 + Math.floor((gx + 1) * bw / G));
+        let s = 0, c = 0;
+        for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) { c++; if (test(x, y)) s++; }
+        if (s * 2 >= c) { const k = gy * G + gx; bits[k >> 5] |= (1 << (k & 31)); }
+      }
+    }
+    return bits;
+  }
+  const sameBits = (a, b) => { for (let k = 0; k < WORDS; k++) if (a[k] !== b[k]) return false; return true; };
+
+  function buildGlyphIndex(j) {
+    const S = 48, W = S * 2, cv = document.createElement('canvas');
+    cv.width = W; cv.height = W;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    const fonts = j.fonts && j.fonts.length ? j.fonts : [{ family: 'sans-serif', style: '400' }];
+    const render = (ch, f) => {
+      ctx.clearRect(0, 0, W, W); ctx.font = f.style + ' ' + S + 'px ' + f.family; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#000';
+      ctx.fillText(ch, S / 2, S * 1.3);
+      const dat = ctx.getImageData(0, 0, W, W).data;
+      let x0 = W, y0 = W, x1 = -1, y1 = -1;
+      for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (dat[(y * W + x) * 4 + 3] > 127) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 < 0) return null;
+      const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+      return { b: bitsOf((x, y) => dat[(y * W + x) * 4 + 3] > 127, x0, y0, bw, bh), a: bw / bh };
+    };
+    const notdef = fonts.map(f => render('\u{10FFFF}', f));
+    const t = [], cats = j.categories || {};
+    for (const cname of Object.keys(cats)) {
+      const cat = cats[cname];
+      for (const ch of Array.from(cat.chars || '')) {
+        fonts.forEach((f, fi) => {
+          const r = render(ch, f);
+          if (!r) return;
+          if (notdef[fi] && sameBits(r.b, notdef[fi].b)) return; // шрифт не умеет этот символ — пропускаем «квадратик»
+          t.push({ ch: ch, cat: cname, a: r.a, b: r.b, deg: cat.cornerDeg || 0 });
+        });
+      }
+    }
+    return { t: t, profile: j.profile || {}, limits: j.limits || {} };
+  }
+  let GLYPH_PROMISE = null;
+  function loadGlyphs(url) {
+    if (!GLYPH_PROMISE) {
+      const u = url || (SRC ? new URL('../data/glyphs.json', SRC).href : 'data/glyphs.json');
+      GLYPH_PROMISE = fetch(u).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(buildGlyphIndex).catch(e => { console.warn('VPE: словарь символов не загружен:', e); return null; });
+    }
+    return GLYPH_PROMISE;
+  }
+
+  /* связные компоненты бинарной маски (4-связность) */
+  function components(mask, w, h, lab, stack) {
+    lab.fill(0);
+    const comps = []; let id = 0;
+    for (let s = 0; s < mask.length; s++) {
+      if (!mask[s] || lab[s]) continue;
+      id++;
+      let sp = 0, x0 = w, y0 = h, x1 = -1, y1 = -1, area = 0;
+      stack[sp++] = s; lab[s] = id;
+      while (sp) {
+        const p = stack[--sp], x = p % w, y = (p - x) / w;
+        area++;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && mask[p - 1] && !lab[p - 1]) { lab[p - 1] = id; stack[sp++] = p - 1; }
+        if (x < w - 1 && mask[p + 1] && !lab[p + 1]) { lab[p + 1] = id; stack[sp++] = p + 1; }
+        if (y > 0 && mask[p - w] && !lab[p - w]) { lab[p - w] = id; stack[sp++] = p - w; }
+        if (y < h - 1 && mask[p + w] && !lab[p + w]) { lab[p + w] = id; stack[sp++] = p + w; }
+      }
+      comps.push({ id: id, x0: x0, y0: y0, x1: x1, y1: y1, area: area });
+    }
+    return comps;
+  }
+  function bestMatch(idx, bits, aspect) {
+    let best = 0, bt = null;
+    for (let i = 0; i < idx.t.length; i++) {
+      const t = idx.t[i];
+      if (aspect / t.a > 1.8 || t.a / aspect > 1.8) continue;
+      let inter = 0, uni = 0;
+      for (let k = 0; k < WORDS; k++) { inter += pc(bits[k] & t.b[k]); uni += pc(bits[k] | t.b[k]); }
+      const s = uni ? inter / uni : 0;
+      if (s > best) { best = s; bt = t; }
+    }
+    return { score: best, t: bt };
+  }
+  /* отмечает в gmap области вокруг компонент слоя, похожих на символы из словаря; возвращает число найденных */
+  function findGlyphs(mask, w, h, S) {
+    S.gmap.fill(0);
+    const comps = components(mask, w, h, S.lab, S.stack), lim = S.idx.limits, mn = lim.minSize || 4, mx = Math.min(lim.maxSize || 160, Math.max(w, h));
+    const cand = comps.filter(c => { const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, m = Math.max(bw, bh); return m >= mn && m <= mx && (bw < w || bh < h); });
+    if (!cand.length || cand.length > 8000) return 0; // фото/шум: тысячи мелких пятен — не текст
+    const minScore = S.idx.profile.minScore || 0.62;
+    let hit = 0;
+    for (const c of cand) {
+      const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, id = c.id, lab = S.lab;
+      const m = bestMatch(S.idx, bitsOf((x, y) => lab[y * w + x] === id, c.x0, c.y0, bw, bh), bw / bh);
+      if (!m.t || m.score < minScore) continue;
+      hit++;
+      const pad = 2 + Math.round(0.15 * Math.max(bw, bh));
+      for (let y = Math.max(0, c.y0 - pad); y <= Math.min(h - 1, c.y1 + pad); y++) for (let x = Math.max(0, c.x0 - pad); x <= Math.min(w - 1, c.x1 + pad); x++) S.gmap[y * w + x] = 1;
+    }
+    return hit;
+  }
+
+  /* ---------- контуры ---------- */
   /* marching squares: пары рёбер ячейки (0 верх, 1 право, 2 низ, 3 лево), седла решаются по центру */
   const SEG = [[], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], null, [[0, 2]], [[0, 3]], [[0, 3]], [[0, 2]], null, [[0, 1]], [[3, 1]], [[2, 1]], [[3, 2]], []];
   function marching(P, Wp, Hp) {
@@ -121,9 +317,100 @@ window.VPE = (function () {
     for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += L[2 * i] * L[2 * j + 1] - L[2 * j] * L[2 * i + 1]; }
     return Math.abs(a) / 2;
   }
-  function smooth1(L) {
+
+  /* --- углы: внутренний угол в точке по соседям на расстоянии arc вдоль контура --- */
+  function cumLen(L, n) {
+    const cum = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; cum[i + 1] = cum[i] + Math.hypot(L[2 * j] - L[2 * i], L[2 * j + 1] - L[2 * i + 1]); }
+    return cum;
+  }
+  function anglesAt(L, n, cum, arc) {
+    const per = cum[n], A = new Float32Array(n).fill(180);
+    const C = k => { const q = Math.floor(k / n); return cum[k - q * n] + q * per; };
+    let f = 0, b = -n;
+    for (let i = 0; i < n; i++) {
+      if (f < i) f = i;
+      while (C(f) - cum[i] < arc) f++;
+      while (C(b + 1) <= cum[i] - arc) b++;
+      const pf = ((f % n) + n) % n, pb = ((b % n) + n) % n;
+      const ux = L[2 * pb] - L[2 * i], uy = L[2 * pb + 1] - L[2 * i + 1], vx = L[2 * pf] - L[2 * i], vy = L[2 * pf + 1] - L[2 * i + 1];
+      const l = Math.hypot(ux, uy) * Math.hypot(vx, vy);
+      A[i] = l ? Math.acos(Math.max(-1, Math.min(1, (ux * vx + uy * vy) / l))) * 57.29578 : 180;
+    }
+    return A;
+  }
+  function fitLine(p) {
+    const m = p.length / 2; let mx = 0, my = 0;
+    for (let i = 0; i < m; i++) { mx += p[2 * i]; my += p[2 * i + 1]; }
+    mx /= m; my /= m;
+    let sxx = 0, sxy = 0, syy = 0;
+    for (let i = 0; i < m; i++) { const dx = p[2 * i] - mx, dy = p[2 * i + 1] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+    const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+    return [mx, my, Math.cos(th), Math.sin(th)];
+  }
+  /* Ищет углы (< deg). Блюр скругляет вершину угла, поэтому позицию вершины восстанавливаем как пересечение двух прямых,
+     подогнанных по участкам контура по обе стороны от угла (идея из Potrace); скруглённые точки рядом с вершиной выкидываем. */
+  function findCorners(L, deg, arc) {
+    const n = L.length / 2, cor = new Uint8Array(n);
+    if (n < 8) return { L: L, cor: cor };
+    const cum = cumLen(L, n);
+    if (cum[n] < 6 * arc) return { L: L, cor: cor };
+    const A1 = anglesAt(L, n, cum, arc), A2 = anglesAt(L, n, cum, arc * 2.2), isC = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (A1[i] < deg && A2[i] < deg + 25 && A2[i] > A1[i] - 18) isC[i] = 1; // на кривой угол растёт со всё большей дугой, на настоящем углу — нет
+    for (let i = 0; i < n; i++) {
+      if (!isC[i]) continue;
+      let ok = true;
+      for (let dir = -1; dir <= 1 && ok; dir += 2) {
+        let j = i, dist = 0;
+        for (let s = 0; s < n; s++) {
+          const k = ((j + dir) % n + n) % n;
+          dist += Math.hypot(L[2 * k] - L[2 * j], L[2 * k + 1] - L[2 * j + 1]); j = k;
+          if (dist > arc * 1.5) break;
+          if (isC[j] && (A1[j] < A1[i] || (A1[j] === A1[i] && dir < 0))) { ok = false; break; }
+        }
+      }
+      if (ok) cor[i] = 1;
+    }
+    const side = (i, dir) => {
+      const pts = []; let j = i, dist = 0;
+      for (let s = 0; s < n; s++) {
+        const k = ((j + dir) % n + n) % n;
+        dist += Math.hypot(L[2 * k] - L[2 * j], L[2 * k + 1] - L[2 * j + 1]); j = k;
+        if (cor[j] || dist > arc * 3.5) break;
+        if (dist >= arc * 0.9) pts.push(L[2 * j], L[2 * j + 1]);
+      }
+      return pts;
+    };
+    const drop = new Uint8Array(n), NL = L.slice();
+    for (let i = 0; i < n; i++) {
+      if (!cor[i]) continue;
+      const pa = side(i, -1), pb = side(i, 1);
+      if (pa.length < 4 || pb.length < 4) continue;
+      const l1 = fitLine(pa), l2 = fitLine(pb), cr = l1[2] * l2[3] - l1[3] * l2[2];
+      if (Math.abs(cr) < 0.2) continue;
+      const t = ((l2[0] - l1[0]) * l2[3] - (l2[1] - l1[1]) * l2[2]) / cr, px = l1[0] + t * l1[2], py = l1[1] + t * l1[3];
+      if (Math.hypot(px - L[2 * i], py - L[2 * i + 1]) > arc * 2 + 1) continue;
+      NL[2 * i] = px; NL[2 * i + 1] = py;
+      for (let dir = -1; dir <= 1; dir += 2) {
+        let j = i, dist = 0;
+        for (let s = 0; s < n; s++) {
+          const k = ((j + dir) % n + n) % n;
+          dist += Math.hypot(L[2 * k] - L[2 * j], L[2 * k + 1] - L[2 * j + 1]); j = k;
+          if (cor[j] || dist > arc * 0.9) break;
+          drop[j] = 1;
+        }
+      }
+    }
+    const oL = [], oC = [];
+    for (let i = 0; i < n; i++) if (!drop[i]) { oL.push(NL[2 * i], NL[2 * i + 1]); oC.push(cor[i]); }
+    if (oC.length < 4) return { L: L, cor: cor };
+    return { L: oL, cor: Uint8Array.from(oC) };
+  }
+  /* сглаживание, углы не трогаем */
+  function smooth1(L, cor) {
     const n = L.length / 2, o = new Array(L.length);
     for (let i = 0; i < n; i++) {
+      if (cor && cor[i]) { o[2 * i] = L[2 * i]; o[2 * i + 1] = L[2 * i + 1]; continue; }
       const p = (i + n - 1) % n, q = (i + 1) % n;
       o[2 * i] = 0.25 * L[2 * p] + 0.5 * L[2 * i] + 0.25 * L[2 * q];
       o[2 * i + 1] = 0.25 * L[2 * p + 1] + 0.5 * L[2 * i + 1] + 0.25 * L[2 * q + 1];
@@ -139,35 +426,43 @@ window.VPE = (function () {
       const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
       let md = -1, mk = -1;
       for (let k = i + 1; k < j; k++) {
-        const px = L[2 * k], py = L[2 * k + 1];
+        const px = L[2 * (k % n)], py = L[2 * (k % n) + 1];
         let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0; t = t < 0 ? 0 : t > 1 ? 1 : t;
         const qx = ax + t * dx - px, qy = ay + t * dy - py, e = qx * qx + qy * qy;
         if (e > md) { md = e; mk = k; }
       }
-      if (md > eps * eps) { keep[mk] = 1; st.push(i, mk, mk, j); }
+      if (md > eps * eps) { keep[mk % n] = 1; st.push(i, mk, mk, j); }
     }
   }
-  function simplify(L, eps) {
+  /* Дуглас–Пойкер для замкнутого контура: углы — обязательные опорные точки, между ними упрощаем */
+  function simplify(L, cor, eps) {
     const n = L.length / 2;
-    if (n < 8) return L;
-    let far = 0, md = -1;
-    for (let i = 1; i < n; i++) { const dx = L[2 * i] - L[0], dy = L[2 * i + 1] - L[1], e = dx * dx + dy * dy; if (e > md) { md = e; far = i; } }
-    const keep = new Uint8Array(n); keep[0] = 1; keep[far] = 1;
-    mark(L, n, 0, far, eps, keep); mark(L, n, far, n, eps, keep);
-    const o = [];
-    for (let i = 0; i < n; i++) if (keep[i]) o.push(L[2 * i], L[2 * i + 1]);
-    return o;
+    if (n < 5) return { L: L, cor: cor };
+    const keep = new Uint8Array(n); let anchors = [];
+    for (let i = 0; i < n; i++) if (cor[i]) { keep[i] = 1; anchors.push(i); }
+    if (anchors.length < 2) {
+      const a0 = anchors.length ? anchors[0] : 0;
+      let far = a0, md = -1;
+      for (let i = 0; i < n; i++) { const dx = L[2 * i] - L[2 * a0], dy = L[2 * i + 1] - L[2 * a0 + 1], e = dx * dx + dy * dy; if (e > md) { md = e; far = i; } }
+      keep[a0] = 1; keep[far] = 1;
+      anchors = [a0, far].sort((x, y) => x - y);
+    }
+    for (let k = 0; k < anchors.length; k++) mark(L, n, anchors[k], k + 1 < anchors.length ? anchors[k + 1] : anchors[0] + n, eps, keep);
+    const o = [], oc = [];
+    for (let i = 0; i < n; i++) if (keep[i]) { o.push(L[2 * i], L[2 * i + 1]); oc.push(cor[i]); }
+    return { L: o, cor: Uint8Array.from(oc) };
   }
-  /* кривые Безье через точки (катмулл–ром), на резких углах касательная равна нулю: углы не заливаются */
-  function toPath(L) {
+  /* кривые Безье через точки (катмулл–ром); в углах (помеченных или острее deg−10°) касательная нулевая, поэтому углы остаются острыми */
+  function toPath(L, cor, deg) {
     const n = L.length / 2;
     if (n < 3) return '';
     const X = i => L[2 * ((i + n) % n)], Y = i => L[2 * ((i + n) % n) + 1];
-    const T = new Array(n);
+    const cosT = Math.cos((180 - (deg - 10)) * Math.PI / 180), T = new Array(n);
     for (let i = 0; i < n; i++) {
+      if (cor[i]) { T[i] = null; continue; }
       const ux = X(i) - X(i - 1), uy = Y(i) - Y(i - 1), vx = X(i + 1) - X(i), vy = Y(i + 1) - Y(i);
       const cos = (ux * vx + uy * vy) / ((Math.hypot(ux, uy) * Math.hypot(vx, vy)) || 1);
-      if (cos < 0.2) { T[i] = null; continue; }
+      if (cos < cosT) { T[i] = null; continue; }
       const tx = X(i + 1) - X(i - 1), ty = Y(i + 1) - Y(i - 1), l = Math.hypot(tx, ty) || 1;
       T[i] = [tx / l, ty / l];
     }
@@ -181,12 +476,26 @@ window.VPE = (function () {
     return d + 'Z';
   }
 
-  /* основной конвейер. im: ImageData; o: {colors, sigma, eps, speck, passes, denoise, scale} */
+  /* основной конвейер. im: ImageData;
+     o: {colors, sigma, eps, speck, passes, denoise, scale,
+         corner (угол в градусах, по умолчанию 120), deltaE (порог слияния цветов, по умолчанию 7), minShare,
+         adaptive (false — отключить подстройку по резкости), glyphs (false — отключить словарь символов), glyphUrl} */
   async function run(im, o, say) {
     say = say || function () {};
+    o = o || {};
     const w = im.width, h = im.height, n = w * h;
+    let sigma = o.sigma, eps = o.eps, passes = o.passes || 0, denoise = o.denoise, T = o.deltaE != null ? o.deltaE : 7;
+    const deg = o.corner || 120;
+
+    say('Оцениваю резкость…'); await tick();
+    const sh = sharpness(im);
+    if (o.adaptive !== false) {
+      if (sh.level === 'blurry') { sigma = Math.max(sigma, 1.1); T *= 1.4; denoise = true; passes = Math.max(passes, 2); }
+      else if (sh.level === 'sharp') { sigma = Math.min(sigma, 0.8); T *= 0.85; }
+    }
+
     let d = im.data;
-    if (o.denoise) {
+    if (denoise) {
       say('Убираю шум…'); await tick();
       d = new Uint8ClampedArray(im.data);
       const ch = new Float32Array(n), tmp = new Float32Array(n), out = new Float32Array(n);
@@ -197,12 +506,25 @@ window.VPE = (function () {
       }
     }
     say('Строю палитру…'); await tick();
-    const Q = quantize(d, w, h, o.colors, 12345);
+    const Q = quantize(d, w, h, o.colors, 12345, T, o.minShare != null ? o.minShare : 0.0008);
     if (!Q) throw new Error('картинка полностью прозрачная');
-    const mask = new Float32Array(n), F = new Float32Array(n), tmp = new Float32Array(n);
+
+    let GS = null, gp = null;
+    if (o.glyphs !== false) {
+      say('Загружаю словарь символов…'); await tick();
+      const idx = await loadGlyphs(o.glyphUrl);
+      if (idx && idx.t.length) {
+        const pr = idx.profile;
+        GS = { idx: idx, lab: new Int32Array(n), stack: new Int32Array(n), gmap: new Uint8Array(n) };
+        gp = { sigma: Math.max(0.35, sigma * (pr.sigmaScale || 0.5)), eps: eps * (pr.epsScale || 0.55), passes: pr.passes || 0, deg: pr.cornerDeg || 135, arc: pr.arc || 1.2 };
+      }
+    }
+    const np = { sigma: sigma, eps: eps, passes: passes, deg: deg, arc: 1.6 };
+
+    const mask = new Float32Array(n), F = new Float32Array(n), tmp = new Float32Array(n), Fg = GS ? new Float32Array(n) : null;
     const Wp = w + 4, Hp = h + 4, P = new Float32Array(Wp * Hp);
     const K = Q.order.length;
-    let shapes = '', loopsN = 0, nodes = 0;
+    let shapes = '', loopsN = 0, nodes = 0, glyphHits = 0;
     for (let ri = 0; ri < K; ri++) {
       say('Слой ' + (ri + 1) + ' из ' + K + '…'); await tick();
       const col = hex([Q.C[3 * Q.order[ri]], Q.C[3 * Q.order[ri] + 1], Q.C[3 * Q.order[ri] + 2]]);
@@ -210,28 +532,43 @@ window.VPE = (function () {
       let full = true;
       for (let i = 0; i < n; i++) { const l = Q.labels[i], m = (l >= 0 && Q.rank[l] >= ri) ? 1 : 0; mask[i] = m; if (!m) full = false; }
       if (full) { shapes += '<rect width="' + w + '" height="' + h + '" fill="' + col + '"/>'; loopsN++; continue; }
-      gblur(mask, w, h, o.sigma, tmp, F);
+      gblur(mask, w, h, sigma, tmp, F);
+      let hasG = false;
+      if (GS) {
+        const hit = findGlyphs(mask, w, h, GS);
+        if (hit) { hasG = true; glyphHits += hit; gblur(mask, w, h, gp.sigma, tmp, Fg); }
+      }
       P.fill(0);
       for (let y = -1; y <= h; y++) {
         const yy = y < 0 ? 0 : y >= h ? h - 1 : y;
-        for (let x = -1; x <= w; x++) { const xx = x < 0 ? 0 : x >= w ? w - 1 : x; P[(y + 2) * Wp + x + 2] = F[yy * w + xx]; }
+        for (let x = -1; x <= w; x++) {
+          const xx = x < 0 ? 0 : x >= w ? w - 1 : x, p = yy * w + xx;
+          P[(y + 2) * Wp + x + 2] = (hasG && GS.gmap[p]) ? Fg[p] : F[p];
+        }
       }
       const loops = marching(P, Wp, Hp);
       let dstr = '';
       for (let li = 0; li < loops.length; li++) {
         let L = loops[li];
         if (area(L) < o.speck) continue;
-        for (let p = 0; p < o.passes; p++) L = smooth1(L);
-        L = simplify(L, o.eps);
-        if (L.length < 6) continue;
-        dstr += toPath(L); loopsN++; nodes += L.length / 2;
+        let prm = np;
+        if (hasG) {
+          const px = Math.max(0, Math.min(w - 1, Math.floor(L[0]))), py = Math.max(0, Math.min(h - 1, Math.floor(L[1])));
+          if (GS.gmap[py * w + px]) prm = gp;
+        }
+        const C = findCorners(L, prm.deg, prm.arc);
+        L = C.L; let cor = C.cor;
+        for (let p = 0; p < prm.passes; p++) L = smooth1(L, cor);
+        const S = simplify(L, cor, prm.eps);
+        if (S.L.length < 6) continue;
+        dstr += toPath(S.L, S.cor, prm.deg); loopsN++; nodes += S.L.length / 2;
       }
       if (dstr) shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dstr + '"/>';
     }
     const W = Math.round(w * o.scale), H = Math.round(h * o.scale);
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + W + '" height="' + H + '" shape-rendering="geometricPrecision">' + shapes + '</svg>';
-    return { svg: svg, w: w, h: h, W: W, H: H, stats: { layers: K, paths: loopsN, nodes: nodes, bytes: svg.length } };
+    return { svg: svg, w: w, h: h, W: W, H: H, stats: { layers: K, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: sh.level } } };
   }
 
-  return { version: VERSION, run: run };
+  return { version: VERSION, run: run, sharpness: sharpness, loadGlyphs: loadGlyphs };
 })();
