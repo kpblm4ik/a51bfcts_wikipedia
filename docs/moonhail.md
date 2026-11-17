@@ -1,4 +1,5 @@
 ---
+permalink: /moonhail.html
 layout: default
 title: Лунный град — a51bfcts Вики
 custom_css: /css/main.css
