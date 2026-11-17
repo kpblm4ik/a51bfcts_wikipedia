@@ -7,6 +7,7 @@ custom_css: /css/main.css
 <script>window.AVIF = {{ avif | map: "path" | jsonify }}; window.BASE = {{ site.baseurl | jsonify }};</script>
 <script>window.DZ_CFG = { tokens: {{ '/data/danger-tokens.json' | relative_url | jsonify }}, engine: {{ '/js/ecm/' | relative_url | jsonify }} };</script>
 <script defer src="{{ '/js/danger.js' | relative_url }}?v=1"></script>
+<script defer src="{{ '/js/vpe.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 <script type="importmap">{"imports":{"wasm-feature-detect":"https://cdn.jsdelivr.net/npm/wasm-feature-detect@1.8.0/dist/esm/index.js"}}</script>
 {% raw %}
 <style>
@@ -28,6 +29,10 @@ custom_css: /css/main.css
   .jr img { width: 56px; height: 56px; object-fit: contain; background: #0b090f; border-radius: 6px; flex: none; }
   .jr .tx { flex: 1; min-width: 0; word-break: break-all; }
   .jr a { color: #a066ff; }
+  .vp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .vp figure { margin: 0; font-size: 12px; color: var(--ink-soft); min-width: 0; }
+  .vp img { width: 100%; height: auto; margin: 4px 0 0; border-radius: 8px; background: repeating-conic-gradient(#1a1624 0 25%, #120e1a 0 50%) 0 0 / 16px 16px; }
+  #vorig { image-rendering: pixelated; }
 </style>
 
 <h1>⚗ Экспериментальные функции</h1>
@@ -78,6 +83,26 @@ custom_css: /css/main.css
   <audio id="xa" controls style="width:100%"></audio>
   <div class="hint" id="xamsg"></div>
   <p class="hint">xHE-AAC (кодек USAC) воспроизводится средствами системы, отдельного флага в браузере для него нет. Если проверка не прошла, помогает обновление системы или браузера. На сайте пока нет аудио: переключатель просто запоминает выбор.</p>
+</div>
+
+<div class="ed-card">
+  <h3>🧬 VPE-α: векторный апскейлер</h3>
+  <p class="hint">Vector Pixel Enhancement alpha. Читает пиксели фото, делит их на цветовые слои и перерисовывает каждый слой гладкими кривыми Безье. Результат — SVG, который можно увеличивать без квадратиков. Контуры считаются с точностью до доли пикселя, резкие углы сохраняются. Это альфа: на фото выйдет стиль «рисунок поверх фото», на иллюстрациях, логотипах и артах — лучше всего.</p>
+  <div class="ed-row"><label>Фото сайта <select id="vsrc"></select></label></div>
+  <div class="ed-row"><label>или свой файл <input type="file" id="vfile" accept="image/*"></label></div>
+  <div class="ed-row"><label style="flex:1">Цвета <input type="range" id="vk" min="4" max="64" value="24"> <span id="vkv">24</span></label></div>
+  <div class="ed-row"><label style="flex:1">Сглаживание <input type="range" id="vsm" min="0" max="10" value="5"> <span id="vsmv">5</span></label></div>
+  <div class="ed-row"><label style="flex:1">Фильтр мелких пятен <input type="range" id="vsp" min="0" max="40" value="4"> <span id="vspv">4</span></label></div>
+  <div class="ed-row"><label>Увеличение <select id="vs"><option>2</option><option selected>4</option><option>6</option><option>8</option></select>×</label><label>Вход до <select id="vmax"><option value="256">256 px</option><option value="384" selected>384 px</option><option value="512">512 px</option><option value="768">768 px</option></select></label></div>
+  <div class="ed-row"><label><input type="checkbox" id="vdn" checked> убрать шум перед трассировкой</label></div>
+  <div class="ed-row"><button class="ed-btn" id="vgo">🧬 Перерисовать в вектор</button></div>
+  <div class="st" id="vst"></div>
+  <div class="vp" id="vview" style="display:none">
+    <figure>Оригинал (пиксели)<img id="vorig" alt=""></figure>
+    <figure>VPE-α (SVG)<img id="vres" alt=""></figure>
+  </div>
+  <div class="ed-row" id="vdl" style="display:none"><a class="ed-btn" id="vsvg" download="vpe.svg">⬇️ SVG</a><button class="ed-btn" id="vpng">⬇️ PNG в большом размере</button></div>
+  <p class="hint">«Сглаживание» размывает маску каждого цвета до поиска контура: ступенчатые линии превращаются в плавные, а больше значение даёт мягче и меньше деталей. «Цвета» — сколько слоёв будет в рисунке. Входное фото сжимается до выбранного размера, чтобы не зависал телефон. Файлы не покидают браузер.</p>
 </div>
 
 <div class="ed-card">
@@ -257,6 +282,56 @@ $('#xf').addEventListener('change', e => {
 
 /* ---------- UI kit ---------- */
 { const s = window.KIT ? KIT.stored() : null; $('#kitnow').textContent = 'Сейчас: ' + (s && typeof s.name === 'string' ? s.name : 'стандартная тема') + '.'; }
+
+/* ---------- VPE-α ---------- */
+{
+  const V = { url: '', W: 0, H: 0, busy: false };
+  $('#vsrc').innerHTML = '<option value="">— выберите —</option>' + (window.AVIF || []).map(p => '<option value="' + (window.BASE || '') + p + '">' + p.split('/').pop() + '</option>').join('');
+  [['vk', 'vkv'], ['vsm', 'vsmv'], ['vsp', 'vspv']].forEach(p => $('#' + p[0]).addEventListener('input', e => { $('#' + p[1]).textContent = e.target.value; }));
+  async function load() {
+    const f = $('#vfile').files[0];
+    if (f) return { bmp: await createImageBitmap(f), name: f.name };
+    const u = $('#vsrc').value;
+    if (!u) throw new Error('выберите фото сайта или загрузите свой файл');
+    const r = await fetch(u);
+    if (!r.ok) throw new Error('не удалось загрузить картинку');
+    return { bmp: await createImageBitmap(await r.blob()), name: u.split('/').pop() };
+  }
+  $('#vgo').addEventListener('click', async () => {
+    if (V.busy) return;
+    const st = $('#vst'); st.style.color = '';
+    if (!window.VPE) { st.textContent = '⚠️ Не загрузился js/vpe.js, обновите страницу.'; st.style.color = '#ffb86b'; return; }
+    V.busy = true; $('#vgo').disabled = true;
+    try {
+      st.textContent = 'Читаю пиксели…';
+      const L = await load(), bmp = L.bmp, mx = +$('#vmax').value, k = Math.min(1, mx / Math.max(bmp.width, bmp.height));
+      const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      x.drawImage(bmp, 0, 0, w, h); bmp.close && bmp.close();
+      const im = x.getImageData(0, 0, w, h), sm = +$('#vsm').value;
+      let sc = +$('#vs').value; sc = Math.min(sc, Math.sqrt(16e6 / (w * h)));
+      const t0 = performance.now();
+      const r = await VPE.run(im, { colors: +$('#vk').value, sigma: 0.35 + 0.22 * sm, eps: 0.15 + 0.03 * sm, passes: sm >= 6 ? 2 : 1, speck: +$('#vsp').value, denoise: $('#vdn').checked, scale: sc }, t => { st.textContent = t; });
+      if (V.url) URL.revokeObjectURL(V.url);
+      V.url = URL.createObjectURL(new Blob([r.svg], { type: 'image/svg+xml' })); V.W = r.W; V.H = r.H;
+      $('#vorig').src = c.toDataURL(); $('#vres').src = V.url;
+      $('#vview').style.display = ''; $('#vdl').style.display = '';
+      $('#vsvg').href = V.url; $('#vsvg').download = L.name.replace(/\.[^.]+$/, '') + '-vpe.svg';
+      st.textContent = '✅ Готово за ' + ((performance.now() - t0) / 1000).toFixed(1) + ' с: вход ' + w + '×' + h + ' → выход ' + r.W + '×' + r.H + ', слоёв ' + r.stats.layers + ', контуров ' + r.stats.paths + ', узлов ' + r.stats.nodes + ', SVG ' + fmt(r.stats.bytes) + '.';
+      st.style.color = '#5cf2c8';
+    } catch (e) { st.textContent = '⚠️ Ошибка: ' + (e.message || e); st.style.color = '#ffb86b'; }
+    V.busy = false; $('#vgo').disabled = false;
+  });
+  $('#vpng').addEventListener('click', async () => {
+    try {
+      const im = new Image(); im.src = V.url; await im.decode();
+      const c = document.createElement('canvas'); c.width = V.W; c.height = V.H;
+      c.getContext('2d').drawImage(im, 0, 0, V.W, V.H);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'vpe.png'; a.click(); }, 'image/png');
+    } catch (e) { $('#vst').textContent = '⚠️ Не удалось собрать PNG: ' + (e.message || e); }
+  });
+}
 
 render(); checkXhe();
 </script>
