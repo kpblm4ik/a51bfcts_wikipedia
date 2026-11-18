@@ -1,18 +1,23 @@
 /* VPE-α (Vector Pixel Enhancement alpha): самописный апскейлер. Читает пиксели и перерисовывает картинку в SVG.
-   Конвейер (v0.5):
+   Конвейер (v0.6, «физический» движок сглаживания):
    -1) мелкие картинки предварительно увеличиваются бикубикой (Митчелл) — иначе фильтры радиусом в 1 px стирают детали
    0) быстрая оценка резкости (дисперсия Лапласиана)
-   1) фильтр Кувахары по цвету (радиус ограничен размером картинки) → k-means++ → слияние близких смежных цветов (ΔE в Lab)
-   2) маска «этот цвет и всё, что поверх» → поле: гауссово размытие маски (σ из ползунка «Сглаживание») для субпикселя
+   1) анизотропная диффузия Перона–Малика (c = exp(−(|∇I|/K)²)): цвет растекается внутри однородных областей и тормозит на краях
+      → k-means++ → слияние близких смежных цветов (ΔE в Lab). Фильтр Кувахары — только по явной опции kuwahara.
+   2) маска «этот цвет и всё, что поверх» → поле; вместо гауссова размытия — поверхностное натяжение (Mean Curvature Flow):
+      граница двигается со скоростью, равной кривизне, пиксельные «лесенки» выпрямляются, а кривизна ограничена — углы не съедаются
       · фон и распознанный текст — резкие; мягкие переходы — только по явной опции soft
       · текст ищется и как «пятно» слоя, и как «дырка» в слое (тёмный текст на светлой фигуре)
-   3) marching squares → углы (Potrace-подход) → сглаживание без углов → Дуглас–Пекер → кривые Безье
-   4) адаптивный speck (мягкие коэффициенты, потолок по площади картинки)
-   5) словарь символов (data/glyphs.json)
+   3) marching squares → углы (Potrace-подход) → MCF контура (точка тянется к среднему соседей, углы закреплены, шаги Таубина без усадки)
+      → Дуглас–Пекер → кривые Безье
+   4) защита от слоистости: если граница слоя лежит в зоне плавного градиента, слой смешивается с нижним мягким feGaussianBlur;
+      фоновый слой, текст (gmap) и слои с настоящими краями остаются резкими
+   5) адаптивный speck (мягкие коэффициенты, потолок по площади картинки)
+   6) словарь символов (data/glyphs.json)
    Всё в браузере, без внешних библиотек. */
 window.VPE = (function () {
   'use strict';
-  const VERSION = 'VPE-α 0.5';
+  const VERSION = 'VPE-α 0.6';
   const SRC = (document.currentScript && document.currentScript.src) || '';
   const tick = () => new Promise(r => setTimeout(r, 0));
   const r2 = v => Math.round(v * 100) / 100;
@@ -50,7 +55,7 @@ window.VPE = (function () {
   }
   const dE = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-  /* ---------- 1. фильтр Кувахары ----------
+  /* ---------- 1. фильтр Кувахары (теперь только по явной опции kuwahara) ----------
      Для каждого пикселя берём 4 квадранта (r+1)×(r+1), сходящихся в нём; результат — среднее квадранта с наименьшей дисперсией яркости.
      stride/nch: 4/3 для RGBA-изображения, 1/1 для скалярного поля. */
   function kuwahara(src, w, h, stride, nch, r, out) {
@@ -130,7 +135,8 @@ window.VPE = (function () {
     return out;
   }
   /* гауссово размытие маски (σ в пикселях рабочей сетки): несколько проходов 3-точечным ядром [¼ ½ ¼] (σ² = ½ за проход).
-     В отличие от Кувахары+box3 оно не стирает линии толщиной в 1–2 px и не «колеблет» ступеньки. */
+     В отличие от Кувахары+box3 оно не стирает линии толщиной в 1–2 px и не «колеблет» ступеньки.
+     Теперь служит только лёгкой предпосылкой для MCF (и запасным путём при mcf:false). */
   function blurField(src, w, h, tmp, out, sigma) {
     const passes = Math.max(1, Math.round(sigma * sigma / 0.5));
     let a = src;
@@ -145,6 +151,111 @@ window.VPE = (function () {
       }
       a = out;
     }
+  }
+
+  /* ---------- ФИЗИКА СГЛАЖИВАНИЯ ----------
+     1) Перона–Малик: ∂I/∂t = div( c(|∇I|)·∇I ), c = exp(−(|∇I|/K)²). Цвет «растекается» как тепло внутри однородных областей
+        и тормозит на перепадах, поэтому края остаются чёткими (в отличие от гауссова размытия, которое мылит всё одинаково).
+        Градиент — по всем трём каналам сразу (среднеквадратичная разница цветов), поэтому тормозит и на перепадах цвета, а не только яркости.
+     2) Поверхностное натяжение (Mean Curvature Flow): уровень 0.5 поля маски двигается со скоростью, равной кривизне границы
+        (∂u/∂t = |∇u|·div(∇u/|∇u|)) — «лесенки» выпрямляются как мыльная плёнка. Кривизна ограничена kmax, так что острые углы не съедаются;
+        дальше findCorners всё равно восстанавливает вершину как пересечение двух прямых.
+        Для готового контура — дискретный аналог: точка тянется к среднему соседей (Лапласиан), углы (cor) закреплены, а чередование
+        шагов λ>0 / μ<0 (Таубин) убирает усадку замкнутой кривой. */
+  function pmFlux(a, b, i, j, K2, lam) {
+    const i3 = i * 3, j3 = j * 3, dr = a[j3] - a[i3], dg = a[j3 + 1] - a[i3 + 1], db = a[j3 + 2] - a[i3 + 2];
+    const q = (dr * dr + dg * dg + db * db) * K2 / 3;
+    if (q > 12) return;
+    const t = lam * Math.exp(-q);
+    b[i3] += t * dr; b[i3 + 1] += t * dg; b[i3 + 2] += t * db;
+    b[j3] -= t * dr; b[j3 + 1] -= t * dg; b[j3 + 2] -= t * db;
+  }
+  /* K автоматически: 90% от 90-го перцентиля градиента (как в оригинальной статье Перона–Малика) */
+  function pmAutoK(d, w, h) {
+    const H = new Uint32Array(256); let tot = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (d[i + 3] < 128) continue;
+      for (let k = 0; k < 2; k++) {
+        if (k ? y >= h - 1 : x >= w - 1) continue;
+        const j = k ? i + w * 4 : i + 4;
+        if (d[j + 3] < 128) continue;
+        const dr = d[j] - d[i], dg = d[j + 1] - d[i + 1], db = d[j + 2] - d[i + 2];
+        H[Math.min(255, Math.sqrt((dr * dr + dg * dg + db * db) / 3) | 0)]++; tot++;
+      }
+    }
+    if (!tot) return 10;
+    let acc = 0, k = 0;
+    for (; k < 255; k++) { acc += H[k]; if (acc >= 0.9 * tot) break; }
+    return Math.max(6, Math.min(80, 0.9 * (k + 1)));
+  }
+  function perona(src, w, h, iters, K, lam) {
+    const n = w * h, al = new Uint8Array(n);
+    let a = new Float32Array(n * 3), b = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { a[3 * i] = src[4 * i]; a[3 * i + 1] = src[4 * i + 1]; a[3 * i + 2] = src[4 * i + 2]; al[i] = src[4 * i + 3] >= 128 ? 1 : 0; }
+    const K2 = 1 / (K * K);
+    for (let it = 0; it < iters; it++) {
+      b.set(a);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (!al[i]) continue; // прозрачное не участвует: цвет не «затекает» через границу прозрачности
+        if (x < w - 1 && al[i + 1]) pmFlux(a, b, i, i + 1, K2, lam);
+        if (y < h - 1 && al[i + w]) pmFlux(a, b, i, i + w, K2, lam);
+      }
+      const t = a; a = b; b = t;
+    }
+    const out = new Uint8ClampedArray(src);
+    for (let i = 0; i < n; i++) if (al[i]) { out[4 * i] = a[3 * i]; out[4 * i + 1] = a[3 * i + 1]; out[4 * i + 2] = a[3 * i + 2]; }
+    return out;
+  }
+
+  /* MCF поля: считаем только в узкой полосе у границы (там, где 0 < u < 1) — вдали градиент нулевой и двигать нечего */
+  function curvatureFlow(F, w, h, T, iters, dt, kmax) {
+    let m = 0;
+    const idx = new Int32Array(w * h);
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, v = F[i]; if (v > 0.002 && v < 0.998) idx[m++] = i; }
+    if (!m || iters < 1) return;
+    T.set(F);
+    let a = F, b = T;
+    for (let it = 0; it < iters; it++) {
+      for (let k = 0; k < m; k++) {
+        const i = idx[k], c = a[i], ux = (a[i + 1] - a[i - 1]) * 0.5, uy = (a[i + w] - a[i - w]) * 0.5, g2 = ux * ux + uy * uy;
+        if (g2 < 1e-8) { b[i] = c; continue; }
+        const uxx = a[i + 1] - 2 * c + a[i - 1], uyy = a[i + w] - 2 * c + a[i - w], uxy = (a[i + w + 1] - a[i + w - 1] - a[i - w + 1] + a[i - w - 1]) * 0.25;
+        const g = Math.sqrt(g2);
+        let kap = (uxx * uy * uy - 2 * uxy * ux * uy + uyy * ux * ux) / (g2 * g);
+        kap = kap > kmax ? kmax : kap < -kmax ? -kmax : kap;
+        b[i] = c + dt * kap * g;
+      }
+      const t = a; a = b; b = t;
+    }
+    if (a !== F) F.set(a);
+  }
+  function lapStep(L, cor, n, k) {
+    const o = new Array(L.length);
+    for (let i = 0; i < n; i++) {
+      if (cor && cor[i]) { o[2 * i] = L[2 * i]; o[2 * i + 1] = L[2 * i + 1]; continue; }
+      const p = (i + n - 1) % n, q = (i + 1) % n;
+      o[2 * i] = L[2 * i] + k * (0.5 * (L[2 * p] + L[2 * q]) - L[2 * i]);
+      o[2 * i + 1] = L[2 * i + 1] + k * (0.5 * (L[2 * p + 1] + L[2 * q + 1]) - L[2 * i + 1]);
+    }
+    return o;
+  }
+  function mcfContour(L, cor, steps) {
+    const n = L.length / 2;
+    if (n < 5 || steps < 1) return L;
+    for (let s = 0; s < steps; s++) { L = lapStep(L, cor, n, 0.5); L = lapStep(L, cor, n, -0.53); }
+    return L;
+  }
+  /* модуль градиента яркости в «уровнях на пиксель исходника» — отличает плавный градиент (полосы квантизации) от настоящего края */
+  function gradMap(d, w, h, f) {
+    const n = w * h, Y = new Float32Array(n), g = new Float32Array(n);
+    for (let i = 0; i < n; i++) Y[i] = 0.299 * d[4 * i] + 0.587 * d[4 * i + 1] + 0.114 * d[4 * i + 2];
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      g[i] = Math.hypot((Y[i + 1] - Y[i - 1]) * 0.5, (Y[i + w] - Y[i - w]) * 0.5) * f;
+    }
+    return g;
   }
 
   /* ---------- слияние близких смежных цветов (агломеративно, ΔE в Lab) ----------
@@ -489,7 +600,7 @@ window.VPE = (function () {
     if (oC.length < 4) return { L: L, cor: cor };
     return { L: oL, cor: Uint8Array.from(oC) };
   }
-  /* сглаживание, углы не трогаем */
+  /* сглаживание, углы не трогаем (старый путь, используется для текста и при mcf:false) */
   function smooth1(L, cor) {
     const n = L.length / 2, o = new Array(L.length);
     for (let i = 0; i < n; i++) {
@@ -562,7 +673,10 @@ window.VPE = (function () {
   /* основной конвейер. im: ImageData;
      o: {colors, sigma, eps, speck, passes, denoise, scale,
          corner (градусы, по умолчанию 120), deltaE (порог слияния цветов, по умолчанию 7), minShare,
-         kuwahara (радиус по цвету; по умолчанию 0, с denoise 2; всегда ограничен размером картинки),
+         pm (число итераций Перона–Малика; по умолчанию 3, с denoise 10; false/0 — выключить), pmK (порог K; по умолчанию авто),
+         mcf (множитель силы поверхностного натяжения; по умолчанию 1; false — вернуть гауссово размытие), mcfKmax (предел кривизны, по умолчанию 0.35),
+         gradBlur (false — без смешивания слоёв на плавных градиентах), gradLow (порог градиента, уровней на px исходника; по умолчанию 14),
+         kuwahara (радиус по цвету; по умолчанию 0 — теперь вместо него Перона–Малик; всегда ограничен размером картинки),
          prescale (во сколько раз увеличить вход перед трассировкой; по умолчанию авто — до ~512 px),
          soft (0..1, мягкость переходов; по умолчанию 0 — включается только явно), softBlur (false — без SVG-блюра),
          adaptive (false — без подстройки по резкости), glyphs (false — без словаря символов), glyphUrl}
@@ -580,7 +694,7 @@ window.VPE = (function () {
 
     say('Оцениваю резкость…'); await tick();
     const sh = sharpness(im), level = sh.level;
-    let kr = Math.min(o.kuwahara != null ? o.kuwahara : (denoise ? 2 : 0), maxR);
+    let kr = Math.min(o.kuwahara != null ? o.kuwahara : 0, maxR);
     let soft = o.soft; // только явная опция, автоматически не включается
     if (o.adaptive !== false) {
       if (level === 'blurry') { sigma *= 1.25; T *= 1.25; passes = Math.max(passes, 1); }
@@ -589,16 +703,28 @@ window.VPE = (function () {
     soft = Math.max(0, Math.min(1, soft || 0));
 
     let d = im.data;
+    /* 1) предобработка: анизотропная диффузия Перона–Малика вместо обычного размытия */
+    const pmIt = o.pm === false ? 0 : (o.pm != null ? Math.max(0, Math.round(o.pm)) : (denoise ? 10 : 3));
+    let pmK = 0;
+    if (pmIt > 0) {
+      say('Диффузия Перона–Малика (' + pmIt + ' ит.)…'); await tick();
+      pmK = o.pmK || pmAutoK(d, w0, h0);
+      d = perona(d, w0, h0, pmIt, pmK, 0.2);
+    }
     if (kr > 0) {
       say('Фильтр Кувахары (r=' + kr + ')…'); await tick();
-      d = new Uint8ClampedArray(im.data);
-      kuwahara(im.data, w0, h0, 4, 3, kr, d);
+      const kt0 = new Uint8ClampedArray(d);
+      kuwahara(d, w0, h0, 4, 3, kr, kt0);
+      d = kt0;
     }
     if (f > 1) { say('Увеличиваю вход ×' + f + '…'); await tick(); d = upscale(d, w0, h0, f); }
     say('Строю палитру…'); await tick();
     const Q = quantize(d, w, h, reqK, 12345, T, o.minShare != null ? o.minShare : 0.0008);
     if (!Q) throw new Error('картинка полностью прозрачная');
     const K = Q.order.length;
+    /* карта градиента: по ней отличаем плавные градиенты (полосы квантизации) от настоящих краёв */
+    const gm = o.gradBlur !== false ? gradMap(d, w, h, f) : null;
+    const gradLow = o.gradLow != null ? o.gradLow : 14;
 
     /* адаптивный speck: мягкие коэффициенты (K>15: до ×2.6 при 64 слоях; blurry ×1.5; soft ×1.25; потолок ×4)
        и общий потолок по площади (0.04% кадра), чтобы на маленьких картинках не вырезать детали.
@@ -622,11 +748,16 @@ window.VPE = (function () {
     const np = { eps: eps, passes: passes, deg: deg, arc: 1.6 * f };
     const rSoft = Math.max(1, Math.min(maxR * f, Math.round(sigma * 2 * f)));
     const fieldSigma = Math.max(0.6, Math.min(4, sigma * f)); // σ размытия маски в пикселях рабочей сетки
+    /* 2) поверхностное натяжение: время потока ~ σ²/2·(шаг 0.2) → итераций ≈ 2.5σ²; для контура — шаги Таубина */
+    const mcfK = typeof o.mcf === 'number' ? o.mcf : 1, mcfOn = o.mcf !== false && mcfK > 0;
+    const mcfIters = mcfOn ? Math.max(2, Math.min(60, Math.round(fieldSigma * fieldSigma * 2.5 * mcfK))) : 0;
+    const mcfKmax = o.mcfKmax != null ? o.mcfKmax : 0.35;
+    const mcfSteps = mcfOn ? Math.max(1, Math.round((2 + f / 2) * mcfK)) : 0;
 
     const mask = new Float32Array(n), Fn = new Float32Array(n), tmp = new Float32Array(n), kt = new Float32Array(n), Fg = GS ? new Float32Array(n) : null;
     const Wp = w + 4, Hp = h + 4, P = new Float32Array(Wp * Hp);
-    let shapes = '', loopsN = 0, nodes = 0, glyphHits = 0, softUsed = false, dropped = 0;
-    const opa = r2(1 - 0.25 * soft), blurSd = r2(0.4 + 0.8 * soft);
+    let shapes = '', loopsN = 0, nodes = 0, glyphHits = 0, softUsed = false, dropped = 0, gradUsed = false, gradLayers = 0;
+    const opa = r2(1 - 0.25 * soft), blurSd = r2(0.4 + 0.8 * soft), gradSd = r2(Math.max(0.8, 0.5 * f));
     for (let ri = 0; ri < K; ri++) {
       say('Слой ' + (ri + 1) + ' из ' + K + '…'); await tick();
       const col = hex([Q.C[3 * Q.order[ri]], Q.C[3 * Q.order[ri] + 1], Q.C[3 * Q.order[ri] + 2]]);
@@ -634,9 +765,11 @@ window.VPE = (function () {
       let full = true;
       for (let i = 0; i < n; i++) { const l = Q.labels[i], m = (l >= 0 && Q.rank[l] >= ri) ? 1 : 0; mask[i] = m; if (!m) full = false; }
       if (full) { shapes += '<rect width="' + w + '" height="' + h + '" fill="' + col + '"/>'; loopsN++; continue; }
-      /* поле для контура: гауссово размытие маски (σ из ползунка) для субпикселя. Мягкие слои (только при soft>0) — Кувахара rSoft. */
+      /* поле для контура: лёгкая предпосылка + поверхностное натяжение (MCF) вместо гауссова размытия.
+         Мягкие слои (только при soft>0) — Кувахара rSoft. */
       const softLayer = soft > 0 && ri > 0;
       if (softLayer) { kuwahara(mask, w, h, 1, 1, rSoft, kt); box3(kt, w, h, tmp, Fn); }
+      else if (mcfOn) { blurField(mask, w, h, tmp, Fn, Math.min(1, fieldSigma * 0.5)); curvatureFlow(Fn, w, h, kt, mcfIters, 0.2, mcfKmax); }
       else blurField(mask, w, h, tmp, Fn, fieldSigma);
       let hasG = false;
       if (GS) {
@@ -654,24 +787,36 @@ window.VPE = (function () {
         }
       }
       const loops = marching(P, Wp, Hp);
+      /* первый проход: какие контуры — текст (gmap), и лежит ли граница слоя в зоне плавного градиента.
+         Решение принимается на весь слой сразу (а не по контурам): дырки должны остаться в одном path с родителем (evenodd). */
+      const gflag = new Uint8Array(loops.length);
+      let lowV = 0, totV = 0;
+      for (let li = 0; li < loops.length; li++) {
+        const L = loops[li], m = L.length / 2;
+        let inG = 0, lo = 0;
+        for (let i = 0; i < m; i++) {
+          const px = Math.max(0, Math.min(w - 1, Math.floor(L[2 * i]))), py = Math.max(0, Math.min(h - 1, Math.floor(L[2 * i + 1])));
+          if (hasG && GS.gmap[py * w + px]) inG++;
+          if (gm && gm[py * w + px] < gradLow) lo++;
+        }
+        /* профиль текста — только если больше 60% вершин контура лежат в gmap */
+        const isG = hasG && inG > 0.6 * m;
+        gflag[li] = isG ? 1 : 0;
+        if (!isG && area(L) >= speckEff) { lowV += lo; totV += m; }
+      }
+      /* фон (ri = 0) и слои с настоящими краями остаются резкими; смешиваем только слой, чья граница почти целиком в зоне низкого градиента */
+      const gradLayer = !!gm && ri > 0 && !softLayer && totV >= 12 && lowV > 0.8 * totV;
       let dn = '', dg = '';
       for (let li = 0; li < loops.length; li++) {
         let L = loops[li];
-        /* профиль текста — только если больше 60% вершин контура лежат в gmap */
-        let isG = false;
-        if (hasG) {
-          const m = L.length / 2; let inG = 0;
-          for (let i = 0; i < m; i++) {
-            const px = Math.max(0, Math.min(w - 1, Math.floor(L[2 * i]))), py = Math.max(0, Math.min(h - 1, Math.floor(L[2 * i + 1])));
-            if (GS.gmap[py * w + px]) inG++;
-          }
-          isG = inG > 0.6 * m;
-        }
+        const isG = gflag[li] === 1;
         if (area(L) < (isG ? sp0 : speckEff)) { dropped++; continue; }
         const prm = isG ? gp : np;
         const C = findCorners(L, prm.deg, prm.arc);
         L = C.L; const cor = C.cor;
-        for (let p = 0; p < prm.passes; p++) L = smooth1(L, cor);
+        /* контур: точки тянутся к среднему соседей (MCF), углы закреплены; текст — как раньше, без натяжения */
+        if (isG || !mcfOn) { for (let p = 0; p < prm.passes; p++) L = smooth1(L, cor); }
+        else L = mcfContour(L, cor, prm.passes + mcfSteps);
         const S = simplify(L, cor, prm.eps);
         if (S.L.length < 6) continue;
         const ps = toPath(S.L, S.cor, prm.deg);
@@ -683,15 +828,22 @@ window.VPE = (function () {
           softUsed = true;
           const pth = '<path fill="' + col + '" fill-opacity="' + opa + '" fill-rule="evenodd" d="' + dn + '"/>';
           shapes += o.softBlur === false ? pth : '<g filter="url(#vpe-soft)">' + pth + '</g>';
+        } else if (gradLayer) {
+          gradUsed = true; gradLayers++;
+          shapes += '<g filter="url(#vpe-grad)"><path fill="' + col + '" fill-rule="evenodd" d="' + dn + '"/></g>';
         } else shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dn + '"/>';
       }
       if (dg) shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dg + '"/>';
     }
     /* область фильтра — всё изображение с запасом, чтобы блюр не обрезался и не давал полос на краях */
-    const defs = softUsed && o.softBlur !== false ? '<defs><filter id="vpe-soft" filterUnits="userSpaceOnUse" x="-4" y="-4" width="' + (w + 8) + '" height="' + (h + 8) + '" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + blurSd + '" edgeMode="duplicate"/></filter></defs>' : '';
+    const flt = (id, sd) => '<filter id="' + id + '" filterUnits="userSpaceOnUse" x="-4" y="-4" width="' + (w + 8) + '" height="' + (h + 8) + '" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + sd + '" edgeMode="duplicate"/></filter>';
+    let defs = '';
+    if (softUsed && o.softBlur !== false) defs += flt('vpe-soft', blurSd);
+    if (gradUsed) defs += flt('vpe-grad', gradSd);
+    if (defs) defs = '<defs>' + defs + '</defs>';
     const W = Math.round(w0 * scale), H = Math.round(h0 * scale);
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + W + '" height="' + H + '" shape-rendering="geometricPrecision">' + defs + shapes + '</svg>';
-    return { svg: svg, w: w0, h: h0, W: W, H: H, stats: { prescale: f, fieldSigma: r2(fieldSigma), layers: K, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: level }, kuwahara: kr, soft: soft, speck: r2(speckEff), droppedLoops: dropped } };
+    return { svg: svg, w: w0, h: h0, W: W, H: H, stats: { prescale: f, fieldSigma: r2(fieldSigma), layers: K, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: level }, kuwahara: kr, soft: soft, speck: r2(speckEff), droppedLoops: dropped, pm: { iters: pmIt, K: r2(pmK) }, mcf: { iters: mcfIters, steps: mcfSteps }, gradLayers: gradLayers } };
   }
 
   return { version: VERSION, run: run, sharpness: sharpness, loadGlyphs: loadGlyphs };
