@@ -1,16 +1,17 @@
 /* VPE-α (Vector Pixel Enhancement alpha): самописный апскейлер. Читает пиксели и перерисовывает картинку в SVG.
-   Конвейер (v0.3):
-   0) быстрая оценка резкости (дисперсия Лапласиана) → адаптация параметров
-   1) фильтр Кувахары по цвету (вместо Гаусса) → квантизация (k-means++) → слияние близких смежных цветов (ΔE в Lab)
-   2) для каждого цвета маска «этот цвет и всё, что поверх» → поле: Кувахара по маске + 3×3-покрытие для субпикселя
-      · фон (слой 0) и распознанный текст — резкие; плавные переходы (слои >0 вне текста) — мягкие (полупрозрачность + лёгкий SVG-блюр)
+   Конвейер (v0.4):
+   0) быстрая оценка резкости (дисперсия Лапласиана)
+   1) фильтр Кувахары по цвету (радиус ограничен размером картинки) → k-means++ → слияние близких смежных цветов (ΔE в Lab)
+   2) маска «этот цвет и всё, что поверх» → поле: Кувахара по маске + 3×3-покрытие для субпикселя
+      · фон и распознанный текст — резкие; мягкие переходы — только по явной опции soft
+      · текст ищется и как «пятно» слоя, и как «дырка» в слое (тёмный текст на светлой фигуре)
    3) marching squares → углы (Potrace-подход) → сглаживание без углов → Дуглас–Пекер → кривые Безье
-   4) адаптивный фильтр мелких пятен (speck): растёт при большом числе слоёв и низкой резкости
-   5) словарь символов (data/glyphs.json): компоненты, похожие на знаки, рисуются максимально точно.
+   4) адаптивный speck (мягкие коэффициенты, потолок по площади картинки)
+   5) словарь символов (data/glyphs.json)
    Всё в браузере, без внешних библиотек. */
 window.VPE = (function () {
   'use strict';
-  const VERSION = 'VPE-α 0.3';
+  const VERSION = 'VPE-α 0.4';
   const SRC = (document.currentScript && document.currentScript.src) || '';
   const tick = () => new Promise(r => setTimeout(r, 0));
   const r2 = v => Math.round(v * 100) / 100;
@@ -50,7 +51,7 @@ window.VPE = (function () {
 
   /* ---------- 1. фильтр Кувахары ----------
      Для каждого пикселя берём 4 квадранта (r+1)×(r+1), сходящихся в нём; результат — среднее квадранта с наименьшей дисперсией яркости.
-     Сглаживает плоские области, не размывая границы и не скругляя углы. stride/nch: 4/3 для RGBA-изображения, 1/1 для скалярного поля. */
+     stride/nch: 4/3 для RGBA-изображения, 1/1 для скалярного поля. */
   function kuwahara(src, w, h, stride, nch, r, out) {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -275,11 +276,17 @@ window.VPE = (function () {
     }
     return { score: best, t: bt };
   }
-  /* отмечает в gmap области вокруг компонент слоя, похожих на символы из словаря; возвращает число найденных */
-  function findGlyphs(mask, w, h, S) {
-    S.gmap.fill(0);
+  /* отмечает в gmap области вокруг компонент, похожих на символы из словаря; возвращает число найденных.
+     inv=true: ищем символы-«дырки» (тёмный текст на светлой фигуре) — вход уже инвертирован, gmap не очищается,
+     компоненты, касающиеся края картинки (это фон), пропускаются. */
+  function findGlyphs(mask, w, h, S, inv) {
+    if (!inv) S.gmap.fill(0);
     const comps = components(mask, w, h, S.lab, S.stack), lim = S.idx.limits, mn = lim.minSize || 4, mx = Math.min(lim.maxSize || 160, Math.max(w, h));
-    const cand = comps.filter(c => { const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, m = Math.max(bw, bh); return m >= mn && m <= mx && (bw < w || bh < h); });
+    const cand = comps.filter(c => {
+      const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, m = Math.max(bw, bh);
+      if (inv && (c.x0 === 0 || c.y0 === 0 || c.x1 === w - 1 || c.y1 === h - 1)) return false;
+      return m >= mn && m <= mx && (bw < w || bh < h);
+    });
     if (!cand.length || cand.length > 8000) return 0; // фото/шум: тысячи мелких пятен — не текст
     const minScore = S.idx.profile.minScore || 0.62;
     let hit = 0;
@@ -500,24 +507,24 @@ window.VPE = (function () {
   /* основной конвейер. im: ImageData;
      o: {colors, sigma, eps, speck, passes, denoise, scale,
          corner (градусы, по умолчанию 120), deltaE (порог слияния цветов, по умолчанию 7), minShare,
-         kuwahara (радиус фильтра по цвету; по умолчанию от резкости), soft (0..1, мягкость переходов; по умолчанию от резкости),
-         softBlur (false — только полупрозрачность без SVG-блюра), adaptive (false — без подстройки по резкости),
-         glyphs (false — без словаря символов), glyphUrl}
-     sigma теперь задаёт «силу» сглаживания: радиус Кувахары для мягких слоёв = clamp(round(sigma*2), 2, 3). */
+         kuwahara (радиус по цвету; по умолчанию 0, с denoise 2; всегда ограничен размером картинки),
+         soft (0..1, мягкость переходов; по умолчанию 0 — включается только явно), softBlur (false — без SVG-блюра),
+         adaptive (false — без подстройки по резкости), glyphs (false — без словаря символов), glyphUrl} */
   async function run(im, o, say) {
     say = say || function () {};
     o = o || {};
-    const w = im.width, h = im.height, n = w * h;
+    const w = im.width, h = im.height, n = w * h, big = Math.max(w, h);
+    const maxR = big <= 200 ? 1 : big <= 500 ? 2 : 3; // максимальный радиус Кувахары по размеру картинки
     let sigma = o.sigma || 0.8, eps = o.eps, passes = o.passes || 0, denoise = o.denoise, T = o.deltaE != null ? o.deltaE : 7;
     const deg = o.corner || 120, sp0 = o.speck || 0;
 
     say('Оцениваю резкость…'); await tick();
     const sh = sharpness(im), level = sh.level;
-    let kr = o.kuwahara != null ? o.kuwahara : (denoise ? 2 : 0), soft = o.soft;
+    let kr = Math.min(o.kuwahara != null ? o.kuwahara : (denoise ? 2 : 0), maxR);
+    let soft = o.soft; // только явная опция, автоматически не включается
     if (o.adaptive !== false) {
-      if (level === 'blurry') { sigma = Math.max(sigma, 1.1); T *= 1.4; passes = Math.max(passes, 2); if (o.kuwahara == null) kr = Math.max(kr, 3); if (soft == null) soft = 1; }
-      else if (level === 'soft') { if (o.kuwahara == null) kr = Math.max(kr, 2); if (soft == null) soft = 0.6; }
-      else if (level === 'sharp') { sigma = Math.min(sigma, 0.8); T *= 0.85; if (soft == null) soft = 0; }
+      if (level === 'blurry') { sigma = Math.max(sigma, 1.0); T *= 1.25; passes = Math.max(passes, 1); }
+      else if (level === 'sharp') { sigma = Math.min(sigma, 0.8); T *= 0.85; }
     }
     soft = Math.max(0, Math.min(1, soft || 0));
 
@@ -532,13 +539,14 @@ window.VPE = (function () {
     if (!Q) throw new Error('картинка полностью прозрачная');
     const K = Q.order.length;
 
-    /* адаптивный speck: больше слоёв (>15) и ниже резкость → отсекаем больше мелких паразитных контуров на градиентах.
-       К контурам распознанного текста применяется только базовый speck, чтобы не терять точки и диакритику. */
+    /* адаптивный speck: мягкие коэффициенты (K>15: до ×2.6 при 64 слоях; blurry ×1.5; soft ×1.25; потолок ×4)
+       и общий потолок по площади (0.04% кадра), чтобы на маленьких картинках не вырезать детали.
+       К контурам распознанного текста применяется только базовый speck. */
     let sf = 1;
-    if (K > 15) sf *= 1 + (K - 15) / 15;
-    if (level === 'blurry') sf *= 2.5; else if (level === 'soft') sf *= 1.6;
-    sf = Math.min(sf, 8);
-    const speckEff = sp0 * sf;
+    if (K > 15) sf *= 1 + (K - 15) / 30;
+    if (level === 'blurry') sf *= 1.5; else if (level === 'soft') sf *= 1.25;
+    sf = Math.min(sf, 4);
+    const speckEff = Math.min(sp0 * sf, Math.max(sp0, n * 0.0004));
 
     let GS = null, gp = null;
     if (o.glyphs !== false) {
@@ -551,7 +559,7 @@ window.VPE = (function () {
       }
     }
     const np = { eps: eps, passes: passes, deg: deg, arc: 1.6 };
-    const rSoft = Math.max(2, Math.min(3, Math.round(sigma * 2)));
+    const rSoft = Math.max(1, Math.min(maxR, Math.round(sigma * 2)));
 
     const mask = new Float32Array(n), Fn = new Float32Array(n), tmp = new Float32Array(n), kt = new Float32Array(n), Fg = GS ? new Float32Array(n) : null;
     const Wp = w + 4, Hp = h + 4, P = new Float32Array(Wp * Hp);
@@ -564,15 +572,16 @@ window.VPE = (function () {
       let full = true;
       for (let i = 0; i < n; i++) { const l = Q.labels[i], m = (l >= 0 && Q.rank[l] >= ri) ? 1 : 0; mask[i] = m; if (!m) full = false; }
       if (full) { shapes += '<rect width="' + w + '" height="' + h + '" fill="' + col + '"/>'; loopsN++; continue; }
-      /* поле для контура: Кувахара по маске (убирает шум, не скругляя углы) + покрытие 3×3 для субпикселя.
-         Фон (слой 0) — всегда резкий (r=1); слои >0 при soft>0 — шире (rSoft), их переходы потом смягчаются в SVG. */
+      /* поле для контура: Кувахара по маске + покрытие 3×3 для субпикселя. Фон — r=1; мягкие слои (только при soft>0) — rSoft. */
       const softLayer = soft > 0 && ri > 0;
       kuwahara(mask, w, h, 1, 1, softLayer ? rSoft : 1, kt);
       box3(kt, w, h, tmp, Fn);
       let hasG = false;
       if (GS) {
-        const hit = findGlyphs(mask, w, h, GS);
-        if (hit) { hasG = true; glyphHits += hit; box3(mask, w, h, tmp, Fg); } // текст: без Кувахары — чистое покрытие, максимум точности
+        let hit = findGlyphs(mask, w, h, GS, false);
+        for (let i = 0; i < n; i++) kt[i] = mask[i] ? 0 : 1; // инверсия: текст-«дырка» в светлой фигуре
+        hit += findGlyphs(kt, w, h, GS, true);
+        if (hit) { hasG = true; glyphHits += hit; box3(mask, w, h, tmp, Fg); }
       }
       P.fill(0);
       for (let y = -1; y <= h; y++) {
@@ -607,7 +616,6 @@ window.VPE = (function () {
         if (isG) dg += ps; else dn += ps;
         loopsN++; nodes += S.L.length / 2;
       }
-      /* резкие: фон и текст; мягкие: плавные переходы (слои >0 вне текста) — полупрозрачность и лёгкий блюр */
       if (dn) {
         if (softLayer) {
           softUsed = true;
@@ -617,7 +625,8 @@ window.VPE = (function () {
       }
       if (dg) shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dg + '"/>';
     }
-    const defs = softUsed && o.softBlur !== false ? '<defs><filter id="vpe-soft" x="-2%" y="-2%" width="104%" height="104%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + blurSd + '"/></filter></defs>' : '';
+    /* область фильтра — всё изображение с запасом, чтобы блюр не обрезался и не давал полос на краях */
+    const defs = softUsed && o.softBlur !== false ? '<defs><filter id="vpe-soft" filterUnits="userSpaceOnUse" x="-4" y="-4" width="' + (w + 8) + '" height="' + (h + 8) + '" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + blurSd + '" edgeMode="duplicate"/></filter></defs>' : '';
     const W = Math.round(w * o.scale), H = Math.round(h * o.scale);
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + W + '" height="' + H + '" shape-rendering="geometricPrecision">' + defs + shapes + '</svg>';
     return { svg: svg, w: w, h: h, W: W, H: H, stats: { layers: K, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: level }, kuwahara: kr, soft: soft, speck: r2(speckEff), droppedLoops: dropped } };
