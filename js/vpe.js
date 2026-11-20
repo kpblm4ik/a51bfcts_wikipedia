@@ -1,9 +1,11 @@
 /* VPE-α (Vector Pixel Enhancement alpha): самописный апскейлер. Читает пиксели и перерисовывает картинку в SVG.
-   Конвейер (v0.7, «физический» движок сглаживания):
+   Конвейер (v0.8, «физический» движок сглаживания + цветовая проверка в Lab):
    -1) мелкие картинки предварительно увеличиваются бикубикой (Митчелл) — иначе фильтры радиусом в 1 px стирают детали
    0) быстрая оценка резкости (дисперсия Лапласиана)
    1) анизотропная диффузия Перона–Малика (c = exp(−(|∇I|/K)²)): цвет растекается внутри однородных областей и тормозит на краях
-      → k-means++ (до 512 цветов) → слияние близких смежных цветов (ΔE в Lab) и ограничение числа слоёв (до 256).
+      → k-means++ в CIE Lab (расстояние ΔL² + 1.4·(Δa²+Δb²): цветность важнее яркости, оттенки в тенях не смешиваются; до 512 цветов)
+      → слияние близких смежных цветов: ΔE в Lab + проверка насыщенности (chroma) и оттенка (hue) — тёмно-коричневое не сливается с тёмно-синим
+      → ограничение числа слоёв (до 256).
       Фильтр Кувахары — только по явной опции kuwahara.
    2) маска «этот цвет и всё, что поверх» → поле; вместо гауссова размытия — поверхностное натяжение (Mean Curvature Flow):
       граница двигается со скоростью, равной кривизне, пиксельные «лесенки» выпрямляются, а кривизна ограничена — углы не съедаются
@@ -18,7 +20,7 @@
    Всё в браузере, без внешних библиотек. */
 window.VPE = (function () {
   'use strict';
-  const VERSION = 'VPE-α 0.7';
+  const VERSION = 'VPE-α 0.8';
   const SRC = (document.currentScript && document.currentScript.src) || '';
   const tick = () => new Promise(r => setTimeout(r, 0));
   const r2 = v => Math.round(v * 100) / 100;
@@ -55,6 +57,17 @@ window.VPE = (function () {
     return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
   }
   const dE = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  /* совместимость двух Lab-цветов для слияния: у заметно цветных пар насыщенность (chroma) и оттенок (hue) должны совпадать.
+     Иначе тёмно-коричневое (дерево) сливается с тёмно-синим — в Lab при малой яркости ΔE между ними мала. */
+  function compatible(p, q, T) {
+    const cp = Math.hypot(p[1], p[2]), cq = Math.hypot(q[1], q[2]);
+    if (Math.max(cp, cq) < 10) return true; // оба почти нейтральные — решает ΔE
+    if (Math.abs(cp - cq) > Math.max(10, T * 1.6)) return false; // насыщенность сильно отличается
+    if (Math.min(cp, cq) < 6) return true;
+    let dh = Math.abs(Math.atan2(p[2], p[1]) - Math.atan2(q[2], q[1])) * 57.29578;
+    if (dh > 180) dh = 360 - dh;
+    return dh < 40; // разница оттенка не больше 40°
+  }
 
   /* ---------- 1. фильтр Кувахары (теперь только по явной опции kuwahara) ----------
      Для каждого пикселя берём 4 квадранта (r+1)×(r+1), сходящихся в нём; результат — среднее квадранта с наименьшей дисперсией яркости.
@@ -155,7 +168,7 @@ window.VPE = (function () {
   }
 
   /* ---------- ФИЗИКА СГЛАЖИВАНИЯ ----------
-     1) Перона–Малик: ∂I/∂t = div( c(|∇I|)·∇I ), c = exp(−(|∇I|/K)²). Цвет «растекается» как тепло внутри однородных областей
+     1) Перона–Малика: ∂I/∂t = div( c(|∇I|)·∇I ), c = exp(−(|∇I|/K)²). Цвет «растекается» как тепло внутри однородных областей
         и тормозит на перепадах, поэтому края остаются чёткими (в отличие от гауссова размытия, которое мылит всё одинаково).
         Градиент — по всем трём каналам сразу (среднеквадратичная разница цветов), поэтому тормозит и на перепадах цвета, а не только яркости.
      2) Поверхностное натяжение (Mean Curvature Flow): уровень 0.5 поля маски двигается со скоростью, равной кривизне границы
@@ -262,10 +275,11 @@ window.VPE = (function () {
     return g;
   }
 
-  /* ---------- слияние близких смежных цветов (агломеративно, ΔE в Lab) ----------
+  /* ---------- слияние близких смежных цветов (агломеративно, ΔE в Lab + проверка оттенка и насыщенности) ----------
      T — порог ΔE для смежных кластеров; несмежные сливаются только при ΔE < T/3; совсем мелкие кластеры
-     (кольца антиалиасинга) вливаются в ближайший смежный при ΔE < 4T.
-     maxL — предел числа слоёв: если после слияния по порогу кластеров всё ещё больше, сливаем ближайшие пары (смежным — небольшая скидка) до maxL. */
+     (кольца антиалиасинга) вливаются в ближайший смежный при ΔE < 4T. Слияние по порогу — только для совместимых оттенка и насыщенности.
+     maxL — предел числа слоёв: если после слияния по порогу кластеров всё ещё больше, сливаем ближайшие пары (смежным — небольшая скидка,
+     несовместимым по оттенку — штраф ×2.5) до maxL. */
   function mergeClose(C, labels, counts, K, w, h, T, minShare, maxL) {
     const n = w * h, adj = new Uint8Array(K * K);
     for (let y = 0; y < h; y++) {
@@ -289,7 +303,7 @@ window.VPE = (function () {
         for (let j = i + 1; j < K; j++) {
           if (!alive[j]) continue;
           const e = dE(L[i], L[j]), ad = adj[i * K + j];
-          const ok = e < (ad ? T : T / 3) || (ad && (cnt[i] < tiny || cnt[j] < tiny) && e < 4 * T);
+          const ok = (e < (ad ? T : T / 3) || (ad && (cnt[i] < tiny || cnt[j] < tiny) && e < 4 * T)) && compatible(L[i], L[j], T);
           if (ok && e < bd) { bd = e; bi = i; bj = j; }
         }
       }
@@ -299,7 +313,7 @@ window.VPE = (function () {
           if (!alive[i]) continue;
           for (let j = i + 1; j < K; j++) {
             if (!alive[j]) continue;
-            const e = dE(L[i], L[j]) * (adj[i * K + j] ? 0.7 : 1);
+            const e = dE(L[i], L[j]) * (adj[i * K + j] ? 0.7 : 1) * (compatible(L[i], L[j], T) ? 1 : 2.5);
             if (e < fd) { fd = e; bi = i; bj = j; }
           }
         }
@@ -318,47 +332,51 @@ window.VPE = (function () {
     }
   }
 
-  /* квантизация: k-means++ по выборке пикселей, потом метка каждому пикселю (-1 = прозрачный), потом слияние близких цветов.
-     При K > 48 ближайший центр ищется через кэш по 6-битным ячейкам RGB (иначе при 512 цветах на большой картинке — миллиарды операций). */
+  /* квантизация: k-means++ в Lab по выборке пикселей, потом метка каждому пикселю (-1 = прозрачный), потом слияние близких цветов.
+     Расстояние: ΔL² + 1.4·(Δa² + Δb²) — цветность весит больше яркости, чтобы оттенки не смешивались в тенях.
+     Ближайший центр для всех пикселей ищется через кэш по 6-битным ячейкам RGB (Lab считается один раз на ячейку). */
+  const CW = 1.4;
   function quantize(d, w, h, K, seed, T, minShare, maxL) {
     const n = w * h, rnd = rng(seed), S = [], step = Math.max(1, Math.floor(n / 40000));
     for (let i = 0, k = 0; i < n; i += step + ((k++ & 1) && step > 1 ? 1 : 0)) if (d[i * 4 + 3] >= 128) S.push(i);
     if (!S.length) return null;
     const m = S.length; K = Math.max(1, Math.min(K, m));
-    const C = new Float32Array(K * 3), dist = new Float32Array(m).fill(1e12);
-    let f = S[(rnd() * m) | 0] * 4; C[0] = d[f]; C[1] = d[f + 1]; C[2] = d[f + 2];
+    const SL = new Float32Array(m * 3);
+    for (let s = 0; s < m; s++) { const q = S[s] * 4, l = lab(d[q], d[q + 1], d[q + 2]); SL[3 * s] = l[0]; SL[3 * s + 1] = l[1]; SL[3 * s + 2] = l[2]; }
+    const C = new Float32Array(K * 3), CL = new Float32Array(K * 3), dist = new Float32Array(m).fill(1e12);
+    const dl = (s, c) => { const x = SL[3 * s] - CL[3 * c], y = SL[3 * s + 1] - CL[3 * c + 1], z = SL[3 * s + 2] - CL[3 * c + 2]; return x * x + CW * (y * y + z * z); };
+    const setC = (c, s) => { const q = S[s] * 4; C[3 * c] = d[q]; C[3 * c + 1] = d[q + 1]; C[3 * c + 2] = d[q + 2]; CL[3 * c] = SL[3 * s]; CL[3 * c + 1] = SL[3 * s + 1]; CL[3 * c + 2] = SL[3 * s + 2]; };
+    setC(0, (rnd() * m) | 0);
     for (let c = 1; c < K; c++) {
       let tot = 0;
-      for (let s = 0; s < m; s++) {
-        const q = S[s] * 4, dr = d[q] - C[3 * c - 3], dg = d[q + 1] - C[3 * c - 2], db = d[q + 2] - C[3 * c - 1], e = dr * dr + dg * dg + db * db;
-        if (e < dist[s]) dist[s] = e; tot += dist[s];
-      }
+      for (let s = 0; s < m; s++) { const e = dl(s, c - 1); if (e < dist[s]) dist[s] = e; tot += dist[s]; }
       let t = rnd() * tot, pick = m - 1;
       for (let s = 0; s < m; s++) { t -= dist[s]; if (t <= 0) { pick = s; break; } }
-      const q = S[pick] * 4; C[3 * c] = d[q]; C[3 * c + 1] = d[q + 1]; C[3 * c + 2] = d[q + 2];
+      setC(c, pick);
     }
-    const sum = new Float64Array(K * 3), cnt = new Int32Array(K);
+    const sum = new Float64Array(K * 3), sl = new Float64Array(K * 3), cnt = new Int32Array(K);
     for (let it = 0; it < 8; it++) {
-      sum.fill(0); cnt.fill(0);
+      sum.fill(0); sl.fill(0); cnt.fill(0);
       for (let s = 0; s < m; s++) {
-        const q = S[s] * 4, r = d[q], g = d[q + 1], b = d[q + 2];
+        const q = S[s] * 4;
         let best = 0, bd = 1e12;
-        for (let c = 0; c < K; c++) { const dr = r - C[3 * c], dg = g - C[3 * c + 1], db = b - C[3 * c + 2], e = dr * dr + dg * dg + db * db; if (e < bd) { bd = e; best = c; } }
-        sum[3 * best] += r; sum[3 * best + 1] += g; sum[3 * best + 2] += b; cnt[best]++;
+        for (let c = 0; c < K; c++) { const e = dl(s, c); if (e < bd) { bd = e; best = c; } }
+        sum[3 * best] += d[q]; sum[3 * best + 1] += d[q + 1]; sum[3 * best + 2] += d[q + 2];
+        sl[3 * best] += SL[3 * s]; sl[3 * best + 1] += SL[3 * s + 1]; sl[3 * best + 2] += SL[3 * s + 2]; cnt[best]++;
       }
-      for (let c = 0; c < K; c++) if (cnt[c]) { C[3 * c] = sum[3 * c] / cnt[c]; C[3 * c + 1] = sum[3 * c + 1] / cnt[c]; C[3 * c + 2] = sum[3 * c + 2] / cnt[c]; }
+      for (let c = 0; c < K; c++) if (cnt[c]) for (let j = 0; j < 3; j++) { C[3 * c + j] = sum[3 * c + j] / cnt[c]; CL[3 * c + j] = sl[3 * c + j] / cnt[c]; }
     }
-    const labels = new Int16Array(n), counts = new Int32Array(K), useLut = K > 48, lut = useLut ? new Int16Array(262144).fill(-1) : null;
+    const labels = new Int16Array(n), counts = new Int32Array(K), lut = new Int16Array(262144).fill(-1);
     for (let i = 0; i < n; i++) {
       const q = i * 4;
       if (d[q + 3] < 128) { labels[i] = -1; continue; }
-      const r = d[q], g = d[q + 1], b = d[q + 2];
-      let best = -1, key = 0, rr = r, gg = g, bb = b;
-      if (useLut) { key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2); best = lut[key]; rr = (r & 252) + 2; gg = (g & 252) + 2; bb = (b & 252) + 2; }
+      const r = d[q], g = d[q + 1], b = d[q + 2], key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+      let best = lut[key];
       if (best < 0) {
+        const l = lab((r & 252) + 2, (g & 252) + 2, (b & 252) + 2);
         let bd = 1e12; best = 0;
-        for (let c = 0; c < K; c++) { const dr = rr - C[3 * c], dg = gg - C[3 * c + 1], db = bb - C[3 * c + 2], e = dr * dr + dg * dg + db * db; if (e < bd) { bd = e; best = c; } }
-        if (useLut) lut[key] = best;
+        for (let c = 0; c < K; c++) { const x = l[0] - CL[3 * c], y = l[1] - CL[3 * c + 1], z = l[2] - CL[3 * c + 2], e = x * x + CW * (y * y + z * z); if (e < bd) { bd = e; best = c; } }
+        lut[key] = best;
       }
       labels[i] = best; counts[best]++;
     }
@@ -630,7 +648,7 @@ window.VPE = (function () {
       if (cor && cor[i]) { o[2 * i] = L[2 * i]; o[2 * i + 1] = L[2 * i + 1]; continue; }
       const p = (i + n - 1) % n, q = (i + 1) % n;
       o[2 * i] = 0.25 * L[2 * p] + 0.5 * L[2 * i] + 0.25 * L[2 * q];
-      o[2 * i + 1] = 0.25 * L[2 * p + 1] + 0.5 * L[2 * i] * 0 + 0.5 * L[2 * i + 1] + 0.25 * L[2 * q + 1];
+      o[2 * i + 1] = 0.25 * L[2 * p + 1] + 0.5 * L[2 * i + 1] + 0.25 * L[2 * q + 1];
     }
     return o;
   }
@@ -747,7 +765,7 @@ window.VPE = (function () {
       d = kt0;
     }
     if (f > 1) { say('Увеличиваю вход ×' + f + '…'); await tick(); d = upscale(d, w0, h0, f); }
-    say('Строю палитру (' + reqK + ' цветов)…'); await tick();
+    say('Строю палитру (' + reqK + ' цветов, Lab)…'); await tick();
     const Q = quantize(d, w, h, reqK, 12345, T, o.minShare != null ? o.minShare : 0.0008, maxL);
     if (!Q) throw new Error('картинка полностью прозрачная');
     const K = Q.order.length;
