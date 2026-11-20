@@ -1,23 +1,24 @@
 /* VPE-α (Vector Pixel Enhancement alpha): самописный апскейлер. Читает пиксели и перерисовывает картинку в SVG.
-   Конвейер (v0.6, «физический» движок сглаживания):
+   Конвейер (v0.7, «физический» движок сглаживания):
    -1) мелкие картинки предварительно увеличиваются бикубикой (Митчелл) — иначе фильтры радиусом в 1 px стирают детали
    0) быстрая оценка резкости (дисперсия Лапласиана)
    1) анизотропная диффузия Перона–Малика (c = exp(−(|∇I|/K)²)): цвет растекается внутри однородных областей и тормозит на краях
-      → k-means++ → слияние близких смежных цветов (ΔE в Lab). Фильтр Кувахары — только по явной опции kuwahara.
+      → k-means++ (до 512 цветов) → слияние близких смежных цветов (ΔE в Lab) и ограничение числа слоёв (до 256).
+      Фильтр Кувахары — только по явной опции kuwahara.
    2) маска «этот цвет и всё, что поверх» → поле; вместо гауссова размытия — поверхностное натяжение (Mean Curvature Flow):
       граница двигается со скоростью, равной кривизне, пиксельные «лесенки» выпрямляются, а кривизна ограничена — углы не съедаются
       · фон и распознанный текст — резкие; мягкие переходы — только по явной опции soft
       · текст ищется и как «пятно» слоя, и как «дырка» в слое (тёмный текст на светлой фигуре)
    3) marching squares → углы (Potrace-подход) → MCF контура (точка тянется к среднему соседей, углы закреплены, шаги Таубина без усадки)
       → Дуглас–Пекер → кривые Безье
-   4) защита от слоистости: если граница слоя лежит в зоне плавного градиента, слой смешивается с нижним мягким feGaussianBlur;
-      фоновый слой, текст (gmap) и слои с настоящими краями остаются резкими
+   4) «растирание» границ между слоями: каждый слой (кроме фона и текста) слегка размывается feGaussianBlur в пределах своего
+      прямоугольника; слои на плавных градиентах (полосы квантизации) — сильнее
    5) адаптивный speck (мягкие коэффициенты, потолок по площади картинки)
    6) словарь символов (data/glyphs.json)
    Всё в браузере, без внешних библиотек. */
 window.VPE = (function () {
   'use strict';
-  const VERSION = 'VPE-α 0.6';
+  const VERSION = 'VPE-α 0.7';
   const SRC = (document.currentScript && document.currentScript.src) || '';
   const tick = () => new Promise(r => setTimeout(r, 0));
   const r2 = v => Math.round(v * 100) / 100;
@@ -209,10 +210,13 @@ window.VPE = (function () {
     return out;
   }
 
-  /* MCF поля: считаем только в узкой полосе у границы (там, где 0 < u < 1) — вдали градиент нулевой и двигать нечего */
+  /* MCF поля: считаем только в узкой полосе у границы (там, где 0 < u < 1) — вдали градиент нулевой и двигать нечего.
+     Буфер индексов полосы переиспользуется между слоями (на больших картинках выделять его каждый раз слишком дорого). */
+  let BAND = null;
   function curvatureFlow(F, w, h, T, iters, dt, kmax) {
     let m = 0;
-    const idx = new Int32Array(w * h);
+    if (!BAND || BAND.length < w * h) BAND = new Int32Array(w * h);
+    const idx = BAND;
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, v = F[i]; if (v > 0.002 && v < 0.998) idx[m++] = i; }
     if (!m || iters < 1) return;
     T.set(F);
@@ -260,8 +264,9 @@ window.VPE = (function () {
 
   /* ---------- слияние близких смежных цветов (агломеративно, ΔE в Lab) ----------
      T — порог ΔE для смежных кластеров; несмежные сливаются только при ΔE < T/3; совсем мелкие кластеры
-     (кольца антиалиасинга) вливаются в ближайший смежный при ΔE < 4T. */
-  function mergeClose(C, labels, counts, K, w, h, T, minShare) {
+     (кольца антиалиасинга) вливаются в ближайший смежный при ΔE < 4T.
+     maxL — предел числа слоёв: если после слияния по порогу кластеров всё ещё больше, сливаем ближайшие пары (смежным — небольшая скидка) до maxL. */
+  function mergeClose(C, labels, counts, K, w, h, T, minShare, maxL) {
     const n = w * h, adj = new Uint8Array(K * K);
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -272,8 +277,9 @@ window.VPE = (function () {
       }
     }
     const cnt = Float64Array.from(counts), sum = new Float64Array(K * 3), alive = new Uint8Array(K), map = new Int16Array(K);
-    for (let c = 0; c < K; c++) { map[c] = c; alive[c] = cnt[c] > 0 ? 1 : 0; for (let j = 0; j < 3; j++) sum[3 * c + j] = C[3 * c + j] * cnt[c]; }
-    const tiny = minShare * n;
+    let nAlive = 0;
+    for (let c = 0; c < K; c++) { map[c] = c; alive[c] = cnt[c] > 0 ? 1 : 0; nAlive += alive[c]; for (let j = 0; j < 3; j++) sum[3 * c + j] = C[3 * c + j] * cnt[c]; }
+    const tiny = minShare * n, cap = maxL || 1e9;
     for (;;) {
       const L = [];
       for (let c = 0; c < K; c++) if (alive[c]) L[c] = lab(sum[3 * c] / cnt[c], sum[3 * c + 1] / cnt[c], sum[3 * c + 2] / cnt[c]);
@@ -287,9 +293,20 @@ window.VPE = (function () {
           if (ok && e < bd) { bd = e; bi = i; bj = j; }
         }
       }
+      if (bi < 0 && nAlive > cap) { // порог больше ничего не сливает, а слоёв всё ещё слишком много — сливаем ближайшую пару
+        let fd = 1e18;
+        for (let i = 0; i < K; i++) {
+          if (!alive[i]) continue;
+          for (let j = i + 1; j < K; j++) {
+            if (!alive[j]) continue;
+            const e = dE(L[i], L[j]) * (adj[i * K + j] ? 0.7 : 1);
+            if (e < fd) { fd = e; bi = i; bj = j; }
+          }
+        }
+      }
       if (bi < 0) break;
       for (let j = 0; j < 3; j++) sum[3 * bi + j] += sum[3 * bj + j];
-      cnt[bi] += cnt[bj]; alive[bj] = 0;
+      cnt[bi] += cnt[bj]; alive[bj] = 0; nAlive--;
       for (let k = 0; k < K; k++) if (adj[bj * K + k]) { adj[bi * K + k] = 1; adj[k * K + bi] = 1; }
       for (let c = 0; c < K; c++) if (map[c] === bj) map[c] = bi;
     }
@@ -301,8 +318,9 @@ window.VPE = (function () {
     }
   }
 
-  /* квантизация: k-means++ по выборке пикселей, потом метка каждому пикселю (-1 = прозрачный), потом слияние близких цветов */
-  function quantize(d, w, h, K, seed, T, minShare) {
+  /* квантизация: k-means++ по выборке пикселей, потом метка каждому пикселю (-1 = прозрачный), потом слияние близких цветов.
+     При K > 48 ближайший центр ищется через кэш по 6-битным ячейкам RGB (иначе при 512 цветах на большой картинке — миллиарды операций). */
+  function quantize(d, w, h, K, seed, T, minShare, maxL) {
     const n = w * h, rnd = rng(seed), S = [], step = Math.max(1, Math.floor(n / 40000));
     for (let i = 0, k = 0; i < n; i += step + ((k++ & 1) && step > 1 ? 1 : 0)) if (d[i * 4 + 3] >= 128) S.push(i);
     if (!S.length) return null;
@@ -330,18 +348,23 @@ window.VPE = (function () {
       }
       for (let c = 0; c < K; c++) if (cnt[c]) { C[3 * c] = sum[3 * c] / cnt[c]; C[3 * c + 1] = sum[3 * c + 1] / cnt[c]; C[3 * c + 2] = sum[3 * c + 2] / cnt[c]; }
     }
-    const labels = new Int16Array(n), counts = new Int32Array(K);
+    const labels = new Int16Array(n), counts = new Int32Array(K), useLut = K > 48, lut = useLut ? new Int16Array(262144).fill(-1) : null;
     for (let i = 0; i < n; i++) {
       const q = i * 4;
       if (d[q + 3] < 128) { labels[i] = -1; continue; }
       const r = d[q], g = d[q + 1], b = d[q + 2];
-      let best = 0, bd = 1e12;
-      for (let c = 0; c < K; c++) { const dr = r - C[3 * c], dg = g - C[3 * c + 1], db = b - C[3 * c + 2], e = dr * dr + dg * dg + db * db; if (e < bd) { bd = e; best = c; } }
+      let best = -1, key = 0, rr = r, gg = g, bb = b;
+      if (useLut) { key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2); best = lut[key]; rr = (r & 252) + 2; gg = (g & 252) + 2; bb = (b & 252) + 2; }
+      if (best < 0) {
+        let bd = 1e12; best = 0;
+        for (let c = 0; c < K; c++) { const dr = rr - C[3 * c], dg = gg - C[3 * c + 1], db = bb - C[3 * c + 2], e = dr * dr + dg * dg + db * db; if (e < bd) { bd = e; best = c; } }
+        if (useLut) lut[key] = best;
+      }
       labels[i] = best; counts[best]++;
     }
     let raw = 0;
     for (let c = 0; c < K; c++) if (counts[c]) raw++;
-    if (T > 0) mergeClose(C, labels, counts, K, w, h, T, minShare);
+    if (T > 0 || raw > (maxL || 1e9)) mergeClose(C, labels, counts, K, w, h, T, minShare, maxL);
     const order = [];
     for (let c = 0; c < K; c++) if (counts[c]) order.push(c);
     order.sort((a, b) => counts[b] - counts[a]);
@@ -607,7 +630,7 @@ window.VPE = (function () {
       if (cor && cor[i]) { o[2 * i] = L[2 * i]; o[2 * i + 1] = L[2 * i + 1]; continue; }
       const p = (i + n - 1) % n, q = (i + 1) % n;
       o[2 * i] = 0.25 * L[2 * p] + 0.5 * L[2 * i] + 0.25 * L[2 * q];
-      o[2 * i + 1] = 0.25 * L[2 * p + 1] + 0.5 * L[2 * i + 1] + 0.25 * L[2 * q + 1];
+      o[2 * i + 1] = 0.25 * L[2 * p + 1] + 0.5 * L[2 * i] * 0 + 0.5 * L[2 * i + 1] + 0.25 * L[2 * q + 1];
     }
     return o;
   }
@@ -671,15 +694,17 @@ window.VPE = (function () {
   }
 
   /* основной конвейер. im: ImageData;
-     o: {colors, sigma, eps, speck, passes, denoise, scale,
+     o: {colors (до 512), maxLayers (до 256, по умолчанию 256), sigma, eps, speck, passes, denoise, scale,
          corner (градусы, по умолчанию 120), deltaE (порог слияния цветов, по умолчанию 7), minShare,
          pm (число итераций Перона–Малика; по умолчанию 3, с denoise 10; false/0 — выключить), pmK (порог K; по умолчанию авто),
          mcf (множитель силы поверхностного натяжения; по умолчанию 1; false — вернуть гауссово размытие), mcfKmax (предел кривизны, по умолчанию 0.35),
-         gradBlur (false — без смешивания слоёв на плавных градиентах), gradLow (порог градиента, уровней на px исходника; по умолчанию 14),
-         kuwahara (радиус по цвету; по умолчанию 0 — теперь вместо него Перона–Малик; всегда ограничен размером картинки),
+         smudge (0..1, «растирание» границ между слоями; по умолчанию 0.4; 0 — выключить),
+         gradBlur (false — без усиленного смешивания слоёв на плавных градиентах), gradLow (порог градиента, уровней на px исходника; по умолчанию 14),
+         layerBudget (предел «пиксели × слои» для защиты памяти; по умолчанию 9e8 — при 4096×4096 это ~53 слоя, при 2048×2048 ~214),
+         kuwahara (радиус по цвету; по умолчанию 0 — теперь вместо него Перона–Малика; всегда ограничен размером картинки),
          prescale (во сколько раз увеличить вход перед трассировкой; по умолчанию авто — до ~512 px),
          soft (0..1, мягкость переходов; по умолчанию 0 — включается только явно), softBlur (false — без SVG-блюра),
-         adaptive (false — без подстройки по резкости), glyphs (false — без словаря символов), glyphUrl}
+         adaptive (false — без подстройки по резкости), glyphs (false — без словаря символов; для картинок >4 млн px отключён сам), glyphUrl}
      sigma, eps и speck задаются в пикселях исходной картинки. */
   async function run(im, o, say) {
     say = say || function () {};
@@ -689,8 +714,10 @@ window.VPE = (function () {
     const w = w0 * f, h = h0 * f, n = w * h;
     const maxR = big <= 200 ? 1 : big <= 500 ? 2 : 3; // максимальный радиус Кувахары по размеру картинки
     let sigma = o.sigma || 0.8, eps = Math.max(0.3, o.eps != null ? o.eps : 0.3) * f, passes = o.passes || 0, denoise = o.denoise, T = o.deltaE != null ? o.deltaE : 7;
-    const deg = o.corner || 120, sp0 = (o.speck || 0) * f * f, scale = o.scale || 4, reqK = o.colors || 24;
+    const deg = o.corner || 120, sp0 = (o.speck || 0) * f * f, scale = o.scale || 4, reqK = Math.max(1, Math.min(512, Math.round(o.colors || 24)));
     T *= Math.max(0.5, Math.min(1, Math.sqrt(24 / reqK))); // много слоёв просили — не сливаем их в 20–30 (раньше «64 цвета» давали ~25 слоёв)
+    /* предел числа слоёв: просьба пользователя, но не больше, чем память выдержит (каждый слой — несколько проходов по всей картинке) */
+    const maxL = Math.max(2, Math.min(o.maxLayers != null ? Math.round(o.maxLayers) : 256, 256, Math.floor((o.layerBudget || 9e8) / n)));
 
     say('Оцениваю резкость…'); await tick();
     const sh = sharpness(im), level = sh.level;
@@ -704,7 +731,9 @@ window.VPE = (function () {
 
     let d = im.data;
     /* 1) предобработка: анизотропная диффузия Перона–Малика вместо обычного размытия */
-    const pmIt = o.pm === false ? 0 : (o.pm != null ? Math.max(0, Math.round(o.pm)) : (denoise ? 10 : 3));
+    let pmIt = o.pm === false ? 0 : (o.pm != null ? Math.max(0, Math.round(o.pm)) : (denoise ? 10 : 3));
+    const px0 = w0 * h0;
+    if (pmIt > 0 && px0 > 1.5e6) pmIt = Math.max(1, Math.min(pmIt, Math.round(3e7 / px0))); // на огромных картинках итераций меньше, иначе минуты ожидания
     let pmK = 0;
     if (pmIt > 0) {
       say('Диффузия Перона–Малика (' + pmIt + ' ит.)…'); await tick();
@@ -718,8 +747,8 @@ window.VPE = (function () {
       d = kt0;
     }
     if (f > 1) { say('Увеличиваю вход ×' + f + '…'); await tick(); d = upscale(d, w0, h0, f); }
-    say('Строю палитру…'); await tick();
-    const Q = quantize(d, w, h, reqK, 12345, T, o.minShare != null ? o.minShare : 0.0008);
+    say('Строю палитру (' + reqK + ' цветов)…'); await tick();
+    const Q = quantize(d, w, h, reqK, 12345, T, o.minShare != null ? o.minShare : 0.0008, maxL);
     if (!Q) throw new Error('картинка полностью прозрачная');
     const K = Q.order.length;
     /* карта градиента: по ней отличаем плавные градиенты (полосы квантизации) от настоящих краёв */
@@ -736,7 +765,7 @@ window.VPE = (function () {
     const speckEff = Math.min(sp0 * sf, Math.max(sp0, n * 0.0004));
 
     let GS = null, gp = null;
-    if (o.glyphs !== false) {
+    if (o.glyphs !== false && n <= 4e6) {
       say('Загружаю словарь символов…'); await tick();
       const idx = await loadGlyphs(o.glyphUrl);
       if (idx && idx.t.length) {
@@ -753,11 +782,19 @@ window.VPE = (function () {
     const mcfIters = mcfOn ? Math.max(2, Math.min(60, Math.round(fieldSigma * fieldSigma * 2.5 * mcfK))) : 0;
     const mcfKmax = o.mcfKmax != null ? o.mcfKmax : 0.35;
     const mcfSteps = mcfOn ? Math.max(1, Math.round((2 + f / 2) * mcfK)) : 0;
+    /* 4) «растирание» границ между слоями: небольшой блюр каждого слоя (σ в пикселях рабочей сетки) */
+    const smudge = Math.max(0, Math.min(1, o.smudge != null ? +o.smudge : 0.4));
+    const smudgeSd = smudge > 0 ? r2(Math.max(0.25, smudge * 0.8 * (1 + 0.25 * (f - 1)))) : 0;
 
     const mask = new Float32Array(n), Fn = new Float32Array(n), tmp = new Float32Array(n), kt = new Float32Array(n), Fg = GS ? new Float32Array(n) : null;
     const Wp = w + 4, Hp = h + 4, P = new Float32Array(Wp * Hp);
-    let shapes = '', loopsN = 0, nodes = 0, glyphHits = 0, softUsed = false, dropped = 0, gradUsed = false, gradLayers = 0;
+    let shapes = '', loopsN = 0, nodes = 0, glyphHits = 0, softUsed = false, dropped = 0, gradLayers = 0, smudged = 0, layerDefs = '';
     const opa = r2(1 - 0.25 * soft), blurSd = r2(0.4 + 0.8 * soft), gradSd = r2(Math.max(0.8, 0.5 * f));
+    /* фильтр с областью по прямоугольнику слоя (а не по всей картинке): иначе сотни слоёв × полный кадр — это минуты рендера */
+    const layerFilter = (id, sd, bb) => {
+      const mg = Math.ceil(sd * 4) + 2;
+      layerDefs += '<filter id="' + id + '" filterUnits="userSpaceOnUse" x="' + r2(bb[0] - mg) + '" y="' + r2(bb[1] - mg) + '" width="' + r2(bb[2] - bb[0] + 2 * mg) + '" height="' + r2(bb[3] - bb[1] + 2 * mg) + '" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + sd + '"/></filter>';
+    };
     for (let ri = 0; ri < K; ri++) {
       say('Слой ' + (ri + 1) + ' из ' + K + '…'); await tick();
       const col = hex([Q.C[3 * Q.order[ri]], Q.C[3 * Q.order[ri] + 1], Q.C[3 * Q.order[ri] + 2]]);
@@ -787,10 +824,10 @@ window.VPE = (function () {
         }
       }
       const loops = marching(P, Wp, Hp);
-      /* первый проход: какие контуры — текст (gmap), и лежит ли граница слоя в зоне плавного градиента.
+      /* первый проход: какие контуры — текст (gmap), лежит ли граница слоя в зоне плавного градиента и каков прямоугольник слоя.
          Решение принимается на весь слой сразу (а не по контурам): дырки должны остаться в одном path с родителем (evenodd). */
       const gflag = new Uint8Array(loops.length);
-      let lowV = 0, totV = 0;
+      let lowV = 0, totV = 0, bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
       for (let li = 0; li < loops.length; li++) {
         const L = loops[li], m = L.length / 2;
         let inG = 0, lo = 0;
@@ -802,9 +839,12 @@ window.VPE = (function () {
         /* профиль текста — только если больше 60% вершин контура лежат в gmap */
         const isG = hasG && inG > 0.6 * m;
         gflag[li] = isG ? 1 : 0;
-        if (!isG && area(L) >= speckEff) { lowV += lo; totV += m; }
+        if (!isG && area(L) >= speckEff) {
+          lowV += lo; totV += m;
+          for (let i = 0; i < m; i++) { const x = L[2 * i], y = L[2 * i + 1]; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+        }
       }
-      /* фон (ri = 0) и слои с настоящими краями остаются резкими; смешиваем только слой, чья граница почти целиком в зоне низкого градиента */
+      /* фон (ri = 0) и текст остаются резкими; слой, чья граница почти целиком в зоне низкого градиента, смешивается сильнее */
       const gradLayer = !!gm && ri > 0 && !softLayer && totV >= 12 && lowV > 0.8 * totV;
       let dn = '', dg = '';
       for (let li = 0; li < loops.length; li++) {
@@ -824,26 +864,28 @@ window.VPE = (function () {
         loopsN++; nodes += S.L.length / 2;
       }
       if (dn) {
+        const bb = [bx0, by0, bx1, by1];
         if (softLayer) {
           softUsed = true;
           const pth = '<path fill="' + col + '" fill-opacity="' + opa + '" fill-rule="evenodd" d="' + dn + '"/>';
           shapes += o.softBlur === false ? pth : '<g filter="url(#vpe-soft)">' + pth + '</g>';
-        } else if (gradLayer) {
-          gradUsed = true; gradLayers++;
-          shapes += '<g filter="url(#vpe-grad)"><path fill="' + col + '" fill-rule="evenodd" d="' + dn + '"/></g>';
+        } else if (ri > 0 && bx1 > bx0 && (gradLayer || smudgeSd > 0)) {
+          const sd = gradLayer ? Math.max(gradSd, smudgeSd) : smudgeSd;
+          layerFilter('vpe-l' + ri, sd, bb);
+          if (gradLayer) gradLayers++; else smudged++;
+          shapes += '<g filter="url(#vpe-l' + ri + ')"><path fill="' + col + '" fill-rule="evenodd" d="' + dn + '"/></g>';
         } else shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dn + '"/>';
       }
       if (dg) shapes += '<path fill="' + col + '" fill-rule="evenodd" d="' + dg + '"/>';
     }
-    /* область фильтра — всё изображение с запасом, чтобы блюр не обрезался и не давал полос на краях */
+    /* область общего фильтра soft — всё изображение с запасом, чтобы блюр не обрезался и не давал полос на краях */
     const flt = (id, sd) => '<filter id="' + id + '" filterUnits="userSpaceOnUse" x="-4" y="-4" width="' + (w + 8) + '" height="' + (h + 8) + '" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + sd + '" edgeMode="duplicate"/></filter>';
-    let defs = '';
+    let defs = layerDefs;
     if (softUsed && o.softBlur !== false) defs += flt('vpe-soft', blurSd);
-    if (gradUsed) defs += flt('vpe-grad', gradSd);
     if (defs) defs = '<defs>' + defs + '</defs>';
     const W = Math.round(w0 * scale), H = Math.round(h0 * scale);
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + W + '" height="' + H + '" shape-rendering="geometricPrecision">' + defs + shapes + '</svg>';
-    return { svg: svg, w: w0, h: h0, W: W, H: H, stats: { prescale: f, fieldSigma: r2(fieldSigma), layers: K, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: level }, kuwahara: kr, soft: soft, speck: r2(speckEff), droppedLoops: dropped, pm: { iters: pmIt, K: r2(pmK) }, mcf: { iters: mcfIters, steps: mcfSteps }, gradLayers: gradLayers } };
+    return { svg: svg, w: w0, h: h0, W: W, H: H, stats: { prescale: f, fieldSigma: r2(fieldSigma), layers: K, maxLayers: maxL, colors: reqK, rawColors: Q.raw, paths: loopsN, nodes: nodes, bytes: svg.length, glyphs: glyphHits, sharpness: { variance: r2(sh.variance), level: level }, kuwahara: kr, soft: soft, speck: r2(speckEff), droppedLoops: dropped, pm: { iters: pmIt, K: r2(pmK) }, mcf: { iters: mcfIters, steps: mcfSteps }, smudge: { sd: smudgeSd, layers: smudged }, gradLayers: gradLayers } };
   }
 
   return { version: VERSION, run: run, sharpness: sharpness, loadGlyphs: loadGlyphs };
