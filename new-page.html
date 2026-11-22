@@ -1,238 +1,578 @@
 ---
 layout: default
-title: Новая страница — a51bfcts Вики
+title: Редактор страниц — a51bfcts Вики
 custom_css: /css/main.css
 ---
 {% raw %}
 <style>
+  [hidden] { display: none !important; }
   .ed-card { background: linear-gradient(160deg, var(--panel-hi), var(--panel)); border: 1px solid var(--neon-line); border-radius: 14px; padding: 14px; margin: 18px 0; }
   .ed-card h3 { margin: 0 0 10px; font-family: var(--display); color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
+  .ed-card summary { cursor: pointer; font-family: var(--display); font-size: 18px; color: var(--ink); text-shadow: 0 0 8px rgba(160,102,255,.6); }
   .ed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
-  .ed-row label { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ed-row label, label.blk { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  label.blk { display: block; margin: 10px 0; }
   .ed-row label.grow { flex: 1 1 260px; }
-  .ed-card input[type=text], .ed-card input[type=password], .ed-card select {
+  .ed-card input[type=text], .ed-card input[type=password], .ed-card select, .ed-card textarea {
     background: #120e1a; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 100%; box-sizing: border-box;
   }
   .ed-card input[type=text], .ed-card input[type=password] { flex: 1 1 200px; }
+  label.blk input[type=text] { width: 100%; margin-top: 4px; }
+  .ed-card textarea { width: 100%; min-height: 88px; margin-top: 4px; font: 14px/1.45 sans-serif; }
+  #mdRaw { min-height: 340px; background: #0b090f; border-radius: 10px; padding: 10px; font: 13px/1.45 ui-monospace, Consolas, monospace; }
   .ed-btn { background: rgba(160,102,255,.12); color: #fff; border: 1px solid rgba(160,102,255,.45); border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+  .ed-btn.on, .lang-btn.on { background: rgba(160,102,255,.45); border-color: var(--neon); box-shadow: 0 0 10px rgba(160,102,255,.5); }
   .ed-btn:disabled { opacity: .5; cursor: default; }
   .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
-  #kindInfo { font-size: 13px; }
+  .ok { color: #8dffb0; } .warn { color: #ffd76a; } .err { color: #ff7a8a; }
   #log { font-size: 13px; margin-top: 8px; word-break: break-word; white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; }
-  #log .ok { color: #8dffb0; } #log .warn { color: #ffd76a; } #log .err { color: #ff7a8a; }
-  #md { width: 100%; min-height: 260px; box-sizing: border-box; background: #0b090f; color: #e2daf0; border: 1px solid rgba(160,102,255,.4); border-radius: 10px; padding: 10px; font: 13px/1.45 ui-monospace, Consolas, monospace; }
+  .sec { border-left: 2px solid rgba(160,102,255,.4); padding-left: 10px; margin: 14px 0; }
+  .pages { max-height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+  .pages .ed-btn { text-align: left; }
+  #preview { overflow-wrap: anywhere; line-height: 1.55; }
+  .thumb { max-width: 160px !important; margin: 6px 0 !important; }
+  #cf { width: 100%; height: 640px; border: 0; background: transparent; margin-top: 8px; }
+  .banner { border: 1px dashed rgba(255,215,106,.6); border-radius: 10px; padding: 8px 10px; margin: 10px 0; font-size: 13px; }
 </style>
 
-<h1>📄 Новая страница</h1>
-<p class="hint">Создаёт страницу-заготовку <code>имя.md</code> и (по желанию) добавляет её карточку в список раздела (docs/coils.md / wands.md / other.md). Делает то же, что скрипт <code>.github/scripts/new_page.py</code>, но без запуска workflow.</p>
-
-<div class="ed-card">
-  <h3>Страница</h3>
-  <div class="ed-row"><label class="grow">Имя файла <input type="text" id="name" placeholder="reversecoil" autocomplete="off" spellcheck="false"></label></div>
-  <div class="ed-row"><label class="grow">Название <input type="text" id="title" placeholder="если пусто, возьмётся имя файла" maxlength="100"></label></div>
-  <div class="ed-row">
-    <label>Тип
-      <select id="kind">
-        <option value="auto">auto (по имени)</option>
-        <option value="coil">coil (катушка)</option>
-        <option value="wand">wand (палочка)</option>
-        <option value="other">other (предмет)</option>
-      </select>
-    </label>
-    <label><input type="checkbox" id="card" checked> Добавить карточку в список раздела</label>
-  </div>
-  <div id="kindInfo" class="hint"></div>
-  <p class="hint">Имя: только латиница, цифры, - и _ (без пробелов и русских букв), до 61 символа. Если в имени есть <code>coil</code> — тип катушка, <code>wand</code> — палочка.</p>
+<h1>📄 Редактор страниц</h1>
+<p class="hint">Создаёт новую страницу или правит существующую в <code>docs/</code>, добавляет карточку в список раздела и рисует обложку, всё одним коммитом. Без Markdown: «Простой» режим для текста по полям.</p>
+<div class="lang-switcher" role="tablist">
+  <button class="lang-btn on" data-tab="new">✨ Новая страница</button>
+  <button class="lang-btn" data-tab="edit">📂 Править существующую</button>
+</div>
+<div class="ed-row">
+  <button class="ed-btn on" data-mode="simple">🙂 Простой</button>
+  <button class="ed-btn" data-mode="adv">🛠 Продвинутый (сырой Markdown)</button>
 </div>
 
-<div class="ed-card">
-  <h3>Предпросмотр .md</h3>
-  <textarea id="md" spellcheck="false"></textarea>
-  <p class="hint">Текст можно поправить прямо здесь — зальётся именно он. Если поменять имя, тип или название, предпросмотр пересоберётся заново.</p>
-  <div class="ed-row"><button class="ed-btn" id="dl">⬇️ Скачать .md</button></div>
-</div>
-
-<div class="ed-card">
-  <h3>Залить в GitHub</h3>
+<details class="ed-card" id="conn" open>
+  <summary>🔑 Подключение к GitHub <span id="connState" class="hint"></span></summary>
   <div class="ed-row">
     <label>Репозиторий <input type="text" id="repo" value="kpblm4ik/a51bfcts_wikipedia"></label>
-    <label>Ветка <input type="text" id="branch" value="main" style="flex:0 1 120px"></label>
+    <label>Ветка <input type="text" id="branch" value="main" style="flex:0 1 110px"></label>
   </div>
-  <div class="ed-row"><label class="grow">GitHub-токен <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…"></label></div>
-  <p class="hint">Нужен fine-grained токен только для этого репозитория с правом Contents: Read and write. Токен хранится только в поле на странице и пропадает при обновлении.</p>
-  <div class="ed-row"><button class="ed-btn" id="go">⬆️ Создать страницу</button></div>
-  <div id="log"></div>
+  <div class="ed-row"><label style="flex:1">Токен <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…"></label></div>
+  <div class="ed-row">
+    <label><input type="checkbox" id="remember"> запомнить токен на этом устройстве</label>
+    <button class="ed-btn" id="check">Проверить доступ</button>
+  </div>
+  <p class="hint">Токен fine-grained, только для этого репозитория, право Contents: Read and write. Если запомнить, он лежит в localStorage этого браузера (виден любому скрипту на этом сайте), поэтому включай только на своём устройстве. Без токена можно писать и скачать .md: заливать будет тот, у кого токен.</p>
+</details>
+
+<div id="pane-new" class="ed-card">
+  <h3>Что создаём</h3>
+  <div class="ed-row" id="kinds"></div>
+  <label class="blk">Название (как увидят читатели)<input type="text" id="title" maxlength="100" placeholder="Катушка пустоты" autocomplete="off"></label>
+  <label class="blk">Адрес страницы: латиница, цифры, - и _<input type="text" id="slug" placeholder="voidcoil" autocomplete="off" spellcheck="false"></label>
+  <div id="slugInfo" class="hint"></div>
+  <div id="draftBox"></div>
+</div>
+
+<div id="pane-edit" class="ed-card" hidden>
+  <h3>Какую страницу правим</h3>
+  <div class="ed-row"><input type="text" id="find" placeholder="поиск по имени…" autocomplete="off"><button class="ed-btn" id="reload">↻ Обновить список</button></div>
+  <div class="pages" id="pages"></div>
+  <div id="editInfo" class="hint"></div>
+</div>
+
+<div id="work">
+  <div class="ed-card">
+    <h3>Картинка на странице</h3>
+    <div class="ed-row"><input type="file" id="shotFile" accept="image/*"><label><input type="checkbox" id="shrink" checked> сжать (WebP, до 1080 px)</label></div>
+    <div id="shotInfo" class="hint">Скриншот ляжет в images/. Сжатие уменьшает вес репозитория.</div>
+  </div>
+
+  <div class="ed-card">
+    <h3>Текст страницы</h3>
+    <div class="ed-row" id="tb">
+      <button class="ed-btn" data-fmt="b"><b>Ж</b></button><button class="ed-btn" data-fmt="i"><i>К</i></button>
+      <button class="ed-btn" data-fmt="ul">• Список</button><button class="ed-btn" data-fmt="ol">1. Список</button>
+    </div>
+    <div id="simpleBox"></div>
+    <div id="advBox" hidden>
+      <textarea id="mdRaw" class="mdta" spellcheck="false"></textarea>
+      <p class="hint">Весь файл целиком, включая шапку между ---. Адрес в permalink должен совпадать с полем «Адрес».</p>
+    </div>
+  </div>
+
+  <details class="ed-card" id="coverCard">
+    <summary>🖼 Обложка в списке раздела</summary>
+    <div class="ed-row" id="cm"></div>
+    <div id="cb-list" hidden>
+      <div class="ed-row"><select id="coverSel"></select><button class="ed-btn" id="coverOpen" hidden>🎨 Открыть в редакторе</button></div>
+      <img id="coverPrev" class="thumb" alt="">
+    </div>
+    <div id="cb-draw" hidden>
+      <iframe id="cf" title="Редактор обложек"></iframe>
+      <div class="ed-row"><button class="ed-btn" id="coverTake">✅ Взять эту обложку</button></div>
+      <div id="takenInfo" class="hint"></div>
+    </div>
+    <div id="coverInfo" class="hint"></div>
+  </details>
+
+  <details class="ed-card" id="pvCard" open>
+    <summary>👁 Предпросмотр</summary>
+    <div id="preview"></div>
+  </details>
+
+  <div class="ed-card">
+    <h3>Сохранить</h3>
+    <div class="ed-row" id="cardRow"><label><input type="checkbox" id="addCard" checked> добавить карточку в список раздела</label></div>
+    <div class="ed-row"><label style="flex:1">Сообщение коммита <input type="text" id="msg" placeholder="по умолчанию подставится само"></label></div>
+    <div id="dirty" class="hint"></div>
+    <div class="ed-row">
+      <button class="ed-btn" id="go">⬆️ Создать страницу</button>
+      <button class="ed-btn" id="dl">⬇️ Скачать .md</button>
+    </div>
+    <div id="log"></div>
+  </div>
 </div>
 
 <script>
 (function () {
-const $ = s => document.querySelector(s);
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const DOCS = 'docs/', SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,60}$/;
+const SECS = ['coils', 'wands', 'other', 'mobs', 'places'];
+const KINDS = { coil: ['⚡ Катушка', 'coils', 'coil.svg'], wand: ['🪄 Палочка', 'wands', 'wand.svg'], other: ['📦 Предмет', 'other'], mob: ['👾 Моб', 'mobs'], place: ['📍 Место', 'places'] };
+const stdCover = k => '../images/' + (KINDS[k][2] ? 'covers/' + KINDS[k][2] : 'Screenshot_20261005_180545.avif');
+const TR = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya' };
+const slugify = t => t.toLowerCase().split('').map(c => TR[c] !== undefined ? TR[c] : c).join('').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 61);
+const b64enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (let i = 0; i < b.length; i += 0x8000) x += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(x); };
+const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+const norm = s => s.replace(/\s+/g, ' ').trim();
 
-/* ---------- то же, что в new_page.py ---------- */
-const KINDS = {
-  coil:  { thing: 'катушка', parent: 'coils', parent_title: 'Катушкам', cover: 'images/covers/coil.svg' },
-  wand:  { thing: 'палочка', parent: 'wands', parent_title: 'Палочкам', cover: 'images/covers/wand.svg' },
-  other: { thing: 'предмет', parent: 'other', parent_title: 'разделу',  cover: 'images/Screenshot_20261005_180545.avif' }
-};
+const S = { tab: 'new', adv: false, kind: 'coil', title: '', slug: '', slugTouched: false, fm: '', origTitle: null, img: '', boldName: '',
+  introMode: 'fields', desc: '', about: '', introRaw: '',
+  sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }], md: '', orig: null, shot: null,
+  coverMode: 'std', coverSel: '', coverFrom: '', coverSvg: '', pages: [], covers: [] };
 
-const TEMPLATE = (t, k) => `---
-layout: default
-title: ${t} — a51bfcts Вики
-custom_css: /css/main.css
----
+function log(cls, m) { $('#log').insertAdjacentHTML('beforeend', `<div class="${cls}">${esc(m)}</div>`); }
 
-# ${t}
-
-<div class="item-card">
-<img loading="lazy" decoding="async" src="images/Screenshot_ГГГГММДД_ЧЧММСС.avif" alt="${t}">
-</div>
-
-***Описание*** *- ВПИШИ ОДНУ ФРАЗУ: что делает ${k.thing}*
-
-**${t}** - ВПИШИ 1-2 ПРЕДЛОЖЕНИЯ: что это за ${k.thing}, чем она особенная.
-
-## Как получить
-
-<!-- Какой значок нужен, где его взять, шаги по порядку -->
-ВПИШИ СЮДА
-
-## Мелочи:
-
-<!-- Любые наблюдения, баги, трюки. Если есть координаты или видео, добавь -->
-ВПИШИ СЮДА
-`;
-
-const CARD = (name, img, t) => `
-  <a href="${name}.html" class="item-card">
-    <img src="${img}" alt="${t}">
-    <h3>${t}</h3>
-  </a>
-`;
-
-function detectKind(name) {
-  const n = name.toLowerCase(), w = n.includes('wand'), c = n.includes('coil');
-  if (w && !c) return 'wand';
-  if (c && !w) return 'coil';
-  return null;
+/* ---------- модель страницы <-> Markdown ---------- */
+function setFm(fm, key, val) {
+  const re = new RegExp('^' + key + ':.*$', 'm');
+  return re.test(fm) ? fm.replace(re, () => key + ': ' + val) : fm + (fm ? '\n' : '') + key + ': ' + val;
 }
-
-/* Разбор параметров: возвращает {name, title, kind, addCard, notes} или {error} */
-function resolve() {
-  let name = $('#name').value.trim();
-  if (name.toLowerCase().endsWith('.md')) name = name.slice(0, -3);
-  let title = $('#title').value.trim();
-  let kind = $('#kind').value;
-  const addCard = $('#card').checked, notes = [];
-
-  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,60}$/.test(name))
-    return { error: 'имя файла: только латиница, цифры, - и _ (без пробелов и русских букв), например reversecoil' };
-
-  const detected = detectKind(name);
-  if (kind === 'auto') {
-    if (detected) { kind = detected; notes.push(['ok', 'Тип определён по имени: ' + kind]); }
-    else {
-      kind = 'other';
-      const reason = (name.toLowerCase().includes('wand') && name.toLowerCase().includes('coil'))
-        ? 'есть и wand, и coil, поэтому тип непонятен' : 'нет ни wand, ни coil';
-      notes.push(['warn', `⚠️ Тип не определён. В имени «${name}» ${reason}, выбран тип other (предмет). Если это катушка или палочка, выберите тип вручную или поправьте имя.`]);
-    }
-  } else if (detected && detected !== kind) {
-    notes.push(['warn', `⚠️ Тип страницы изменён. В имени «${name}» есть «${detected}», а вы выбрали «${kind}». Автоматически использован тип «${detected}».`]);
-    kind = detected;
+function buildMd() {
+  const t = S.title.trim() || S.slug || 'Без названия';
+  let fm = S.fm || 'layout: default\ncustom_css: /css/main.css';
+  fm = setFm(fm, 'permalink', '/' + (S.slug || 'page') + '.html');
+  if (S.origTitle === null || S.title !== S.origTitle) fm = setFm(fm, 'title', t + ' — a51bfcts Вики');
+  let img = S.img;
+  if (S.shot) {
+    const src = '../images/' + S.shot.name;
+    img = img ? img.replace(/src="[^"]*"/, () => 'src="' + src + '"') : `<div class="item-card">\n<img loading="lazy" decoding="async" src="${src}" alt="${esc(t)}">\n</div>`;
   }
-  if (!title) title = name;
-  if (title.includes('\n') || title.length > 100) return { error: 'название должно быть в одну строку, до 100 символов' };
-  return { name, title, kind, addCard, notes };
+  const intro = S.introMode === 'fields' ? `***Описание*** *- ${S.desc.trim() || 'нет'}*\n\n**${S.boldName || t}** - ${S.about.trim()}` : S.introRaw.trim();
+  const parts = ['---\n' + fm + '\n---', '# ' + t];
+  if (img) parts.push(img.trim());
+  if (intro) parts.push(intro);
+  S.sections.forEach(s => parts.push('## ' + s.h.trim() + (s.b.trim() ? '\n\n' + s.b.trim() : '')));
+  return parts.join('\n\n') + '\n';
+}
+const curMd = () => S.adv ? S.md : buildMd();
+
+function parsePage(md) {
+  md = md.replace(/\r\n/g, '\n');
+  let fm = '', body = md;
+  const m = md.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (m) { fm = m[1]; body = m[2]; }
+  const lines = body.split('\n'); let i = 0, title = '';
+  while (i < lines.length && !lines[i].trim()) i++;
+  if (/^# /.test(lines[i] || '')) { title = lines[i].slice(2).trim(); i++; }
+  let head = '', secs = [];
+  lines.slice(i).join('\n').split(/^(?=## )/m).forEach(p => {
+    if (/^## /.test(p)) { const nl = p.indexOf('\n'); secs.push({ h: (nl < 0 ? p : p.slice(0, nl)).slice(3).trim(), b: nl < 0 ? '' : p.slice(nl + 1).trim() }); }
+    else head += p;
+  });
+  const im = head.match(/<div class="item-card">[\s\S]*?<\/div>/);
+  const img = im ? im[0] : '';
+  if (im) head = head.replace(im[0], '');
+  head = head.trim();
+  const f = head.match(/^\*\*\*Описание\*\*\*\s*\*-\s*([\s\S]*?)\*\s*\n+\*\*([^*\n]+)\*\*\s*-\s*([\s\S]*)$/);
+  return { fm, title, img, secs, fields: !!f, desc: f ? f[1].trim() : '', bold: f ? f[2].trim() : '', about: f ? f[3].trim() : '', introRaw: head };
+}
+function applyParsed(p) {
+  S.fm = p.fm; S.title = p.title || S.title; S.origTitle = p.title; S.img = p.img; S.sections = p.secs;
+  S.introMode = p.fields ? 'fields' : 'raw'; S.desc = p.desc; S.about = p.about; S.introRaw = p.introRaw;
+  S.boldName = p.fields && p.bold !== p.title ? p.bold : '';
 }
 
 /* ---------- интерфейс ---------- */
-const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-function log(cls, msg) { $('#log').insertAdjacentHTML('beforeend', `<div class="${cls}">${esc(msg)}</div>`); }
-
-function refresh() {
-  const r = resolve();
-  if (r.error) {
-    $('#kindInfo').innerHTML = $('#name').value.trim() ? `<span style="color:#ff7a8a">${esc(r.error)}</span>` : '';
-    $('#md').value = '';
-    return;
-  }
-  const k = KINDS[r.kind];
-  $('#kindInfo').innerHTML = esc(`Файл: ${r.name}.md · тип: ${r.kind} (${k.thing}) · раздел: ${k.parent}.md · адрес: /${r.name}.html`)
-    + r.notes.filter(n => n[0] === 'warn').map(n => `<br><span style="color:#ffd76a">${esc(n[1])}</span>`).join('');
-  $('#md').value = TEMPLATE(r.title, k);
+function renderForm() {
+  let h = S.introMode === 'fields'
+    ? `<label class="blk">Описание — одна фраза<input type="text" data-f="desc" value="${esc(S.desc)}"></label>
+       <label class="blk">О чём страница — 1–2 предложения<textarea class="mdta" data-f="about">${esc(S.about)}</textarea></label>`
+    : `<label class="blk">Вступление<textarea class="mdta" data-f="introRaw">${esc(S.introRaw)}</textarea></label>`;
+  S.sections.forEach((s, i) => {
+    h += `<div class="sec"><div class="ed-row"><input type="text" data-s="${i}" data-k="h" value="${esc(s.h)}">
+      <button class="ed-btn" data-mv="${i}:-1">↑</button><button class="ed-btn" data-mv="${i}:1">↓</button><button class="ed-btn" data-rm="${i}">✕</button></div>
+      <textarea class="mdta" data-s="${i}" data-k="b">${esc(s.b)}</textarea></div>`;
+  });
+  $('#simpleBox').innerHTML = h + '<button class="ed-btn" data-add="1">➕ Добавить раздел</button>';
 }
-['#name', '#title'].forEach(s => $(s).addEventListener('input', refresh));
-['#kind', '#card'].forEach(s => $(s).addEventListener('change', refresh));
-refresh();
+$('#simpleBox').addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.f) S[t.dataset.f] = t.value; else if (t.dataset.s !== undefined) S.sections[+t.dataset.s][t.dataset.k] = t.value;
+  changed();
+});
+$('#simpleBox').addEventListener('click', e => {
+  const d = e.target.dataset;
+  if (d.add) S.sections.push({ h: 'Новый раздел', b: '' });
+  else if (d.rm !== undefined) { if (!confirm('Удалить раздел «' + S.sections[+d.rm].h + '»?')) return; S.sections.splice(+d.rm, 1); }
+  else if (d.mv) { const [i, k] = d.mv.split(':').map(Number), j = i + k; if (j < 0 || j >= S.sections.length) return; [S.sections[i], S.sections[j]] = [S.sections[j], S.sections[i]]; }
+  else return;
+  renderForm(); changed();
+});
+$('#mdRaw').addEventListener('input', e => { S.md = e.target.value; changed(); });
 
-$('#dl').addEventListener('click', () => {
-  const r = resolve();
-  if (r.error) return alert('ОШИБКА: ' + r.error);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([$('#md').value], { type: 'text/markdown' }));
-  a.download = r.name + '.md';
-  a.click();
+function setMode(adv) {
+  if (adv === S.adv) return;
+  if (adv) { S.md = buildMd(); $('#mdRaw').value = S.md; }
+  else { const p = parsePage(S.md); applyParsed(p); renderForm(); syncTop(); }
+  S.adv = adv;
+  $$('[data-mode]').forEach(b => b.classList.toggle('on', (b.dataset.mode === 'adv') === adv));
+  $('#simpleBox').hidden = adv; $('#advBox').hidden = !adv;
+  $('#msg').closest('.ed-row').hidden = !adv;
+  changed();
+}
+$$('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode === 'adv')));
+
+/* панель форматирования работает с тем полем, где стоит курсор */
+let lastTA = null;
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('mdta')) lastTA = e.target; });
+$('#tb').addEventListener('mousedown', e => e.preventDefault());
+$('#tb').addEventListener('click', e => {
+  const f = e.target.closest('[data-fmt]'); if (!f || !lastTA) return;
+  const ta = lastTA, a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b), k = f.dataset.fmt;
+  let out;
+  if (k === 'b' || k === 'i') { const w = k === 'b' ? '**' : '*'; out = w + (sel || 'текст') + w; }
+  else out = (sel || 'пункт').split('\n').map((l, i) => (k === 'ul' ? '- ' : (i + 1) + '. ') + l).join('\n');
+  ta.setRangeText(out, a, b, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus();
 });
 
-/* ---------- GitHub API ---------- */
-const b64enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (let i = 0; i < b.length; i += 0x8000) x += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(x); };
-const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+function syncTop() {
+  $('#title').value = S.title; $('#slug').value = S.slug; slugInfo();
+  $$('#kinds .ed-btn').forEach(b => b.classList.toggle('on', b.dataset.k === S.kind));
+}
+$('#kinds').innerHTML = Object.keys(KINDS).map(k => `<button class="ed-btn" data-k="${k}">${KINDS[k][0]}</button>`).join('');
+$('#kinds').addEventListener('click', e => { const k = e.target.dataset.k; if (k) { S.kind = k; syncTop(); coverUI(); changed(); } });
+$('#title').addEventListener('input', e => {
+  S.title = e.target.value;
+  if (!S.slugTouched && S.tab === 'new') { S.slug = slugify(S.title); $('#slug').value = S.slug; }
+  slugInfo(); changed();
+});
+$('#slug').addEventListener('input', e => { S.slug = e.target.value.trim(); S.slugTouched = true; slugInfo(); changed(); });
+function slugInfo() {
+  const el = $('#slugInfo');
+  if (S.tab !== 'new') { el.textContent = ''; return; }
+  if (!S.slug) el.innerHTML = 'Адрес появится сам из названия, можно поправить руками.';
+  else if (!SLUG.test(S.slug)) el.innerHTML = '<span class="err">Только латиница, цифры, - и _, без пробелов.</span>';
+  else if (S.pages.includes(S.slug)) el.innerHTML = `<span class="warn">⚠️ Страница ${esc(S.slug)} уже есть. Открой её во вкладке «Править».</span>`;
+  else el.innerHTML = `<span class="ok">✅ Свободно:</span> /${esc(S.slug)}.html`;
+}
+
+/* ---------- превью ---------- */
+function md2html(src) {
+  src = src.replace(/^---[\s\S]*?\n---\n?/, '');
+  const inl = s => s.replace(/\*\*\*(.+?)\*\*\*/g, '<b><i>$1</i></b>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  let out = '', para = [], list = '';
+  const flush = () => { if (para.length) out += '<p>' + inl(para.join(' ')) + '</p>'; para = []; };
+  const endList = () => { if (list) out += '</' + list + '>'; list = ''; };
+  src.split('\n').forEach(l => {
+    let m;
+    if (!l.trim()) { flush(); endList(); }
+    else if ((m = l.match(/^(#{1,3}) (.*)/))) { flush(); endList(); out += `<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`; }
+    else if ((m = l.match(/^(?:([-*])|\d+\.) (.*)/))) { flush(); const t = m[1] ? 'ul' : 'ol'; if (list !== t) { endList(); out += '<' + t + '>'; list = t; } out += '<li>' + inl(m[2]) + '</li>'; }
+    else if (/^\s*</.test(l)) { flush(); endList(); out += l; }
+    else { endList(); para.push(l.trim()); }
+  });
+  flush(); endList();
+  const d = new DOMParser().parseFromString(out, 'text/html');
+  d.querySelectorAll('script,style,iframe,object,embed').forEach(n => n.remove());
+  d.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
+  d.querySelectorAll('img').forEach(i => {
+    let s = i.getAttribute('src') || '';
+    if (S.shot && s.endsWith(S.shot.name)) s = S.shot.url; else s = s.replace('../images/', 'images/');
+    i.setAttribute('src', s);
+  });
+  return d.body.innerHTML;
+}
+let pvT, drT;
+function changed() {
+  clearTimeout(pvT); pvT = setTimeout(() => { $('#preview').innerHTML = md2html(curMd()); }, 150);
+  clearTimeout(drT); drT = setTimeout(saveDraft, 600);
+  const dirty = S.tab === 'edit' && S.orig && (norm(curMd()) !== norm(S.orig.md) || S.shot || S.coverMode !== 'keep');
+  $('#dirty').innerHTML = S.tab === 'edit' ? (dirty ? '<span class="warn">● есть несохранённые изменения</span>' : 'Изменений нет.') : '';
+  $('#go').textContent = S.tab === 'new' ? '⬆️ Создать страницу' : '⬆️ Сохранить изменения';
+}
+
+/* ---------- черновик (только для новой страницы) ---------- */
+const DK = 'np-draft-v2';
+function saveDraft() {
+  if (S.tab !== 'new') return;
+  if (!S.title && !S.about && !S.desc && !S.adv) return;
+  try { localStorage.setItem(DK, JSON.stringify({ kind: S.kind, title: S.title, slug: S.slug, touched: S.slugTouched, desc: S.desc, about: S.about, sections: S.sections, adv: S.adv, md: S.md })); } catch (e) {}
+}
+function draftBanner() {
+  let d; try { d = JSON.parse(localStorage.getItem(DK) || 'null'); } catch (e) {}
+  if (!d) return;
+  $('#draftBox').innerHTML = `<div class="banner">Есть несохранённый черновик «${esc(d.title || d.slug || 'без названия')}». <button class="ed-btn" id="dRestore">Восстановить</button> <button class="ed-btn" id="dDrop">Удалить</button></div>`;
+  $('#dDrop').onclick = () => { localStorage.removeItem(DK); $('#draftBox').innerHTML = ''; };
+  $('#dRestore').onclick = () => {
+    Object.assign(S, { kind: d.kind, title: d.title, slug: d.slug, slugTouched: d.touched, desc: d.desc, about: d.about, sections: d.sections });
+    S.introMode = 'fields'; S.adv = false; setMode(false);
+    if (d.adv) { S.md = d.md; applyParsed(parsePage(d.md)); }
+    renderForm(); syncTop(); changed(); $('#draftBox').innerHTML = '';
+  };
+}
+
+/* ---------- GitHub ---------- */
+const cfg = () => ({ repo: $('#repo').value.trim(), br: $('#branch').value.trim() || 'main', tok: $('#tok').value.trim() });
+async function gh(path, opt) {
+  const c = cfg(), h = { Accept: 'application/vnd.github+json' };
+  if (c.tok) h.Authorization = 'Bearer ' + c.tok;
+  if (opt && opt.body) h['Content-Type'] = 'application/json';
+  return fetch('https://api.github.com/repos/' + c.repo + path, Object.assign({ cache: 'no-store' }, opt, { headers: h }));
+}
+async function ghJson(path, opt) {
+  const r = await gh(path, opt);
+  if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (e) {} throw new Error('GitHub ' + r.status + (m ? ': ' + m : '')); }
+  return r.json();
+}
+const refPath = () => cfg().br.split('/').map(encodeURIComponent).join('/');
+const q = p => p.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent(cfg().br);
+async function readFile(p) { const j = await ghJson('/contents/' + q(p)); return { sha: j.sha, text: b64dec(j.content) }; }
+
+async function loadLists() {
+  try {
+    const d = await ghJson('/contents/' + q('docs'));
+    S.pages = d.filter(f => /\.md$/.test(f.name)).map(f => f.name.slice(0, -3)).sort();
+    const c = await ghJson('/contents/' + q('images/covers'));
+    S.covers = c.filter(f => /\.svg$/i.test(f.name)).map(f => f.name).sort();
+  } catch (e) { $('#editInfo').innerHTML = `<span class="warn">Список страниц не загрузился: ${esc(e.message)}. Для публичного репозитория токен не нужен, но у запросов без токена есть лимит.</span>`; }
+  renderPages(); slugInfo();
+  $('#coverSel').innerHTML = S.covers.map(n => `<option>${esc(n)}</option>`).join('');
+  S.coverSel = $('#coverSel').value; coverUI();
+}
+function renderPages() {
+  const f = $('#find').value.trim().toLowerCase();
+  $('#pages').innerHTML = S.pages.filter(n => n.includes(f)).map(n => `<button class="ed-btn" data-p="${esc(n)}">${SECS.includes(n) ? '📚 ' : '📄 '}${esc(n)}</button>`).join('') || '<span class="hint">Ничего не найдено.</span>';
+}
+$('#find').addEventListener('input', renderPages);
+$('#reload').addEventListener('click', loadLists);
+$('#pages').addEventListener('click', async e => {
+  const n = e.target.dataset.p; if (!n) return;
+  $('#editInfo').textContent = 'Загружаю…';
+  try {
+    const f = await readFile(DOCS + n + '.md');
+    S.tab = 'edit'; S.slug = n; S.slugTouched = true; S.orig = { sha: f.sha, md: f.text };
+    S.shot = null; S.coverMode = 'keep'; S.coverSvg = ''; S.coverFrom = ''; $('#shotInfo').textContent = '';
+    applyParsed(parsePage(f.text));
+    S.md = f.text;
+    if (S.adv) $('#mdRaw').value = f.text;
+    renderForm(); syncTop(); coverUI(); showWork();
+    $('#editInfo').innerHTML = `<span class="ok">Открыто: ${DOCS}${esc(n)}.md</span>`; changed();
+  } catch (err) { $('#editInfo').innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+
+/* ---------- вкладки ---------- */
+function showWork() {
+  const isNew = S.tab === 'new';
+  $('#pane-new').hidden = !isNew && !S.orig;
+  $('#title').closest('label').hidden = false;
+  $('#slug').closest('label').hidden = !isNew;
+  $('#pane-edit').hidden = isNew;
+  $('#work').hidden = !isNew && !S.orig;
+  $('#cardRow').hidden = !isNew;
+  $('#kinds').hidden = !isNew;
+  $('#pane-new h3').textContent = isNew ? 'Что создаём' : 'Название';
+}
+$$('[data-tab]').forEach(b => b.addEventListener('click', () => {
+  const t = b.dataset.tab; if (t === S.tab) return;
+  $$('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
+  S.tab = t;
+  if (t === 'new') {
+    Object.assign(S, { fm: '', origTitle: null, img: '', boldName: '', introMode: 'fields', desc: '', about: '', title: '', slug: '', slugTouched: false, orig: null, shot: null, coverMode: 'std', coverSvg: '', coverFrom: '', sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }] });
+    if (S.adv) { S.md = buildMd(); $('#mdRaw').value = S.md; }
+    renderForm(); syncTop(); coverUI(); draftBanner();
+  }
+  showWork(); changed();
+}));
+
+/* ---------- скриншот ---------- */
+$('#shotFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    let blob = f, ext = (f.name.split('.').pop() || 'png').toLowerCase();
+    if ($('#shrink').checked) {
+      const bmp = await createImageBitmap(f), k = Math.min(1, 1080 / bmp.width), c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      const w = await new Promise(r => c.toBlob(r, 'image/webp', 0.82));
+      if (w && w.type === 'image/webp' && w.size < f.size) { blob = w; ext = 'webp'; }
+    }
+    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+    const base = S.slug || slugify(S.title) || 'shot', d = new Date(), p = n => String(n).padStart(2, '0');
+    const name = `${base}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
+    if (S.shot) URL.revokeObjectURL(S.shot.url);
+    S.shot = { name, b64, url: URL.createObjectURL(blob) };
+    $('#shotInfo').innerHTML = `<img class="thumb" src="${S.shot.url}" alt=""><br>images/${esc(name)} · ${(f.size / 1024).toFixed(0)} КБ → ${(blob.size / 1024).toFixed(0)} КБ`;
+    changed();
+  } catch (err) { $('#shotInfo').innerHTML = `<span class="err">Не получилось обработать картинку: ${esc(err.message)}</span>`; }
+});
+
+/* ---------- обложка ---------- */
+const CM = { std: 'Стандартная', pick: 'Из готовых', draw: '🎨 Нарисовать', shot: 'Из скриншота', keep: 'Не менять' };
+function coverUI() {
+  const modes = S.tab === 'edit' ? ['keep', 'pick', 'draw', 'shot'] : ['std', 'pick', 'draw', 'shot'];
+  if (!modes.includes(S.coverMode)) S.coverMode = modes[0];
+  $('#cm').innerHTML = modes.map(m => `<button class="ed-btn${m === S.coverMode ? ' on' : ''}" data-cm="${m}">${CM[m]}</button>`).join('');
+  $('#cb-list').hidden = !['pick', 'draw'].includes(S.coverMode);
+  $('#cb-draw').hidden = S.coverMode !== 'draw';
+  $('#coverOpen').hidden = S.coverMode !== 'draw';
+  const cf = $('#cf');
+  if (S.coverMode === 'draw' && !cf.getAttribute('src')) {
+    cf.addEventListener('load', () => {   // тот же origin: подключаем встраиваемый режим прямо в редактор, editor.html менять не нужно
+      try { const d = cf.contentDocument, sc = d.createElement('script'); sc.src = 'js/editor-embed.js?v=1'; d.body.appendChild(sc); } catch (e) {}
+    });
+    cf.src = 'editor.html?embed=1#pixel';
+  }
+  $('#coverPrev').src = S.coverSel ? 'images/covers/' + S.coverSel : '';
+  $('#coverInfo').textContent = S.tab === 'edit' && S.coverMode !== 'keep' ? 'Для существующей страницы новая обложка запишется в файл; карточку в списке раздела правь в продвинутом режиме на странице раздела.' : '';
+}
+$('#cm').addEventListener('click', e => { const m = e.target.dataset.cm; if (m) { S.coverMode = m; coverUI(); changed(); } });
+$('#coverSel').addEventListener('change', e => { S.coverSel = e.target.value; coverUI(); });
+
+const pend = new Map(); let rid = 0, ready = false, queue = [];
+function cfReq(msg) {
+  return new Promise((res, rej) => {
+    const id = ++rid; pend.set(id, { res, rej });
+    const send = () => $('#cf').contentWindow.postMessage(Object.assign({ id }, msg), location.origin);
+    ready ? send() : queue.push(send);
+    setTimeout(() => { if (pend.has(id)) { pend.delete(id); rej(new Error('Редактор обложек не ответил. Обнови страницу и попробуй ещё раз (нужен файл js/editor-embed.js).')); } }, 15000);
+  });
+}
+addEventListener('message', e => {
+  const f = $('#cf'); if (e.origin !== location.origin || e.source !== f.contentWindow) return;
+  const d = e.data || {};
+  if (d.t === 'ready') { ready = true; queue.splice(0).forEach(fn => fn()); }
+  else if (d.t === 'height') f.style.height = Math.max(320, d.h) + 'px';
+  else if (d.id && pend.has(d.id)) { const p = pend.get(d.id); pend.delete(d.id); d.t === 'error' ? p.rej(new Error(d.msg)) : p.res(d); }
+});
+$('#coverOpen').addEventListener('click', async () => {
+  if (!S.coverSel) return;
+  try {
+    const r = await fetch('images/covers/' + S.coverSel, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('Не удалось загрузить ' + S.coverSel + ' (' + r.status + ').');
+    const d = await cfReq({ t: 'open', svg: await r.text() });
+    S.coverFrom = S.coverSel; $('#takenInfo').innerHTML = `<span class="ok">Открыта ${esc(S.coverSel)} (${esc(d.kind)}). После правок нажми «Взять эту обложку»; она заменит этот файл.</span>`;
+  } catch (err) { $('#takenInfo').innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+$('#coverTake').addEventListener('click', async () => {
+  try {
+    const d = await cfReq({ t: 'get' }); S.coverSvg = d.svg;
+    $('#takenInfo').innerHTML = `<img class="thumb" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(d.svg)}" alt=""><br><span class="ok">Обложка взята (${esc(d.kind)}). Запишется как images/covers/${esc(S.coverFrom || (S.slug || 'имя') + '.svg')}</span>`;
+    changed();
+  } catch (err) { $('#takenInfo').innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+
+/* ---------- карточка в списке раздела ---------- */
+function addCard(text, slug, img, title) {
+  if (text.includes('href="' + slug + '.html"')) return null;
+  const card = `\n  <a href="${slug}.html" class="item-card">\n    <img loading="lazy" decoding="async" src="${img}" alt="${esc(title)}">\n    <h3>${esc(title)}</h3>\n  </a>\n`;
+  const g = text.indexOf('class="items-grid"'), end = g === -1 ? -1 : text.indexOf('</div>', g);
+  if (end !== -1) return text.slice(0, end).replace(/\s*$/, '\n') + card + text.slice(end);
+  return text.replace(/\s*$/, '\n') + '\n<div class="items-grid">' + card + '</div>\n';
+}
+
+/* ---------- сохранение: один коммит на всё ---------- */
+async function commitFiles(files, message) {
+  const rp = refPath(), ref = await ghJson('/git/ref/heads/' + rp);
+  const base = (await ghJson('/git/commits/' + ref.object.sha)).tree.sha, tree = [];
+  for (const f of files) {
+    const b = await ghJson('/git/blobs', { method: 'POST', body: JSON.stringify({ content: f.b64 || b64enc(f.text), encoding: 'base64' }) });
+    tree.push({ path: f.path, mode: '100644', type: 'blob', sha: b.sha });
+  }
+  const t = await ghJson('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: base, tree }) });
+  const c = await ghJson('/git/commits', { method: 'POST', body: JSON.stringify({ message, tree: t.sha, parents: [ref.object.sha] }) });
+  await ghJson('/git/refs/heads/' + rp, { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) });
+  return c;
+}
+
+function validate() {
+  const errs = [];
+  if (!cfg().tok) errs.push('Вставь токен в блоке «Подключение». Без него можно только скачать .md.');
+  if (S.tab === 'new') {
+    if (!S.title.trim()) errs.push('Впиши название.');
+    if (!SLUG.test(S.slug)) errs.push('Адрес: только латиница, цифры, - и _, без пробелов.');
+    else if (S.pages.includes(S.slug)) errs.push('Страница «' + S.slug + '» уже есть. Открой её во вкладке «Править».');
+  }
+  if (S.coverMode === 'draw' && !S.coverSvg) errs.push('Ты выбрал «Нарисовать», но не нажал «Взять эту обложку».');
+  if (S.coverMode === 'shot' && !S.shot) errs.push('Для обложки из скриншота сначала загрузи картинку.');
+  const m = curMd().match(/^permalink:\s*(\S+)/m);
+  if (S.adv && m && m[1] !== '/' + S.slug + '.html') errs.push('permalink в шапке (' + m[1] + ') не совпадает с полем «Адрес».');
+  return errs;
+}
 
 $('#go').addEventListener('click', async () => {
   $('#log').innerHTML = '';
-  const r = resolve();
-  if (r.error) return log('err', 'ОШИБКА: ' + r.error);
-  const token = $('#tok').value.trim(), repo = $('#repo').value.trim(), br = $('#branch').value.trim() || 'main';
-  if (!token) return log('err', 'Вставь токен GitHub.');
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return log('err', 'Репозиторий в формате владелец/имя.');
-
-  const k = KINDS[r.kind];
-  const api = p => 'https://api.github.com/repos/' + repo + '/contents/' + p;
-  const h = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' };
-  const get = p => fetch(api(p) + '?ref=' + encodeURIComponent(br), { headers: h, cache: 'no-store' });
-  const put = (p, content, message, sha) => fetch(api(p), {
-    method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, h),
-    body: JSON.stringify(Object.assign({ message, content: b64enc(content), branch: br }, sha ? { sha } : {}))
-  });
+  const errs = validate(); if (errs.length) return errs.forEach(m => log('err', m));
+  const isNew = S.tab === 'new', path = DOCS + S.slug + '.md', md = curMd(), files = [{ path, text: md }];
   const btn = $('#go'); btn.disabled = true;
-  r.notes.forEach(n => log(n[0], n[1]));
-
   try {
-    // 1. страница
-    const target = r.name + '.md';
-    const ex = await get(target);
-    if (ex.ok) throw new Error(`${target} уже существует, ничего не перезаписываю`);
-    if (ex.status !== 404) throw new Error(`Не удалось проверить ${target} (${ex.status}). Проверь токен, права и ветку.`);
-    const md = $('#md').value || TEMPLATE(r.title, k);
-    const p1 = await put(target, md, `Новая страница: ${target} (${r.kind})`);
-    if (!p1.ok) throw new Error('GitHub вернул ' + p1.status + ': ' + ((await p1.json()).message || ''));
-    log('ok', 'Создана страница: ' + target);
-
-    // 2. карточка в разделе
-    if (r.addCard) {
-      const parent = k.parent + '.md';
-      const g = await get(parent);
-      if (g.status === 404) log('warn', `Карточка не добавлена: нет файла ${parent}`);
-      else if (!g.ok) log('err', `Карточка не добавлена: не удалось прочитать ${parent} (${g.status})`);
-      else {
-        const j = await g.json();
-        let text = b64dec(j.content).replace(/\r\n/g, '\n');
-        const grid = text.indexOf('class="items-grid"');
-        const end = grid !== -1 ? text.indexOf('\n</div>\n\n<br>', grid) : -1;
-        if (text.includes(`href="${r.name}.html"`)) log('warn', `Карточка не добавлена: в ${parent} уже есть ссылка на ${r.name}.html`);
-        else if (end === -1) log('warn', `Карточка не добавлена: в ${parent} не найден список items-grid`);
-        else {
-          text = text.slice(0, end + 1) + CARD(r.name, k.cover, r.title) + text.slice(end + 1);
-          const p2 = await put(parent, text, `Карточка ${r.name} в ${parent}`, j.sha);
-          if (!p2.ok) throw new Error(`Страница создана, но карточку добавить не вышло: GitHub вернул ${p2.status}: ` + ((await p2.json()).message || ''));
-          log('ok', 'Карточка добавлена в ' + parent);
-        }
-      }
+    if (isNew) { const r = await gh('/contents/' + q(path)); if (r.ok) throw new Error(path + ' уже существует, ничего не перезаписываю.'); if (r.status !== 404) throw new Error('Не удалось проверить ' + path + ' (' + r.status + '). Проверь токен, права и ветку.'); }
+    else { const cur = await readFile(path); if (norm(cur.text) !== norm(S.orig.md) && !confirm('Страница изменилась в репозитории с тех пор, как ты её открыл. Перезаписать твоей версией?')) throw new Error('Отменено.'); }
+    if (S.shot) files.push({ path: 'images/' + S.shot.name, b64: S.shot.b64 });
+    let cover = null;
+    if (S.coverMode === 'std') cover = stdCover(S.kind);
+    else if (S.coverMode === 'pick') cover = '../images/covers/' + S.coverSel;
+    else if (S.coverMode === 'shot') cover = '../images/' + S.shot.name;
+    else if (S.coverMode === 'draw') {
+      const n = S.coverFrom || S.slug + '.svg';
+      if (S.covers.includes(n) && !confirm('Файл images/covers/' + n + ' уже есть и будет заменён везде, где он используется. Продолжить?')) throw new Error('Отменено.');
+      files.push({ path: 'images/covers/' + n, text: S.coverSvg }); cover = '../images/covers/' + n;
     }
-    log('ok', `Готово: ${target} (тип: ${r.kind}). После сборки (1–2 минуты) откроется по адресу /${r.name}.html`);
+    if (isNew && $('#addCard').checked && cover) {
+      const kind = KINDS[S.kind][1], pp = DOCS + kind + '.md';
+      try {
+        const par = await readFile(pp), out = addCard(par.text, S.slug, cover, S.title.trim());
+        if (out) { files.push({ path: pp, text: out }); log('ok', 'Карточка будет добавлена в ' + pp); } else log('warn', 'Карточка не добавлена: в ' + pp + ' уже есть ссылка на ' + S.slug + '.html');
+      } catch (e) { log('warn', 'Карточка не добавлена: не удалось прочитать ' + pp + ' (' + e.message + ')'); }
+    }
+    const msg = $('#msg').value.trim() || (isNew ? 'Новая страница: ' : 'Правка: ') + path;
+    const c = await commitFiles(files, msg);
+    log('ok', 'Готово: ' + files.map(f => f.path).join(', ') + '. Сайт обновится через 1–2 минуты.');
+    log('ok', c.html_url || c.sha);
+    localStorage.removeItem(DK);
+    if (isNew && !S.pages.includes(S.slug)) S.pages.push(S.slug);
+    S.orig = { md, sha: '' }; S.shot = null; if (S.tab === 'edit') S.coverMode = 'keep'; coverUI(); changed(); slugInfo();
   } catch (e) { log('err', 'ОШИБКА: ' + (e.message || e)); }
   btn.disabled = false;
 });
+
+$('#dl').addEventListener('click', () => {
+  if (!SLUG.test(S.slug)) return alert('Сначала задай адрес страницы (латиница, цифры, - и _).');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([curMd()], { type: 'text/markdown' })); a.download = S.slug + '.md'; a.click();
+});
+
+/* ---------- токен ---------- */
+try { const t = localStorage.getItem('np-tok'); if (t) { $('#tok').value = t; $('#remember').checked = true; $('#conn').open = false; } } catch (e) {}
+function saveTok() { try { $('#remember').checked && $('#tok').value ? localStorage.setItem('np-tok', $('#tok').value) : localStorage.removeItem('np-tok'); } catch (e) {} }
+$('#tok').addEventListener('input', saveTok); $('#remember').addEventListener('change', saveTok);
+$('#check').addEventListener('click', async () => {
+  $('#connState').textContent = '…';
+  try { const r = await ghJson(''); $('#connState').innerHTML = r.permissions && r.permissions.push ? '<span class="ok">✅ запись разрешена</span>' : '<span class="warn">⚠️ токен без права записи</span>'; loadLists(); }
+  catch (e) { $('#connState').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+});
+
+/* ---------- старт ---------- */
+renderForm(); syncTop(); coverUI(); showWork(); draftBanner(); changed();
+$('#msg').closest('.ed-row').hidden = true;
+loadLists();
 })();
 </script>
 {% endraw %}
