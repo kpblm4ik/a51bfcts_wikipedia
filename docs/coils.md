@@ -39,6 +39,11 @@ custom_css: /css/main.css
     <img loading="lazy" decoding="async" src="../images/covers/voidcoil.svg" alt="Катушка пустоты">
     <h3>Катушка пустоты</h3>
   </a>
+
+  <a href="tutorial-katushka.html" class="item-card">
+    <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/tutorial-katushka.svg" alt="Туториал-катушка">
+    <h3>Туториал-катушка</h3>
+  </a>
 </div>
 
 <br>
