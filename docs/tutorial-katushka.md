@@ -8,7 +8,7 @@ title: Туториал-катушка — a51bfcts Вики
 # Туториал-катушка
 
 <div class="item-card">
-<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/tutorial-katushka-202611221720.avif" alt="Туториал-катушка">
+<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/tutorial-katushka-202611221806.webp" alt="Туториал-катушка">
 </div>
 
 ***Описание*** *- Брух.*
