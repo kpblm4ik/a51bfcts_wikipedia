@@ -1,0 +1,40 @@
+/* Служебные страницы на ПК (экран от 960px).
+   Редактор страниц (new-page.html): слева все поля, справа предпросмотр, он остаётся на экране при прокрутке.
+   Подключается в шаблоне только для служебных страниц (noindex). Если браузер не знает :has(), страница остаётся в одну колонку. */
+@media (min-width: 960px) {
+  html body .wrapper:has(#pvCard) {
+    max-width: 1500px !important;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 28px;
+    row-gap: 0;
+    align-items: start;
+  }
+
+  /* блок с полями «растворяем», чтобы его карточки стали ячейками общей сетки */
+  html body .wrapper:has(#pvCard) #work { display: contents; }
+
+  html body .wrapper:has(#pvCard) > *,
+  html body .wrapper:has(#pvCard) #work > * { grid-column: 1; }
+
+  html body .wrapper:has(#pvCard) > footer { grid-column: 1 / -1; }
+
+  /* предпросмотр: правая колонка, прилипает к верху экрана и листается сам */
+  html body .wrapper:has(#pvCard) #pvCard {
+    grid-column: 2;
+    grid-row: 1 / span 100;
+    position: sticky;
+    top: 14px;
+    align-self: start;
+    max-height: calc(100vh - 28px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 102, 255, 0.5) transparent;
+  }
+
+  /* больше места для сырого Markdown и обложки */
+  html body .wrapper:has(#pvCard) #mdRaw { min-height: 58vh; }
+  html body .wrapper:has(#pvCard) .ed-card textarea { min-height: 110px; }
+  html body .wrapper:has(#pvCard) .pages { max-height: 340px; }
+}
