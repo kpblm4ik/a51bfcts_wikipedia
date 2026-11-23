@@ -8,7 +8,7 @@ title: Радужная катушка — a51bfcts Вики
 # Радужная катушка
 
 <div class="item-card">
-<img loading="lazy" decoding="async" src="../a51bfcts_wikipedia/images/rainbowcoil.avif" alt="Радужная катушка">
+<img loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/rainbowcoil-202611231918.webp" alt="Радужная катушка">
 </div>
 
 ***Описание*** *- tap on screen.*
