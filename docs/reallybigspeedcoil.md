@@ -8,7 +8,7 @@ title: очень большая катушка скорости¹ — a51bfcts 
 # очень большая катушка скорости¹
 
 <div class="item-card">
-<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/reallybigspeedcoil-202611232235.webp" alt="очень большая катушка скорости¹">
+<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/reallybigspeedcoil-202611232235.avif" alt="очень большая катушка скорости¹">
 </div>
 
 ***Описание*** *- Speed Up!*
