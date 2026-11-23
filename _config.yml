@@ -9,31 +9,43 @@ defaults:
       path: "" # Применять ко всем файлам в репозитории
     values:
       layout: "default" # Имя вашего шаблона из папки _layouts
-  # Служебные страницы: не попадают в sitemap.xml
+  # Служебные страницы: не попадают в sitemap.xml и закрыты от индексации (noindex)
   - scope:
       path: "editor.html"
     values:
       sitemap: false
+      noindex: true
   - scope:
       path: "coil-editor.html"
     values:
       sitemap: false
+      noindex: true
   - scope:
       path: "new-page.html"
     values:
       sitemap: false
+      noindex: true
   - scope:
       path: "experimental.html"
     values:
       sitemap: false
+      noindex: true
   - scope:
       path: "ecm-test.html"
     values:
       sitemap: false
+      noindex: true
   - scope:
       path: "kit.html"
     values:
       sitemap: false
+      noindex: true
+  # Всё в папке tools/ (опасная зона, демо, ecm и т.д.)
+  - scope:
+      path: "tools"
+    values:
+      sitemap: false
+      noindex: true
 
 # Правильные ссылки (чтобы страницы открывались по названию, например /coils.html)
 permalink: /:basename.html
