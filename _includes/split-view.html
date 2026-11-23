@@ -1,0 +1,111 @@
+{% comment %}
+  Вид для ПК (экран от 1024px): слева картинки и обложки 1:1, справа весь текст.
+  Каждая половина листается сама, картинки не двигаются вместе с текстом.
+  На телефонах и планшетах ничего не меняется.
+  Отключить для страницы: split: false в шапке. Служебные страницы (noindex) не затрагиваются.
+{% endcomment %}
+{% unless page.noindex or page.split == false %}
+<style>
+@media (min-width: 1024px) {
+  html.split, html.split body { height: 100vh; overflow: hidden; box-sizing: border-box; }
+  html.split { padding: 0 !important; }
+  html.split body { padding: 14px !important; }
+  html.split .wrapper {
+    max-width: none !important; width: 100%; height: 100%;
+    padding: 0 !important; margin: 0 !important;
+    display: grid; grid-template-columns: 1fr 1fr; overflow: hidden;
+  }
+  html.split .pane-media, html.split .pane-text {
+    min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 22px 26px;
+    scrollbar-width: thin; scrollbar-color: rgba(160, 102, 255, 0.5) transparent;
+  }
+  html.split .pane-media { border-right: 1px solid rgba(160, 102, 255, 0.22); }
+  html.split .pane-media-grid {
+    display: grid; gap: 16px; justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 420px));
+  }
+  html.split .pane-media .cover { display: block; text-decoration: none; }
+  html.split .pane-media .cover img {
+    width: 100% !important; max-width: 100% !important; height: auto !important;
+    aspect-ratio: 1 / 1; object-fit: cover; margin: 0 !important;
+  }
+  html.split .split-empty { display: none !important; }
+}
+</style>
+<script>
+(function () {
+  var wrapper = document.querySelector('.wrapper');
+  if (!wrapper || !window.matchMedia) return;
+  var mq = window.matchMedia('(min-width: 1024px)');
+  var state = null;
+  var INLINE = /^(P|LI|TD|TH|SPAN|EM|STRONG|H1|H2|H3|H4|H5|H6)$/;
+
+  function pickImages() {
+    return Array.prototype.filter.call(wrapper.querySelectorAll('img'), function (img) {
+      if (img.closest('footer')) return false;
+      var p = img.parentElement;
+      /* маленькие значки внутри строки текста оставляем на месте */
+      if (p && INLINE.test(p.tagName) && p.textContent.trim()) return false;
+      return true;
+    });
+  }
+
+  function enable() {
+    if (state) return;
+    var imgs = pickImages();
+    if (!imgs.length) return;
+    var kids = Array.prototype.slice.call(wrapper.childNodes);
+    var left = document.createElement('div'); left.className = 'pane-media';
+    var grid = document.createElement('div'); grid.className = 'pane-media-grid';
+    var right = document.createElement('div'); right.className = 'pane-text';
+    left.appendChild(grid);
+    kids.forEach(function (k) { right.appendChild(k); });
+    wrapper.appendChild(left);
+    wrapper.appendChild(right);
+
+    var moved = [], emptied = [];
+    imgs.forEach(function (img) {
+      var ph = document.createComment('img');
+      var parent = img.parentNode;
+      parent.insertBefore(ph, img);
+      var a = img.closest('a[href]');
+      var href = a ? a.getAttribute('href') : null;
+      if (!href) {
+        var card = img.closest('.main-sector-card');
+        var l = card && card.querySelector('.card-text h4 a[href]');
+        if (l) href = l.getAttribute('href');
+      }
+      var cover = document.createElement(href ? 'a' : 'div');
+      cover.className = 'cover';
+      if (href) cover.setAttribute('href', href);
+      cover.appendChild(img);
+      grid.appendChild(cover);
+      moved.push({ img: img, ph: ph });
+      /* пустую карточку-обёртку после переноса скрываем */
+      var box = parent.closest ? parent.closest('.item-card') : null;
+      if (box && !box.textContent.trim() && !box.querySelector('img,a,h1,h2,h3,h4,p,ul,ol,table')) {
+        box.classList.add('split-empty');
+        emptied.push(box);
+      }
+    });
+    document.documentElement.classList.add('split');
+    state = { kids: kids, left: left, right: right, moved: moved, emptied: emptied };
+  }
+
+  function disable() {
+    if (!state) return;
+    state.moved.forEach(function (m) { m.ph.parentNode.replaceChild(m.img, m.ph); });
+    state.emptied.forEach(function (b) { b.classList.remove('split-empty'); });
+    state.kids.forEach(function (k) { wrapper.appendChild(k); });
+    state.left.remove();
+    state.right.remove();
+    document.documentElement.classList.remove('split');
+    state = null;
+  }
+
+  function apply() { if (mq.matches) enable(); else disable(); }
+  apply();
+  if (mq.addEventListener) mq.addEventListener('change', apply); else mq.addListener(apply);
+})();
+</script>
+{% endunless %}
