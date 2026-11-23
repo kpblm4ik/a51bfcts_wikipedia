@@ -49,6 +49,11 @@ custom_css: /css/main.css
     <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/Raindowcoil.svg" alt="Радужная катушка">
     <h3>Радужная катушка</h3>
   </a>
+
+  <a href="reallybigspeedcoil.html" class="item-card">
+    <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/reallybigspeedcoil.svg" alt="очень большая катушка скорости¹">
+    <h3>очень большая катушка скорости¹</h3>
+  </a>
 </div>
 
 <br>
