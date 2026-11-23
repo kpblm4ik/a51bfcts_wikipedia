@@ -1,9 +1,39 @@
 # Настройки автоматического применения шаблона
+url: "https://kpblm4ik.github.io"
+
+plugins:
+  - jekyll-sitemap
+
 defaults:
   - scope:
       path: "" # Применять ко всем файлам в репозитории
     values:
       layout: "default" # Имя вашего шаблона из папки _layouts
+  # Служебные страницы: не попадают в sitemap.xml
+  - scope:
+      path: "editor.html"
+    values:
+      sitemap: false
+  - scope:
+      path: "coil-editor.html"
+    values:
+      sitemap: false
+  - scope:
+      path: "new-page.html"
+    values:
+      sitemap: false
+  - scope:
+      path: "experimental.html"
+    values:
+      sitemap: false
+  - scope:
+      path: "ecm-test.html"
+    values:
+      sitemap: false
+  - scope:
+      path: "kit.html"
+    values:
+      sitemap: false
 
 # Правильные ссылки (чтобы страницы открывались по названию, например /coils.html)
 permalink: /:basename.html
