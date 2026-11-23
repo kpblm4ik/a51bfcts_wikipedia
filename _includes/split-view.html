@@ -1,12 +1,13 @@
 {% comment %}
-  Вид для ПК (экран от 1024px): слева картинки и обложки 1:1, справа весь текст.
+  Вид для ПК (экран от 960px): слева картинки и обложки 1:1, справа весь текст.
   Каждая половина листается сама, картинки не двигаются вместе с текстом.
-  На телефонах и планшетах ничего не меняется.
+  На телефонах и планшетах в портретной ориентации ничего не меняется.
+  Порог 960px, а не 1024px: «версия для ПК» в мобильных браузерах даёт ширину около 980px.
   Отключить для страницы: split: false в шапке. Служебные страницы (noindex) не затрагиваются.
 {% endcomment %}
 {% unless page.noindex or page.split == false %}
 <style>
-@media (min-width: 1024px) {
+@media (min-width: 960px) {
   html.split, html.split body { height: 100vh; overflow: hidden; box-sizing: border-box; }
   html.split { padding: 0 !important; }
   html.split body { padding: 14px !important; }
@@ -36,7 +37,7 @@
 (function () {
   var wrapper = document.querySelector('.wrapper');
   if (!wrapper || !window.matchMedia) return;
-  var mq = window.matchMedia('(min-width: 1024px)');
+  var mq = window.matchMedia('(min-width: 960px)');
   var state = null;
   var INLINE = /^(P|LI|TD|TH|SPAN|EM|STRONG|H1|H2|H3|H4|H5|H6)$/;
 
