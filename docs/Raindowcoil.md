@@ -1,14 +1,14 @@
 ---
 layout: default
 custom_css: /css/main.css
-permalink: /Raindowcoil.html
+permalink: /rainbowcoil.html
 title: Радужная катушка — a51bfcts Вики
 ---
 
 # Радужная катушка
 
 <div class="item-card">
-<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/Raindowcoil-202611231839.avif" alt="Радужная катушка">
+<img loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/rainbowcoil.avif" alt="Радужная катушка">
 </div>
 
 ***Описание*** *- tap on screen.*
