@@ -10,6 +10,7 @@
     {% assign seo_desc = page.description | default: 'Wiki for the game Area 51 But Find Coils To Survive: coils, wands, items and how to get them.' %}
     {% if page.url == '/index.html' or page.url == '/' %}{% assign seo_url = '/' | absolute_url %}{% else %}{% assign seo_url = page.url | absolute_url %}{% endif %}
     <meta name="description" content="{{ seo_desc | escape }}">
+    {% if page.noindex %}<meta name="robots" content="noindex, nofollow">{% endif %}
     <link rel="canonical" href="{{ seo_url }}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="a51bfcts Вики">
