@@ -8,7 +8,7 @@ title: Основной вход — a51bfcts Вики
 # Основной вход
 
 <div class="item-card">
-<img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/mainentrance.webp" alt="Основной вход">
+<img loading="lazy" decoding="async" src="../images/mainentrance.avif" alt="Основной вход">
 </div>
 
 **Основной вход** - главный вход в зону 51, которым пользуются практически все игроки повседневно.
