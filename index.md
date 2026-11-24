@@ -1,8 +1,8 @@
 ---
 layout: home
-title: a51bfcts Вики — Area 51 But Find Coils To Survive
-description: Вики по игре Area 51 But Find Coils To Survive на Roblox: катушки, палочки, предметы, места и мобы, секретные координаты и как всё получить.
-# Новости: добавляй/меняй слайды здесь. img — имя файла из папки images/
+title: "a51bfcts Вики — Area 51 But Find Coils To Survive"
+description: "Вики по игре Area 51 But Find Coils To Survive на Roblox: катушки, палочки, предметы, места и мобы, секретные координаты и как всё получить."
+# Новости: добавляй и меняй слайды здесь (img — имя файла из папки images/)
 news:
   - tag: "24 ноября"
     title: "Архив обновлён: новый дизайн сайта."
