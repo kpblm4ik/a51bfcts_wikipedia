@@ -148,7 +148,15 @@ const b64enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (le
 const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
 const norm = s => s.replace(/\s+/g, ' ').trim();
 
+/* Шаблон сайта сам добавляет к каждому <img> loading/decoding и меняет ../images/ на правильный путь,
+   поэтому в Markdown должен лежать «голый» <img src="../images/…">. Эта функция чинит и новые, и старые страницы. */
+const fixImgs = md => md.replace(/<img\b[^>]*>/g, t => t
+  .replace(/\s+(?:loading|decoding)="[^"]*"/g, '')
+  .replace(/src="(?!\.\.\/)(?:\/[\w.-]+)?\/?images\//g, 'src="../images/'));
+
 const MAXSHOTS = 5, SFX = ['', '-b', '-c', '-d', '-e'];
+/* Бот в репозитории (avif-convert.yml) превращает webp/png/jpg в AVIF сам, поэтому в Markdown всегда пишем итоговое имя .avif */
+const BOT_EXT = new Set(['webp', 'png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']);
 const SHOT_HINT = 'До 5 картинок. Лягут в images/ под именем страницы без цифр: rainbowcoil.avif, rainbowcoil-b.avif, rainbowcoil-c.avif… Сжатие уменьшает вес репозитория.';
 
 const S = { tab: 'new', adv: false, kind: 'coil', title: '', slug: '', slugTouched: false, fm: '', origTitle: null, img: '', boldName: '',
@@ -160,7 +168,9 @@ function log(cls, m) { $('#log').insertAdjacentHTML('beforeend', `<div class="${
 
 /* ---------- картинки: имя = адрес страницы (без цифр), порядок: slug, slug-b, slug-c… ---------- */
 const shotBase = () => S.slug || slugify(S.title) || 'shot';
-const shotName = i => shotBase() + SFX[i] + '.' + S.shots[i].ext;
+const finalExt = s => BOT_EXT.has(s.ext) ? 'avif' : s.ext;
+const shotName = i => shotBase() + SFX[i] + '.' + finalExt(S.shots[i]);   // имя в Markdown (итоговое)
+const shotFile = i => shotBase() + SFX[i] + '.' + S.shots[i].ext;         // имя файла, который заливаем
 function clearShots() { S.shots.forEach(s => URL.revokeObjectURL(s.url)); S.shots = []; renderShots(); }
 function renderShots() {
   $('#shotList').innerHTML = S.shots.map((s, i) => `<div class="shot"><img class="thumb" src="${s.url}" alt="">images/${esc(shotName(i))}<br>${(s.orig / 1024).toFixed(0)} → ${(s.size / 1024).toFixed(0)} КБ${s.note ? '<br><span class="warn">' + esc(s.note) + '</span>' : ''}<br><button class="ed-btn" data-rmshot="${i}">✕ Убрать</button></div>`).join('');
@@ -179,10 +189,10 @@ async function packImage(f) {
     c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
     let w = await toBlob(c, 'image/avif', 0.6), e2 = 'avif';
-    if (!w || w.type !== 'image/avif') { w = await toBlob(c, 'image/webp', 0.82); e2 = 'webp'; note = 'Этот браузер не умеет сжимать в AVIF, сохранил WebP. Для AVIF открой редактор в свежем Chrome или Яндекс Браузере.'; }
+    if (!w || w.type !== 'image/avif') { w = await toBlob(c, 'image/webp', 0.82); e2 = 'webp'; note = 'Браузер не умеет AVIF: зальётся WebP, AVIF из него сделает сервер за минуту.'; }
     if (w && w.type === 'image/' + e2 && w.size < f.size) { blob = w; ext = e2; }
-    else note = 'Сжатие не уменьшило файл, оставил как есть.';
-  }
+    else note = 'Сжатие не уменьшило файл, залью оригинал, AVIF сделает сервер.';
+  } else if (BOT_EXT.has(ext)) note = 'AVIF сделает сервер за минуту.';
   return { ext, b64: await readB64(blob), url: URL.createObjectURL(blob), size: blob.size, orig: f.size, note };
 }
 $('#shotFile').addEventListener('change', async e => {
@@ -211,7 +221,7 @@ function buildMd() {
   fm = setFm(fm, 'permalink', '/' + (S.slug || 'page') + '.html');
   if (S.origTitle === null || S.title !== S.origTitle) fm = setFm(fm, 'title', t + ' — a51bfcts Вики');
   let img = S.img;
-  if (S.shots.length) img = S.shots.map((s, i) => `<div class="item-card">\n<img loading="lazy" decoding="async" src="../images/${shotName(i)}" alt="${esc(t)}${i ? ' ' + (i + 1) : ''}">\n</div>`).join('\n\n');
+  if (S.shots.length) img = S.shots.map((s, i) => `<div class="item-card">\n<img src="../images/${shotName(i)}" alt="${esc(t)}${i ? ' ' + (i + 1) : ''}">\n</div>`).join('\n\n');
   const intro = S.introMode === 'fields' ? `***Описание*** *- ${S.desc.trim() || 'нет'}*\n\n**${S.boldName || t}** - ${S.about.trim()}` : S.introRaw.trim();
   const parts = ['---\n' + fm + '\n---', '# ' + t];
   if (img) parts.push(img.trim());
@@ -219,7 +229,7 @@ function buildMd() {
   S.sections.forEach(s => parts.push('## ' + s.h.trim() + (s.b.trim() ? '\n\n' + s.b.trim() : '')));
   return parts.join('\n\n') + '\n';
 }
-const curMd = () => S.adv ? S.md : buildMd();
+const curMd = () => fixImgs(S.adv ? S.md : buildMd());
 
 function parsePage(md) {
   md = md.replace(/\r\n/g, '\n');
@@ -235,7 +245,7 @@ function parsePage(md) {
     else head += p;
   });
   const im = head.match(/(?:<div class="item-card">[\s\S]*?<\/div>\s*)+/);
-  const img = im ? im[0].trim() : '';
+  const img = im ? fixImgs(im[0].trim()) : '';
   if (im) head = head.replace(im[0], '');
   head = head.trim();
   const f = head.match(/^\*\*\*Описание\*\*\*\s*\*-\s*([\s\S]*?)\*\s*\n+\*\*([^*\n]+)\*\*\s*-\s*([\s\S]*)$/);
@@ -509,7 +519,7 @@ $('#coverTake').addEventListener('click', async () => {
 /* ---------- карточка в списке раздела ---------- */
 function addCard(text, slug, img, title) {
   if (text.includes('href="' + slug + '.html"')) return null;
-  const card = `\n  <a href="${slug}.html" class="item-card">\n    <img loading="lazy" decoding="async" src="${img}" alt="${esc(title)}">\n    <h3>${esc(title)}</h3>\n  </a>\n`;
+  const card = `\n  <a href="${slug}.html" class="item-card">\n    <img src="${img}" alt="${esc(title)}">\n    <h3>${esc(title)}</h3>\n  </a>\n`;
   const g = text.indexOf('class="items-grid"'), end = g === -1 ? -1 : text.indexOf('</div>', g);
   if (end !== -1) return text.slice(0, end).replace(/\s*$/, '\n') + card + text.slice(end);
   return text.replace(/\s*$/, '\n') + '\n<div class="items-grid">' + card + '</div>\n';
@@ -520,6 +530,7 @@ async function commitFiles(files, message) {
   const rp = refPath(), ref = await ghJson('/git/ref/heads/' + rp);
   const base = (await ghJson('/git/commits/' + ref.object.sha)).tree.sha, tree = [];
   for (const f of files) {
+    if (f.del) { tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null }); continue; }
     const b = await ghJson('/git/blobs', { method: 'POST', body: JSON.stringify({ content: f.b64 || b64enc(f.text), encoding: 'base64' }) });
     tree.push({ path: f.path, mode: '100644', type: 'blob', sha: b.sha });
   }
@@ -553,10 +564,14 @@ $('#go').addEventListener('click', async () => {
     if (isNew) { const r = await gh('/contents/' + q(path)); if (r.ok) throw new Error(path + ' уже существует, ничего не перезаписываю.'); if (r.status !== 404) throw new Error('Не удалось проверить ' + path + ' (' + r.status + '). Проверь токен, права и ветку.'); }
     else { const cur = await readFile(path); if (norm(cur.text) !== norm(S.orig.md) && !confirm('Страница изменилась в репозитории с тех пор, как ты её открыл. Перезаписать твоей версией?')) throw new Error('Отменено.'); }
     const names = S.shots.map((s, i) => shotName(i));
+    let converted = false;
     for (let i = 0; i < names.length; i++) {
-      const p = 'images/' + names[i], r = await gh('/contents/' + q(p));
-      if (r.ok && !(S.img || '').includes(names[i]) && !confirm('Файл ' + p + ' уже есть в репозитории и будет заменён. Продолжить?')) throw new Error('Отменено.');
-      files.push({ path: p, b64: S.shots[i].b64 });
+      const fin = 'images/' + names[i], up = 'images/' + shotFile(i), r = await gh('/contents/' + q(fin));
+      if (r.ok && !(S.img || '').includes(names[i]) && !confirm('Файл ' + fin + ' уже есть в репозитории и будет заменён. Продолжить?')) throw new Error('Отменено.');
+      // заливаем webp/png, а бот сделает из него .avif: старый .avif с таким именем надо убрать, иначе бот назовёт новый «имя-webp.avif»
+      if (r.ok && up !== fin) files.push({ path: fin, del: true });
+      if (up !== fin) converted = true;
+      files.push({ path: up, b64: S.shots[i].b64 });
     }
     let cover = null;
     if (S.coverMode === 'std') cover = stdCover(S.kind);
@@ -576,7 +591,8 @@ $('#go').addEventListener('click', async () => {
     }
     const msg = $('#msg').value.trim() || (isNew ? 'Новая страница: ' : 'Правка: ') + path;
     const c = await commitFiles(files, msg);
-    log('ok', 'Готово: ' + files.map(f => f.path).join(', ') + '. Сайт обновится через 1–2 минуты.');
+    log('ok', 'Готово: ' + files.filter(f => !f.del).map(f => f.path).join(', ') + '. Сайт обновится через 1–2 минуты.');
+    if (converted) log('warn', 'Картинки ушли не в AVIF: сервер переведёт их в AVIF примерно за минуту, до этого на странице они не отобразятся.');
     log('ok', c.html_url || c.sha);
     localStorage.removeItem(DK);
     if (isNew && !S.pages.includes(S.slug)) S.pages.push(S.slug);
