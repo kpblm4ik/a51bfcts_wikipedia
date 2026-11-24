@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0a14">
+<title>{{ page.title }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ '/images/favicon.svg' | relative_url }}">
+{% assign seo_desc = page.description | default: 'Вики по игре Area 51 But Find Coils To Survive.' %}
+<meta name="description" content="{{ seo_desc | escape }}">
+<link rel="canonical" href="{{ '/' | absolute_url }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="a51bfcts Вики">
+<meta property="og:title" content="{{ page.title | escape }}">
+<meta property="og:description" content="{{ seo_desc | escape }}">
+<meta property="og:url" content="{{ '/' | absolute_url }}">
+<script src="{{ '/js/isolate.js' | relative_url }}"></script>
+<link rel="stylesheet" href="{{ '/css/main.css' | relative_url }}">
+<script src="{{ '/js/reveal.js' | relative_url }}"></script>
+</head>
+<body class="home">
+{% assign im = '/images/' | relative_url %}
+
+<header class="nav"><div class="wrap">
+  <b>Зона 51</b>
+  <div><a class="pill" href="#sections">Разделы</a><a class="pill fill" href="#news">Новости</a></div>
+</div></header>
+
+<main>
+<div class="hero">
+  <p class="eyebrow">Международный архив</p>
+  <h1>Выжить в Зоне 51.</h1>
+  <p class="lead">Энциклопедия предметов, секретных координат и результатов датамайнинга для плейса Area 51 but find coils to survive.</p>
+  <div class="hero-img"><img src="{{ im }}Screenshot_20261005_180602.avif" alt="Сектор катушек" decoding="async"></div>
+  <div class="bar"><span>Все характеристики снаряжения, необходимого для выживания в Зоне.</span><a class="btn" href="{{ '/coils.html' | relative_url }}">Катушки</a></div>
+</div>
+
+<section id="sections"><div class="wrap">
+  <div class="head"><h2>Сектора исследований.</h2><a class="link" href="{{ '/experimental.html' | relative_url }}">Экспериментальные функции ›</a></div>
+  <div class="grid">
+    <a class="tile wide" href="{{ '/coils.html' | relative_url }}"><div class="t"><h3>Катушки. Скорость, прыжки и призыв.</h3><p>Лог получения катушки через Complex Power и скрытые параметры Пиксельного кликера.</p></div><img src="{{ im }}Screenshot_20261005_180602.avif" alt="Катушки" loading="lazy" decoding="async"></a>
+    <a class="tile" href="{{ '/wands.html' | relative_url }}"><div class="t"><h3>Палочки. Чертежи и аномальное вооружение.</h3><p>Марафон на 26.5 км ради ho_rr&amp;c wand и glitch wand на координатах 3479, 204, 4513.</p></div><img src="{{ im }}Screenshot_20261005_180545.avif" alt="Палочки" loading="lazy" decoding="async"></a>
+    <a class="tile" href="{{ '/other.html' | relative_url }}"><div class="t"><h3>Склад. Прочие предметы.</h3><p>Вспомогательные ресурсы, логи исследований и экипировка Старой Зоны.</p></div><img src="{{ im }}Screenshot_20261005_180528.avif" alt="Склад" loading="lazy" decoding="async"></a>
+    <a class="tile" href="{{ '/places.html' | relative_url }}"><div class="t"><h3>Места. Что где находится.</h3><p>Локации Зоны 51 и как туда добраться.</p></div><img src="{{ im }}places.avif" alt="Места" loading="lazy" decoding="async"></a>
+    <a class="tile" href="{{ '/mobs.html' | relative_url }}"><div class="t"><h3>Мобы. Кто опасен.</h3><p>Обитатели Зоны: где встречаются и чем грозят.</p></div><img src="{{ im }}mobs.avif" alt="Мобы" loading="lazy" decoding="async"></a>
+  </div>
+</div></section>
+
+<section id="news">
+  <div class="wrap"><div class="head"><h2>Новости.</h2></div></div>
+  <div class="rail" id="rail" tabindex="0" aria-label="Новости">
+    {% for n in page.news %}<article class="slide"><div class="t"><small>{{ n.tag }}</small><h3>{{ n.title }}</h3></div><img src="{{ im }}{{ n.img }}" alt="" loading="lazy" decoding="async"></article>
+    {% endfor %}
+  </div>
+  <div class="ctrl">
+    <div class="dots" id="dots"></div>
+    <button class="pp" id="pp" aria-label="Пауза"><svg class="b" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg><svg class="a" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+  </div>
+</section>
+
+<section><div class="wrap">
+  <div class="head"><h2>Создатели.</h2></div>
+  <div class="crew">
+    <div class="person"><img src="{{ im }}kpblm4ik.avif" alt="крымчик" loading="lazy" decoding="async"><div><h3>крымчик</h3><p>Создатель сайта</p><a href="https://t.me/Kpblm4ik_ru" target="_blank" rel="noopener noreferrer">Telegram: @Kpblm4ik_ru</a></div></div>
+    <div class="person"><img src="{{ im }}kris.avif" alt="ьешок" loading="lazy" decoding="async"><div><h3>ьешок</h3><p>Редактор страниц</p><a href="https://discord.com/users/1226246781445083160" target="_blank" rel="noopener noreferrer">Discord: @bewok1074</a></div></div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">kpblm4ik 2026 © · Защищено лицензией CC-BY-NC-ND 4.0</div></footer>
+
+<script src="{{ '/js/news.js' | relative_url }}"></script>
+{% include buttons_widget.html %}
+{% include tapi-banner.html %}
+{% include split-view.html %}
+</body>
+</html>
