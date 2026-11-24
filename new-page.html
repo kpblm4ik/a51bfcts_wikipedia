@@ -33,6 +33,10 @@ custom_css: /css/main.css
   .thumb { max-width: 160px !important; margin: 6px 0 !important; }
   #cf { width: 100%; height: 640px; border: 0; background: transparent; margin-top: 8px; }
   .banner { border: 1px dashed rgba(255,215,106,.6); border-radius: 10px; padding: 8px 10px; margin: 10px 0; font-size: 13px; }
+  .shots { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .shot { width: 150px; border: 1px solid rgba(160,102,255,.35); border-radius: 10px; padding: 6px; font-size: 12px; color: var(--ink-soft); word-break: break-all; }
+  .shot img.thumb { max-width: 100% !important; margin: 0 0 4px !important; }
+  .shot .ed-btn { margin-top: 4px; padding: 3px 8px; font-size: 12px; }
 </style>
 
 <h1>📄 Редактор страниц</h1>
@@ -78,9 +82,10 @@ custom_css: /css/main.css
 
 <div id="work">
   <div class="ed-card">
-    <h3>Картинка на странице</h3>
-    <div class="ed-row"><input type="file" id="shotFile" accept="image/*"><label><input type="checkbox" id="shrink" checked> сжать (WebP, до 1080 px)</label></div>
-    <div id="shotInfo" class="hint">Скриншот ляжет в images/. Сжатие уменьшает вес репозитория.</div>
+    <h3>Картинки на странице</h3>
+    <div class="ed-row"><input type="file" id="shotFile" accept="image/*" multiple><label><input type="checkbox" id="shrink" checked> сжать (AVIF, до 1080 px)</label></div>
+    <div id="shotInfo" class="hint"></div>
+    <div id="shotList" class="shots"></div>
   </div>
 
   <div class="ed-card">
@@ -143,12 +148,57 @@ const b64enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (le
 const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
 const norm = s => s.replace(/\s+/g, ' ').trim();
 
+const MAXSHOTS = 5, SFX = ['', '-b', '-c', '-d', '-e'];
+const SHOT_HINT = 'До 5 картинок. Лягут в images/ под именем страницы без цифр: rainbowcoil.avif, rainbowcoil-b.avif, rainbowcoil-c.avif… Сжатие уменьшает вес репозитория.';
+
 const S = { tab: 'new', adv: false, kind: 'coil', title: '', slug: '', slugTouched: false, fm: '', origTitle: null, img: '', boldName: '',
   introMode: 'fields', desc: '', about: '', introRaw: '',
-  sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }], md: '', orig: null, shot: null,
+  sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }], md: '', orig: null, shots: [],
   coverMode: 'std', coverSel: '', coverFrom: '', coverSvg: '', pages: [], covers: [] };
 
 function log(cls, m) { $('#log').insertAdjacentHTML('beforeend', `<div class="${cls}">${esc(m)}</div>`); }
+
+/* ---------- картинки: имя = адрес страницы (без цифр), порядок: slug, slug-b, slug-c… ---------- */
+const shotBase = () => S.slug || slugify(S.title) || 'shot';
+const shotName = i => shotBase() + SFX[i] + '.' + S.shots[i].ext;
+function clearShots() { S.shots.forEach(s => URL.revokeObjectURL(s.url)); S.shots = []; renderShots(); }
+function renderShots() {
+  $('#shotList').innerHTML = S.shots.map((s, i) => `<div class="shot"><img class="thumb" src="${s.url}" alt="">images/${esc(shotName(i))}<br>${(s.orig / 1024).toFixed(0)} → ${(s.size / 1024).toFixed(0)} КБ${s.note ? '<br><span class="warn">' + esc(s.note) + '</span>' : ''}<br><button class="ed-btn" data-rmshot="${i}">✕ Убрать</button></div>`).join('');
+}
+$('#shotList').addEventListener('click', e => {
+  const i = e.target.dataset.rmshot; if (i === undefined) return;
+  URL.revokeObjectURL(S.shots[+i].url); S.shots.splice(+i, 1); renderShots(); changed();
+});
+const toBlob = (c, t, q) => new Promise(r => c.toBlob(r, t, q));
+const readB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+async function packImage(f) {
+  let blob = f, ext = (f.name.split('.').pop() || 'png').toLowerCase(), note = '';
+  if (ext === 'jpeg') ext = 'jpg';
+  if ($('#shrink').checked) {
+    const bmp = await createImageBitmap(f), k = Math.min(1, 1080 / bmp.width), c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    let w = await toBlob(c, 'image/avif', 0.6), e2 = 'avif';
+    if (!w || w.type !== 'image/avif') { w = await toBlob(c, 'image/webp', 0.82); e2 = 'webp'; note = 'Этот браузер не умеет сжимать в AVIF, сохранил WebP. Для AVIF открой редактор в свежем Chrome или Яндекс Браузере.'; }
+    if (w && w.type === 'image/' + e2 && w.size < f.size) { blob = w; ext = e2; }
+    else note = 'Сжатие не уменьшило файл, оставил как есть.';
+  }
+  return { ext, b64: await readB64(blob), url: URL.createObjectURL(blob), size: blob.size, orig: f.size, note };
+}
+$('#shotFile').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length) return;
+  const room = MAXSHOTS - S.shots.length, take = files.slice(0, Math.max(0, room));
+  $('#shotInfo').innerHTML = 'Обрабатываю…';
+  let msg = files.length > take.length ? `<span class="warn">Максимум ${MAXSHOTS} картинок: лишние (${files.length - take.length}) не добавлены.</span> ` : '';
+  for (const f of take) {
+    try { S.shots.push(await packImage(f)); }
+    catch (err) { msg += `<span class="err">${esc(f.name)}: не получилось обработать (${esc(err.message)}).</span> `; }
+  }
+  $('#shotInfo').innerHTML = msg || SHOT_HINT;
+  renderShots(); changed();
+});
+$('#shotInfo').textContent = SHOT_HINT;
 
 /* ---------- модель страницы <-> Markdown ---------- */
 function setFm(fm, key, val) {
@@ -161,10 +211,7 @@ function buildMd() {
   fm = setFm(fm, 'permalink', '/' + (S.slug || 'page') + '.html');
   if (S.origTitle === null || S.title !== S.origTitle) fm = setFm(fm, 'title', t + ' — a51bfcts Вики');
   let img = S.img;
-  if (S.shot) {
-    const src = '../images/' + S.shot.name;
-    img = img ? img.replace(/src="[^"]*"/, () => 'src="' + src + '"') : `<div class="item-card">\n<img loading="lazy" decoding="async" src="${src}" alt="${esc(t)}">\n</div>`;
-  }
+  if (S.shots.length) img = S.shots.map((s, i) => `<div class="item-card">\n<img loading="lazy" decoding="async" src="../images/${shotName(i)}" alt="${esc(t)}${i ? ' ' + (i + 1) : ''}">\n</div>`).join('\n\n');
   const intro = S.introMode === 'fields' ? `***Описание*** *- ${S.desc.trim() || 'нет'}*\n\n**${S.boldName || t}** - ${S.about.trim()}` : S.introRaw.trim();
   const parts = ['---\n' + fm + '\n---', '# ' + t];
   if (img) parts.push(img.trim());
@@ -187,8 +234,8 @@ function parsePage(md) {
     if (/^## /.test(p)) { const nl = p.indexOf('\n'); secs.push({ h: (nl < 0 ? p : p.slice(0, nl)).slice(3).trim(), b: nl < 0 ? '' : p.slice(nl + 1).trim() }); }
     else head += p;
   });
-  const im = head.match(/<div class="item-card">[\s\S]*?<\/div>/);
-  const img = im ? im[0] : '';
+  const im = head.match(/(?:<div class="item-card">[\s\S]*?<\/div>\s*)+/);
+  const img = im ? im[0].trim() : '';
   if (im) head = head.replace(im[0], '');
   head = head.trim();
   const f = head.match(/^\*\*\*Описание\*\*\*\s*\*-\s*([\s\S]*?)\*\s*\n+\*\*([^*\n]+)\*\*\s*-\s*([\s\S]*)$/);
@@ -254,7 +301,7 @@ $('#tb').addEventListener('click', e => {
 });
 
 function syncTop() {
-  $('#title').value = S.title; $('#slug').value = S.slug; slugInfo();
+  $('#title').value = S.title; $('#slug').value = S.slug; slugInfo(); renderShots();
   $$('#kinds .ed-btn').forEach(b => b.classList.toggle('on', b.dataset.k === S.kind));
 }
 $('#kinds').innerHTML = Object.keys(KINDS).map(k => `<button class="ed-btn" data-k="${k}">${KINDS[k][0]}</button>`).join('');
@@ -262,9 +309,9 @@ $('#kinds').addEventListener('click', e => { const k = e.target.dataset.k; if (k
 $('#title').addEventListener('input', e => {
   S.title = e.target.value;
   if (!S.slugTouched && S.tab === 'new') { S.slug = slugify(S.title); $('#slug').value = S.slug; }
-  slugInfo(); changed();
+  slugInfo(); renderShots(); changed();
 });
-$('#slug').addEventListener('input', e => { S.slug = e.target.value.trim(); S.slugTouched = true; slugInfo(); changed(); });
+$('#slug').addEventListener('input', e => { S.slug = e.target.value.trim(); S.slugTouched = true; slugInfo(); renderShots(); changed(); });
 function slugInfo() {
   const el = $('#slugInfo');
   if (S.tab !== 'new') { el.textContent = ''; return; }
@@ -295,7 +342,8 @@ function md2html(src) {
   d.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
   d.querySelectorAll('img').forEach(i => {
     let s = i.getAttribute('src') || '';
-    if (S.shot && s.endsWith(S.shot.name)) s = S.shot.url; else s = s.replace('../images/', 'images/');
+    const base = s.split('/').pop(), idx = S.shots.findIndex((x, k) => shotName(k) === base);
+    if (idx >= 0) s = S.shots[idx].url; else s = s.replace('../images/', 'images/');
     i.setAttribute('src', s);
   });
   return d.body.innerHTML;
@@ -304,7 +352,7 @@ let pvT, drT;
 function changed() {
   clearTimeout(pvT); pvT = setTimeout(() => { $('#preview').innerHTML = md2html(curMd()); }, 150);
   clearTimeout(drT); drT = setTimeout(saveDraft, 600);
-  const dirty = S.tab === 'edit' && S.orig && (norm(curMd()) !== norm(S.orig.md) || S.shot || S.coverMode !== 'keep');
+  const dirty = S.tab === 'edit' && S.orig && (norm(curMd()) !== norm(S.orig.md) || S.shots.length || S.coverMode !== 'keep');
   $('#dirty').innerHTML = S.tab === 'edit' ? (dirty ? '<span class="warn">● есть несохранённые изменения</span>' : 'Изменений нет.') : '';
   $('#go').textContent = S.tab === 'new' ? '⬆️ Создать страницу' : '⬆️ Сохранить изменения';
 }
@@ -369,7 +417,7 @@ $('#pages').addEventListener('click', async e => {
   try {
     const f = await readFile(DOCS + n + '.md');
     S.tab = 'edit'; S.slug = n; S.slugTouched = true; S.orig = { sha: f.sha, md: f.text };
-    S.shot = null; S.coverMode = 'keep'; S.coverSvg = ''; S.coverFrom = ''; $('#shotInfo').textContent = '';
+    clearShots(); S.coverMode = 'keep'; S.coverSvg = ''; S.coverFrom = ''; $('#shotInfo').textContent = SHOT_HINT + ' Новые картинки заменят те, что сейчас на странице.';
     applyParsed(parsePage(f.text));
     S.md = f.text;
     if (S.adv) $('#mdRaw').value = f.text;
@@ -395,37 +443,16 @@ $$('[data-tab]').forEach(b => b.addEventListener('click', () => {
   $$('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
   S.tab = t;
   if (t === 'new') {
-    Object.assign(S, { fm: '', origTitle: null, img: '', boldName: '', introMode: 'fields', desc: '', about: '', title: '', slug: '', slugTouched: false, orig: null, shot: null, coverMode: 'std', coverSvg: '', coverFrom: '', sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }] });
+    Object.assign(S, { fm: '', origTitle: null, img: '', boldName: '', introMode: 'fields', desc: '', about: '', title: '', slug: '', slugTouched: false, orig: null, coverMode: 'std', coverSvg: '', coverFrom: '', sections: [{ h: 'Как получить', b: '' }, { h: 'Мелочи:', b: '' }] });
+    clearShots(); $('#shotInfo').textContent = SHOT_HINT;
     if (S.adv) { S.md = buildMd(); $('#mdRaw').value = S.md; }
     renderForm(); syncTop(); coverUI(); draftBanner();
   }
   showWork(); changed();
 }));
 
-/* ---------- скриншот ---------- */
-$('#shotFile').addEventListener('change', async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try {
-    let blob = f, ext = (f.name.split('.').pop() || 'png').toLowerCase();
-    if ($('#shrink').checked) {
-      const bmp = await createImageBitmap(f), k = Math.min(1, 1080 / bmp.width), c = document.createElement('canvas');
-      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-      const w = await new Promise(r => c.toBlob(r, 'image/webp', 0.82));
-      if (w && w.type === 'image/webp' && w.size < f.size) { blob = w; ext = 'webp'; }
-    }
-    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
-    const base = S.slug || slugify(S.title) || 'shot', d = new Date(), p = n => String(n).padStart(2, '0');
-    const name = `${base}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
-    if (S.shot) URL.revokeObjectURL(S.shot.url);
-    S.shot = { name, b64, url: URL.createObjectURL(blob) };
-    $('#shotInfo').innerHTML = `<img class="thumb" src="${S.shot.url}" alt=""><br>images/${esc(name)} · ${(f.size / 1024).toFixed(0)} КБ → ${(blob.size / 1024).toFixed(0)} КБ`;
-    changed();
-  } catch (err) { $('#shotInfo').innerHTML = `<span class="err">Не получилось обработать картинку: ${esc(err.message)}</span>`; }
-});
-
 /* ---------- обложка ---------- */
-const CM = { std: 'Стандартная', pick: 'Из готовых', draw: '🎨 Нарисовать', shot: 'Из скриншота', keep: 'Не менять' };
+const CM = { std: 'Стандартная', pick: 'Из готовых', draw: '🎨 Нарисовать', shot: 'Из картинки (первой)', keep: 'Не менять' };
 function coverUI() {
   const modes = S.tab === 'edit' ? ['keep', 'pick', 'draw', 'shot'] : ['std', 'pick', 'draw', 'shot'];
   if (!modes.includes(S.coverMode)) S.coverMode = modes[0];
@@ -511,7 +538,7 @@ function validate() {
     else if (S.pages.includes(S.slug)) errs.push('Страница «' + S.slug + '» уже есть. Открой её во вкладке «Править».');
   }
   if (S.coverMode === 'draw' && !S.coverSvg) errs.push('Ты выбрал «Нарисовать», но не нажал «Взять эту обложку».');
-  if (S.coverMode === 'shot' && !S.shot) errs.push('Для обложки из скриншота сначала загрузи картинку.');
+  if (S.coverMode === 'shot' && !S.shots.length) errs.push('Для обложки из картинки сначала загрузи картинку.');
   const m = curMd().match(/^permalink:\s*(\S+)/m);
   if (S.adv && m && m[1] !== '/' + S.slug + '.html') errs.push('permalink в шапке (' + m[1] + ') не совпадает с полем «Адрес».');
   return errs;
@@ -525,11 +552,16 @@ $('#go').addEventListener('click', async () => {
   try {
     if (isNew) { const r = await gh('/contents/' + q(path)); if (r.ok) throw new Error(path + ' уже существует, ничего не перезаписываю.'); if (r.status !== 404) throw new Error('Не удалось проверить ' + path + ' (' + r.status + '). Проверь токен, права и ветку.'); }
     else { const cur = await readFile(path); if (norm(cur.text) !== norm(S.orig.md) && !confirm('Страница изменилась в репозитории с тех пор, как ты её открыл. Перезаписать твоей версией?')) throw new Error('Отменено.'); }
-    if (S.shot) files.push({ path: 'images/' + S.shot.name, b64: S.shot.b64 });
+    const names = S.shots.map((s, i) => shotName(i));
+    for (let i = 0; i < names.length; i++) {
+      const p = 'images/' + names[i], r = await gh('/contents/' + q(p));
+      if (r.ok && !(S.img || '').includes(names[i]) && !confirm('Файл ' + p + ' уже есть в репозитории и будет заменён. Продолжить?')) throw new Error('Отменено.');
+      files.push({ path: p, b64: S.shots[i].b64 });
+    }
     let cover = null;
     if (S.coverMode === 'std') cover = stdCover(S.kind);
     else if (S.coverMode === 'pick') cover = '../images/covers/' + S.coverSel;
-    else if (S.coverMode === 'shot') cover = '../images/' + S.shot.name;
+    else if (S.coverMode === 'shot') cover = '../images/' + names[0];
     else if (S.coverMode === 'draw') {
       const n = S.coverFrom || S.slug + '.svg';
       if (S.covers.includes(n) && !confirm('Файл images/covers/' + n + ' уже есть и будет заменён везде, где он используется. Продолжить?')) throw new Error('Отменено.');
@@ -548,7 +580,7 @@ $('#go').addEventListener('click', async () => {
     log('ok', c.html_url || c.sha);
     localStorage.removeItem(DK);
     if (isNew && !S.pages.includes(S.slug)) S.pages.push(S.slug);
-    S.orig = { md, sha: '' }; S.shot = null; if (S.tab === 'edit') S.coverMode = 'keep'; coverUI(); changed(); slugInfo();
+    S.img = parsePage(md).img; S.orig = { md, sha: '' }; clearShots(); if (S.tab === 'edit') S.coverMode = 'keep'; coverUI(); changed(); slugInfo();
   } catch (e) { log('err', 'ОШИБКА: ' + (e.message || e)); }
   btn.disabled = false;
 });
