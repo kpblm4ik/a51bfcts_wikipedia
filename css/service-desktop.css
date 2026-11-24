@@ -1,7 +1,28 @@
 /* Служебные страницы на ПК (экран от 960px).
+   Подключается в _layouts/default.html только для служебных страниц (список адресов там же).
    Редактор страниц (new-page.html): слева все поля, справа предпросмотр, он остаётся на экране при прокрутке.
-   Подключается в шаблоне только для служебных страниц (noindex). Если браузер не знает :has(), страница остаётся в одну колонку. */
+   Остальные служебные страницы: широкая колонка, карточки в две колонки.
+   Если браузер не знает :has(), страница остаётся в одну колонку. */
 @media (min-width: 960px) {
+  /* общее: на ПК служебная страница шире телефонных 600px */
+  html body .wrapper:not(:has(#pvCard)) {
+    max-width: 1200px;
+    width: 100%;
+  }
+
+  /* темы и UI kit (kit.html): карточки настроек в две колонки */
+  html body .wrapper:has(#pane-kit) #pane-kit,
+  html body .wrapper:has(#pane-kit) #pane-sky {
+    column-gap: 28px;
+    align-items: start;
+  }
+  html body .wrapper:has(#pane-kit) #pane-kit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  html body .wrapper:has(#pane-kit) #pane-kit > .ed-card:first-child { grid-column: 1 / -1; }
+  html body .wrapper:has(#pane-kit) #pane-kit > .ed-card { margin: 10px 0; }
+  html body .wrapper:has(#pane-kit) #pane-sky { max-width: 760px; }
+  html body .wrapper:has(#pane-kit) .ed-card textarea { min-height: 220px; }
+
+  /* редактор страниц (new-page.html) */
   html body .wrapper:has(#pvCard) {
     max-width: 1500px !important;
     width: 100%;
