@@ -6,3 +6,10 @@ custom_css: /css/main.css
 ---
 
 # Места
+
+<div class="items-grid">
+  <a href="mainentrance.html" class="item-card">
+    <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/Screenshot_20261005_180545.avif" alt="Основной вход">
+    <h3>Основной вход</h3>
+  </a>
+</div>
