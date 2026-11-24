@@ -9,7 +9,7 @@ custom_css: /css/main.css
 
 <div class="items-grid">
   <a href="mainentrance.html" class="item-card">
-    <img loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/mainentrance.avif" alt="Основной вход">
+    <img loading="lazy" decoding="async" src="../images/mainentrance.avif" alt="Основной вход">
     <h3>Основной вход</h3>
   </a>
 </div>
