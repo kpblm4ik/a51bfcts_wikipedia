@@ -1,26 +1,7 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d0a14">
-<title>{{ page.title }}</title>
-<link rel="icon" type="image/svg+xml" href="{{ '/images/favicon.svg' | relative_url }}">
-{% assign seo_desc = page.description | default: 'Вики по игре Area 51 But Find Coils To Survive.' %}
-<meta name="description" content="{{ seo_desc | escape }}">
-<link rel="canonical" href="{{ '/' | absolute_url }}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="a51bfcts Вики">
-<meta property="og:title" content="{{ page.title | escape }}">
-<meta property="og:description" content="{{ seo_desc | escape }}">
-<meta property="og:url" content="{{ '/' | absolute_url }}">
-<script src="{{ '/js/isolate.js' | relative_url }}"></script>
-<link rel="stylesheet" href="{{ '/css/main.css' | relative_url }}">
-<script src="{{ '/js/reveal.js' | relative_url }}"></script>
-</head>
-<body class="home">
+---
+layout: default
+---
 {% assign im = '/images/' | relative_url %}
-
 <header class="nav"><div class="wrap">
   <b>Зона 51</b>
   <div><a class="pill" href="#sections">Разделы</a><a class="pill fill" href="#news">Новости</a></div>
@@ -68,10 +49,4 @@
 </main>
 
 <footer><div class="wrap">kpblm4ik 2026 © · Защищено лицензией CC-BY-NC-ND 4.0</div></footer>
-
 <script src="{{ '/js/news.js' | relative_url }}"></script>
-{% include buttons_widget.html %}
-{% include tapi-banner.html %}
-{% include split-view.html %}
-</body>
-</html>
