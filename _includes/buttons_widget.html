@@ -18,8 +18,8 @@
     <!-- Экспериментальные функции: обычная ссылка, работает и без JS -->
     <a id="widget-experimental-btn" href="{{ '/experimental.html' | relative_url }}" title="Экспериментальные функции">⚗</a>
 
-    <!-- Для разработчиков: токен, создание страниц, логи, заявки (js/dev.js грузится по клику) -->
-    <button id="widget-dev-btn" title="Для разработчиков">&gt;_</button>
+    <!-- Для разработчиков: отдельная страница dev.html (токен, создание страниц, логи, заявки) -->
+    <a id="widget-dev-btn" href="{{ '/dev.html' | relative_url }}" title="Для разработчиков">&gt;_</a>
   </div>
 </div>
 
@@ -279,20 +279,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   initZoom();
-
-  // «Для разработчиков» (>_): панель грузится только по клику
-  const devBtn = document.getElementById("widget-dev-btn");
-  if (devBtn) {
-    devBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (window.A51Dev) { window.A51Dev.open(); return; }
-      const s = document.createElement("script");
-      s.src = "{{ '/js/dev.js' | relative_url }}";
-      s.onload = () => window.A51Dev && window.A51Dev.open();
-      s.onerror = () => alert("Не удалось загрузить панель разработчика.");
-      document.head.appendChild(s);
-    });
-  }
 });
 
   // Поиск: список страниц лежит отдельным файлом search.json и грузится только тогда,
