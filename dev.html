@@ -21,27 +21,32 @@ main{padding:0 16px 40px}.item{background:var(--card);border-radius:14px;padding
 <nav id="tabs"><button data-t="page" class="on">Создать страницу</button><button data-t="logs">Логи</button><button data-t="ad">Реклама</button><button data-t="job">Работа</button><button onclick="logout()">Выйти</button></nav>
 <main id="view"></main></div>
 <script>
-const SB_URL='https://ТВОЙ_ПРОЕКТ.supabase.co',SB_KEY='ТВОЙ_ANON_KEY';
+const REPO='kpblm4ik/a51bfcts_wikipedia',API='https://api.github.com/repos/'+REPO;
 const $=s=>document.querySelector(s);
-const rpc=(fn,a)=>fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(a)}).then(r=>r.json());
+const gh=(p,t=T)=>fetch(API+p,{headers:{Authorization:'Bearer '+t,Accept:'application/vnd.github+json'}}).then(r=>r.ok?r.json():Promise.reject(r.status));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let T=sessionStorage.getItem('a51tk')||'';
+let T=localStorage.getItem('a51tk')||'';
 async function login(){
-  const t=$('#tk').value||T;
-  try{ if(await rpc('admin_ok',{t})===true){ T=t; sessionStorage.setItem('a51tk',t); await rpc('add_log',{t,a:'Вход в панель'}); start(); return; } }catch{}
-  $('#err').textContent='Неверный токен';
+  const t=$('#tk').value.trim()||T;
+  try{ const r=await gh('',t); if(r.permissions&&r.permissions.push){ T=t; localStorage.setItem('a51tk',t); start(); return; } }catch{}
+  localStorage.removeItem('a51tk'); T=''; $('#err').textContent='Неверный токен или нет прав на репозиторий';
 }
-function logout(){sessionStorage.removeItem('a51tk');location.reload()}
+function logout(){localStorage.removeItem('a51tk');location.reload()}
 function start(){$('#login').hidden=true;$('#app').hidden=false;show('page')}
 async function show(t){
   document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   const v=$('#view');
   if(t==='page'){ v.innerHTML='<iframe src="new-page.html"></iframe>'; return; }
   v.innerHTML='<p>Загрузка…</p>';
-  const d=t==='logs'?await rpc('get_logs',{t:T}):await rpc('get_submissions',{t:T,k:t});
-  if(!Array.isArray(d)||!d.length){v.innerHTML='<p>Пусто</p>';return}
-  v.innerHTML=d.map(x=>`<div class="item"><small>${new Date(x.created_at).toLocaleString('ru')}</small><br>`+
-   (t==='logs'?esc(x.action):Object.entries(x.data).map(([k,val])=>`<b>${esc(k)}:</b> ${esc(val)}`).join('<br>'))+'</div>').join('');
+  try{
+    if(t==='logs'){
+      const c=await gh('/commits?per_page=50');
+      v.innerHTML=c.map(x=>`<div class="item"><small>${new Date(x.commit.author.date).toLocaleString('ru')} · ${esc(x.commit.author.name)}</small><br>${esc(x.commit.message)}</div>`).join('')||'<p>Пусто</p>';
+    }else{
+      const i=(await gh('/issues?state=all&per_page=50&labels='+t)).filter(x=>!x.pull_request);
+      v.innerHTML=i.map(x=>`<div class="item"><small>${new Date(x.created_at).toLocaleString('ru')} · <a style="color:#b9a6ff" href="${x.html_url}" target="_blank" rel="noopener">#${x.number}</a></small><br>${esc(x.body||'').replace(/\n/g,'<br>')}</div>`).join('')||'<p>Пусто</p>';
+    }
+  }catch(e){v.innerHTML='<p>Ошибка загрузки: '+esc(e)+'</p>'}
 }
 $('#tabs').onclick=e=>{const b=e.target.dataset.t;if(b)show(b)};
 $('#tk').onkeydown=e=>e.key==='Enter'&&login();

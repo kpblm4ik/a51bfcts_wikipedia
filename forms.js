@@ -1,6 +1,6 @@
 /* Подключи в index.html: <script src="forms.js" defer></script>
    Кнопки: <button data-form="job">Заполнить форму</button> / data-form="ad" */
-const SB_URL = 'https://ТВОЙ_ПРОЕКТ.supabase.co', SB_KEY = 'ТВОЙ_ANON_KEY';
+const REPO = 'kpblm4ik/a51bfcts_wikipedia'; // репозиторий, куда падают заявки (Issues)
 (() => {
   const css = `.fm-bg{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
   .fm-bg.on{display:flex}.fm{background:#1b1625;border:1px solid #6b4fd8;border-radius:20px;padding:20px;width:100%;max-width:420px;color:#fff;font-family:inherit}
@@ -25,15 +25,13 @@ const SB_URL = 'https://ТВОЙ_ПРОЕКТ.supabase.co', SB_KEY = 'ТВОЙ_A
     bg.classList.add('on');
     const form = bg.firstChild, msg = form.querySelector('p');
     form.querySelector('.x').onclick = () => bg.classList.remove('on');
-    form.onsubmit = async e => {
-      e.preventDefault(); msg.textContent = 'Отправка…';
-      try {
-        const r = await fetch(`${SB_URL}/rest/v1/submissions`, { method: 'POST',
-          headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: k, data: Object.fromEntries(new FormData(form)) }) });
-        if (!r.ok) throw 0;
-        msg.textContent = 'Отправлено! Мы свяжемся с вами.'; setTimeout(() => bg.classList.remove('on'), 1500);
-      } catch { msg.textContent = 'Ошибка отправки, попробуйте позже.'; }
+    form.onsubmit = e => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(form));
+      const body = Object.entries(d).map(([k, v]) => `**${k}:** ${v}`).join('\n\n');
+      const u = `https://github.com/${REPO}/issues/new?labels=${k}&title=${encodeURIComponent(c.t + ': ' + d.name)}&body=${encodeURIComponent(body)}`;
+      window.open(u, '_blank', 'noopener');
+      msg.textContent = 'Нажмите «Submit new issue» на GitHub, чтобы отправить заявку.';
     };
   }
   bg.onclick = e => e.target === bg && bg.classList.remove('on');
