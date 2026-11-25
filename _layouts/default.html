@@ -2,11 +2,11 @@
 <html lang="{{ page.lang | default: 'ru' }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ page.title | default: 'a51bfcts Вики' }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ '/images/favicon.svg' | relative_url }}">
 
-    <!-- Поиск: описание, canonical и Open Graph. Своё описание страницы можно задать в шапке: description: ... -->
+    <!-- Поиск: описание, canonical и Open Graph. Своё описание страницы можно задать в шапке: description: "..." (в кавычках) -->
     {% assign seo_desc = page.description | default: 'Wiki for the game Area 51 But Find Coils To Survive: coils, wands, items and how to get them.' %}
     {% if page.url == '/index.html' or page.url == '/' %}{% assign seo_url = '/' | absolute_url %}{% else %}{% assign seo_url = page.url | absolute_url %}{% endif %}
     <meta name="description" content="{{ seo_desc | escape }}">
@@ -21,96 +21,44 @@
     <!-- Изоляция страницы: пока включена галочка в опасной зоне, любая страница перекидывает на эксперименты -->
     <script src="{{ '/js/isolate.js' | relative_url }}"></script>
 
-    <style>
-        html, body {
-            margin: 0;
-            padding: 10px;
-            min-height: 100vh;
-            font-family: sans-serif;
-            background-color: #050407 !important;
-            color: #e2daf0 !important;
-        }
-
-        /* Твой крутой зафиксированный фон с идеальными настройками яркости */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background-image: url('{{ '/images/Screenshot_20261006_110338.avif' | relative_url }}');
-            background-size: cover;
-            background-position: center top;
-            filter: brightness(0.24) contrast(1.4) saturate(1.3) !important;
-            z-index: -2;
-            pointer-events: none;
-        }
-
-        .wrapper {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #0b090f !important;
-            box-shadow: 0 0 40px rgba(138, 43, 226, 0.4), 0 0 10px rgba(138, 43, 226, 0.2) !important;
-            border-radius: 8px;
-            padding: 20px;
-            position: relative;
-            z-index: 1;
-            box-sizing: border-box;
-        }
-
-        a {
-            color: #a066ff !important;
-            text-shadow: 0 0 5px rgba(160, 102, 255, 0.3);
-            text-decoration: none;
-        }
-
-        img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 10px auto;
-            border-radius: 12px;
-        }
-
-        footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 14px;
-            color: #8c829e !important;
-            border-top: 1px solid rgba(160, 102, 255, 0.1);
-            padding-top: 15px;
-        }
-        footer p { margin: 5px 0; color: #8c829e !important; }
-    </style>
-
-    <!-- Подключение микростилей страниц -->
-    {% if page.custom_css %}
-    <link rel="stylesheet" href="{{ page.custom_css | relative_url }}">
-    {% endif %}
+    <!-- ВЕСЬ дизайн живёт в css/main.css (служебные страницы на ПК ещё в css/service-desktop.css) -->
+    <link rel="stylesheet" href="{{ '/css/main.css' | relative_url }}">
+    {% if page.custom_css and page.custom_css != '/css/main.css' %}<link rel="stylesheet" href="{{ page.custom_css | relative_url }}">{% endif %}
 
     <!-- Служебные страницы: раскладка для ПК (экран от 960px). Новая служебная страница добавляется в этот список -->
     {% assign svc_pages = '/new-page.html /kit.html /editor.html /coil-editor.html /experimental.html' | split: ' ' %}
     {% if svc_pages contains page.url %}
     <link rel="stylesheet" href="{{ '/css/service-desktop.css' | relative_url }}">
+    {% else %}
+    <script src="{{ '/js/reveal.js' | relative_url }}"></script>
     {% endif %}
 
-    <!-- Пользовательская тема (UI kit): меняет цвета, скругления, шрифт и обои; опасную зону не трогает -->
+    <!-- Пользовательская тема (UI kit): работает на ВСЕХ страницах, включая главную -->
     <script src="{{ '/js/kit.js' | relative_url }}"></script>
 
-    <!-- Стеклянное небо (экспериментально): включается только если сохранено на вкладке «Небо» в китах; ?theme=off отключает. ?v= нужен, чтобы браузер не держал старую версию -->
+    <!-- Стеклянное небо (экспериментально): включается только если сохранено на вкладке «Небо» в китах; ?theme=off отключает -->
     <script src="{{ '/js/sky.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 </head>
-<body>
+<body{% if page.layout == 'home' %} class="home"{% endif %}>
+{% capture img_base %}{{ '/images/' | relative_url }}{% endcapture %}
+{% if page.layout == 'home' %}
+{{ content }}
+{% else %}
     <div class="wrapper">
-        {% capture img_base %}{{ '/images/' | relative_url }}{% endcapture %}
-        {{ content | replace: '../images/', img_base | replace: '<img ', '<img loading="lazy" decoding="async" ' }}
-                <footer>
-  <img src="{{ '/images/1000033782.avif' | relative_url }}" loading="lazy" decoding="async" alt="Area 51 But Find Coils To Survive">
-  <p>kpblm4ik 2026 ©</p>
-  <p>Защищено лицензией CC-BY-NC-ND 4.0</p>
-                </footer> 
-</div>
+        {% if svc_pages contains page.url %}
+            {% assign body_html = content %}
+        {% else %}
+            {% comment %}Встроенные <style> на обычных страницах отбрасываются: оформлением управляет только main.css{% endcomment %}
+            {% capture body_html %}{% assign chunks = content | split: '</style>' %}{% for c in chunks %}{{ c | split: '<style' | first }}{% endfor %}{% endcapture %}
+        {% endif %}
+        {{ body_html | replace: '../images/', img_base | replace: '<img ', '<img loading="lazy" decoding="async" ' }}
+        <footer>
+            <img src="{{ '/images/1000033782.avif' | relative_url }}" loading="lazy" decoding="async" alt="Area 51 But Find Coils To Survive">
+            <p>kpblm4ik 2026 ©</p>
+            <p>Защищено лицензией CC-BY-NC-ND 4.0</p>
+        </footer>
+    </div>
+{% endif %}
 {% include buttons_widget.html %}
 {% include tapi-banner.html %}
 {% include split-view.html %}
