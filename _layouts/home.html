@@ -39,6 +39,14 @@ layout: default
   </div>
 </section>
 
+<section id="coop">
+  <div class="wrap"><div class="head"><h2>Сотрудничество.</h2></div></div>
+  <div class="rail" aria-label="Сотрудничество">
+    <article class="slide coop"><div class="t"><small>Команда</small><h3>Работа.</h3><p>Ищем редакторов страниц, датамайнеров и переводчиков. Расскажи о себе, и мы свяжемся.</p></div><button class="btn" type="button" data-form="work">Заполнить форму</button></article>
+    <article class="slide coop"><div class="t"><small>Для бизнеса</small><h3>Реклама.</h3><p>Размещение баннеров, постов и интеграций на сайте. Опиши, что рекламируем.</p></div><button class="btn" type="button" data-form="ads">Форма для рекламодателей</button></article>
+  </div>
+</section>
+
 <section><div class="wrap">
   <div class="head"><h2>Создатели.</h2></div>
   <div class="crew">
@@ -49,4 +57,6 @@ layout: default
 </main>
 
 <footer><div class="wrap">kpblm4ik 2026 © · Защищено лицензией CC-BY-NC-ND 4.0</div></footer>
+<script>window.A51_FORMS_ENDPOINT = {{ site.forms_endpoint | jsonify }};</script>
 <script src="{{ '/js/news.js' | relative_url }}"></script>
+<script src="{{ '/js/forms.js' | relative_url }}"></script>
