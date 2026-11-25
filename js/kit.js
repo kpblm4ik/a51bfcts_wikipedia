@@ -1,16 +1,18 @@
 /* UI kit сайта: тема = JSON с жёстким списком полей. Тема меняет только ЦВЕТА, скругления,
    шрифт и обои: раскладку, видимость и работу кнопок и виджета она изменить не может.
+   Дизайн страниц живёт в css/main.css и читает переменные (--neon, --ink, --panel, --r ...),
+   а этот файл только подставляет в них значения темы. Работает на всех страницах, включая главную.
    Если цвета нечитаемы, сайт сам подбирает читаемый вариант (в сохранённом JSON ничего не меняется). */
 window.KIT = (function () {
   const KEY = 'a51.kit', MAXWP = 260000;
   const FONTS = {
-    default: 'sans-serif',
+    default: '"Moscow Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
     rounded: '"Trebuchet MS","Segoe UI",system-ui,sans-serif',
     serif: 'Georgia,"Times New Roman",serif',
     mono: 'ui-monospace,Menlo,Consolas,monospace',
     display: '"Rajdhani","Trebuchet MS",system-ui,sans-serif'
   };
-  const FONT_LABELS = { default: 'Обычный', rounded: 'Округлый', serif: 'С засечками', mono: 'Моноширинный', display: 'Заголовочный (Rajdhani)' };
+  const FONT_LABELS = { default: 'Обычный (Moscow Sans)', rounded: 'Округлый', serif: 'С засечками', mono: 'Моноширинный', display: 'Заголовочный (Rajdhani)' };
   const COLORS = ['accent', 'accent2', 'text', 'textSoft', 'panel', 'panelHi', 'page'];
   const KEYS = ['schema', 'name', 'colors', 'glow', 'radius', 'font', 'wallpaper', 'dim'];
   const DEF = {
@@ -58,37 +60,20 @@ window.KIT = (function () {
     return { kit: k, errors: err };
   }
 
-  /* CSS строится только из проверенных значений и трогает лишь цвета, скругления, шрифт и обои */
+  /* CSS строится только из проверенных значений. Страницы красит main.css через переменные;
+     здесь же остаются цвета карточек редакторов и плавающего виджета */
   function css(k) {
     const c = k.colors, A = rgb(c.accent), B = rgb(c.accent2), g = k.glow, r = k.radius;
     const W = 'html body .wrapper', X = ':not(.ed-card *)', E = W + ' .ed-card', G = 'html body ';
-    const gl = n => (n * g).toFixed(1) + 'px', sh = n => (n * g).toFixed(2);
+    const gl = n => (n * g).toFixed(1) + 'px';
     const D = dark(c.page), bgs = [c.page, c.panel, c.panelHi];
     const T = ensure(c.text, bgs, 4.5), TS = ensure(c.textSoft, bgs, 3.5), AC = ensure(c.accent, bgs, 3), AW = ensure(c.accent, [D], 3);
-    const ff = k.font !== 'default' ? 'font-family:' + FONTS[k.font] + '!important;' : '';
-    let s = ':root{--neon:' + AC + ';--neon-soft:rgba(' + A + ',.35);--neon-line:rgba(' + A + ',.25);--ink:' + T + ';--ink-soft:' + TS + ';--panel:' + c.panel + ';--panel-hi:' + c.panelHi + ';--accent:' + c.accent2 + '}';
-    s += ':root,html body{background-color:' + D + '!important}';
-    /* содержимое страниц */
-    s += W + '{background-color:' + c.page + '!important;color:' + T + '!important;border-radius:' + Math.min(r, 24) + 'px!important;box-shadow:0 0 ' + gl(40) + ' rgba(' + A + ',' + sh(0.8) + '),0 0 ' + gl(10) + ' rgba(' + A + ',' + sh(0.4) + ')!important}';
-    s += W + ' a' + X + '{color:' + AC + '!important;text-shadow:0 0 ' + gl(5) + ' rgba(' + A + ',' + sh(0.6) + ')}';
-    s += ['h1', 'h2', 'h3', 'h4'].map(t => W + ' ' + t + X).join(',') + '{color:' + T + '!important;' + ff + 'text-shadow:0 0 ' + gl(14) + ' rgba(' + A + ',' + sh(1) + ')!important}';
-    s += W + ' p' + X + ',' + W + ' li' + X + '{color:' + T + '!important;' + ff + '}';
-    s += [' .card-text p', ' .item-card p', ' h1+p em'].map(t => W + t + X).join(',') + '{color:' + TS + '!important}';
-    const card = W + ' .main-sector-card' + X + ',' + W + ' .item-card' + X;
-    s += card + '{background:linear-gradient(160deg,' + c.panelHi + ',' + c.panel + ')!important;border-color:rgba(' + A + ',.4)!important;border-radius:' + r + 'px!important;box-shadow:0 8px 26px rgba(0,0,0,.55),0 0 ' + gl(18) + ' rgba(' + A + ',' + sh(0.25) + ')!important}';
-    s += W + ' .main-sector-card' + X + ':hover,' + W + ' .item-card' + X + ':hover{border-color:' + AC + '!important}';
-    s += W + ' img:not(footer img)' + X + '{border-color:rgba(' + A + ',.7)!important;border-radius:' + Math.min(r, 18) + 'px!important;box-shadow:0 0 ' + gl(14) + ' rgba(' + A + ',' + sh(0.38) + '),0 6px 14px rgba(0,0,0,.6)!important}';
-    s += W + ' hr{background:linear-gradient(90deg,transparent,' + c.accent + ',transparent)!important;box-shadow:0 0 ' + gl(10) + ' ' + c.accent + '!important}';
-    s += W + ' .stat' + X + '{color:' + c.accent2 + '!important;text-shadow:0 0 6px rgba(' + B + ',.35)!important}';
-    s += W + ' .badge' + X + '{color:' + T + '!important;background:rgba(' + A + ',.18)!important;border-color:rgba(' + A + ',.5)!important}';
-    s += W + ' footer{border-top-color:rgba(' + A + ',.2)!important}';
-    s += W + ' #svgContainer text{fill:' + TS + '!important}';
-    /* кнопки «На Главную» и переключатель языков */
-    s += W + ' .lang-btn' + X + '{background:rgba(' + A + ',.1)!important;border-color:rgba(' + A + ',.4)!important;color:' + T + '!important;border-radius:' + Math.min(r, 14) + 'px!important}';
-    s += W + ' .lang-btn' + X + ':hover{background:rgba(' + A + ',.3)!important;border-color:' + AC + '!important;box-shadow:0 0 ' + gl(10) + ' rgba(' + A + ',.45)!important}';
+    let s = ':root{--neon:' + AC + ';--neon-rgb:' + A + ';--neon-soft:rgba(' + A + ',.35);--neon-line:rgba(' + A + ',.25);--ink:' + T + ';--ink-soft:' + TS + ';--panel:' + c.panel + ';--panel-hi:' + c.panelHi + ';--accent:' + c.accent2 + ';--accent-rgb:' + B + ';--bg:' + c.page + ';--bg-deep:' + D + ';--glow:' + g + ';--dim:' + k.dim + ';--r:' + Math.round(r * 2) + 'px';
+    if (k.font !== 'default') s += ';--font:' + FONTS[k.font];
+    s += '}';
     /* карточки настроек и редакторов */
     s += E + '{background:linear-gradient(160deg,' + c.panelHi + ',' + c.panel + ')!important;border-color:rgba(' + A + ',.3)!important;border-radius:' + r + 'px!important;color:' + T + '!important}';
-    s += E + ' h3{color:' + T + '!important;text-shadow:0 0 ' + gl(8) + ' rgba(' + A + ',.6)!important}';
+    s += E + ' h3{color:' + T + '!important}';
     s += E + ' label,' + E + ' .hint,' + E + ' .tx{color:' + TS + '!important}';
     s += ['input[type=text]', 'input[type=password]', 'input[type=number]', 'select', 'textarea'].map(t => E + ' ' + t).join(',') + '{background:' + dark(c.panel) + '!important;color:' + T + '!important;border-color:rgba(' + A + ',.4)!important}';
     s += E + ' .ed-btn{background:rgba(' + A + ',.12)!important;border-color:rgba(' + A + ',.45)!important;color:' + T + '!important}';
@@ -106,7 +91,7 @@ window.KIT = (function () {
     s += ['#widget-zoom-btn.active', '#widget-search-btn.active'].map(i => G + i).join(',') + '{background:' + AW + '!important;color:' + D + '!important}';
     s += ['#widget-search-btn:hover', '#widget-experimental-btn:hover'].map(i => G + i).join(',') + '{background:rgba(' + A + ',.2)!important}';
     s += G + 'body.text-zoom-mode .wrapper .zoomed-active{text-shadow:0 0 ' + gl(20) + ' ' + c.accent + '!important}';
-    if (k.wallpaper) s += 'html body::before{background-image:url("' + k.wallpaper + '")!important;filter:brightness(' + k.dim + ') contrast(1.1) saturate(1.1)!important}';
+    if (k.wallpaper) s += 'html body::before{background-image:url("' + k.wallpaper + '")!important}';
     return s;
   }
 
