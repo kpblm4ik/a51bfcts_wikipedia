@@ -23,6 +23,8 @@
 
     <!-- ВЕСЬ дизайн живёт в css/main.css (служебные страницы на ПК ещё в css/service-desktop.css) -->
     <link rel="stylesheet" href="{{ '/css/main.css' | relative_url }}">
+    <!-- Вид кнопок по умолчанию (нулевая специфичность, свои стили кнопок его перекрывают) -->
+    <link rel="stylesheet" href="{{ '/css/buttons.css' | relative_url }}">
     {% if page.custom_css and page.custom_css != '/css/main.css' %}<link rel="stylesheet" href="{{ page.custom_css | relative_url }}">{% endif %}
 
     <!-- Служебные страницы: раскладка для ПК (экран от 960px). Новая служебная страница добавляется в этот список -->
