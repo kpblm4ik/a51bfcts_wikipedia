@@ -1,7 +1,7 @@
 <!-- Главный контейнер виджета в правом нижнем углу -->
 <div id="neo-corner-widget">
   
-  <!-- Основная круглая кнопка-триггер (теперь первая в коде для правильной работы Flexbox) -->
+  <!-- Основная круглая кнопка-триггер (первая в коде для правильной работы Flexbox) -->
   <button id="widget-trigger-btn" title="Открыть меню">Ξ</button>
 
   <!-- Вылетающая вверх «колбаска» с кнопками -->
@@ -17,25 +17,28 @@
 
     <!-- Экспериментальные функции: обычная ссылка, работает и без JS -->
     <a id="widget-experimental-btn" href="{{ '/experimental.html' | relative_url }}" title="Экспериментальные функции">⚗</a>
+
+    <!-- Для разработчиков: токен, создание страниц, логи, заявки (js/dev.js грузится по клику) -->
+    <button id="widget-dev-btn" title="Для разработчиков">&gt;_</button>
   </div>
 </div>
 
 <style>
-/* Общий контейнер, который теперь контролирует положение и рост меню снизу вверх */
+/* Общий контейнер, который контролирует положение и рост меню снизу вверх */
 #neo-corner-widget {
   position: fixed;
   right: 20px;
   bottom: 20px;
   display: flex;
-  flex-direction: column-reverse; /* Разворачивает элементы: триггер снизу, панель растет вверх */
+  flex-direction: column-reverse; /* триггер снизу, панель растёт вверх */
   align-items: center;
-  gap: 15px; /* Задает точный отступ между круглой кнопкой и выезжающей панелью */
+  gap: 15px;
   z-index: 9999999 !important;
 }
 
 /* Круглая фиксированная кнопка */
 #widget-trigger-btn {
-  position: relative; /* Убрали fixed, так как родитель уже зафиксирован */
+  position: relative;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -53,7 +56,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Эффект при активации кнопки */
 #widget-trigger-btn.active {
   background: #a066ff;
   color: #0b090f;
@@ -63,7 +65,7 @@
 
 /* Вылетающая вверх панель-колбаска */
 #neo-panel-widget {
-  position: relative; /* Убрали fixed и жесткий bottom: 85px */
+  position: relative;
   width: 60px;
   background: rgba(11, 9, 15, 0.95);
   border: 1px solid rgba(160, 102, 255, 0.6);
@@ -74,12 +76,10 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  
-  /* Эффект выезжания: точка трансформации теперь строго внизу панели */
   opacity: 0;
   filter: blur(10px);
-  transform: translateY(30px) scale(0.5); /* Панель сжата и утоплена внутрь кнопки */
-  transform-origin: bottom center; /* Анимация идет от нижней точки */
+  transform: translateY(30px) scale(0.5);
+  transform-origin: bottom center;
   pointer-events: none;
   transition: 
     opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -89,15 +89,13 @@
   backdrop-filter: blur(8px);
 }
 
-/* Класс активации панели */
 #neo-panel-widget.show {
   opacity: 1;
   filter: blur(0px);
-  transform: translateY(0) scale(1); /* Плавно вытягивается вверх */
+  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
-/* Мелкий текст статуса внутри панели */
 .widget-status {
   font-family: monospace;
   font-size: 8px;
@@ -152,7 +150,7 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   text-shadow: 0 0 20px #a066ff, 0 0 8px rgba(160, 102, 255, 0.6) !important;
 }
 
-/* Стили Поиска (поправлен баг с пробелом в transition) */
+/* Поиск */
 #widget-search-btn {
   width: 40px;
   height: 40px;
@@ -164,7 +162,7 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   font-weight: bold;
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.2s ease; /* Убран лишний пробел */
+  transition: all 0.2s ease;
   box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
   -webkit-tap-highlight-color: transparent;
 }
@@ -180,8 +178,9 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   box-shadow: 0 0 15px #a066ff;
 }
 
-/* Кнопка экспериментальных функций (ссылка, оформлена как остальные) */
-#widget-experimental-btn {
+/* Экспериментальные функции и «Для разработчиков» (оформлены как остальные) */
+#widget-experimental-btn,
+#widget-dev-btn {
   box-sizing: border-box;
   width: 40px;
   height: 40px;
@@ -201,9 +200,16 @@ body.text-zoom-mode .wrapper h4.zoomed-active {
   box-shadow: 0 0 8px rgba(160, 102, 255, 0.2);
   -webkit-tap-highlight-color: transparent;
 }
+#widget-dev-btn {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  padding: 0;
+}
 
 #widget-experimental-btn:hover,
-#widget-experimental-btn:active {
+#widget-experimental-btn:active,
+#widget-dev-btn:hover,
+#widget-dev-btn:active {
   background: rgba(160, 102, 255, 0.2);
   box-shadow: 0 0 12px #a066ff;
   color: #a066ff;
@@ -224,13 +230,11 @@ document.addEventListener("DOMContentLoaded", () => {
     zoomBtn = document.getElementById("widget-zoom-btn");
     statusText = document.querySelector("#neo-panel-widget .widget-status");
 
-    // Если кнопки еще нет на экране, пробуем снова через 100 миллисекунд
     if (!zoomBtn) {
       setTimeout(initZoom, 100);
       return;
     }
 
-    // Как только нашли кнопку — вешаем на нее событие клика
     zoomBtn.addEventListener("click", (e) => {
       e.stopPropagation(); // Защита от закрытия колбасы
       toggleZoomMode();
@@ -258,31 +262,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Логика клика по тексту (вешаем на весь документ, чтобы работало ВСЕГДА)
+  // Логика клика по тексту (вешаем на весь документ, чтобы работало всегда)
   document.addEventListener("click", (e) => {
     if (!isZoomModeActive) return;
     
-    // Ищем, был ли клик по тексту внутри .wrapper
     const textEl = e.target.closest("p, h1, h2, h3, h4, h5, h6, li");
     
-    // Дополнительная проверка, чтобы клик случайно не сработал на кнопках меню
     if (textEl && !e.target.closest("#neo-corner-widget")) {
       e.preventDefault();
       textEl.classList.toggle("zoomed-active");
     }
   });
 
-  // Экспорт функции сброса для первого файла
   window.widgetResetZoom = () => {
     if (isZoomModeActive) toggleZoomMode();
   };
 
-  // Запускаем поиск кнопки
   initZoom();
+
+  // «Для разработчиков» (>_): панель грузится только по клику
+  const devBtn = document.getElementById("widget-dev-btn");
+  if (devBtn) {
+    devBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (window.A51Dev) { window.A51Dev.open(); return; }
+      const s = document.createElement("script");
+      s.src = "{{ '/js/dev.js' | relative_url }}";
+      s.onload = () => window.A51Dev && window.A51Dev.open();
+      s.onerror = () => alert("Не удалось загрузить панель разработчика.");
+      document.head.appendChild(s);
+    });
+  }
 });
 
   // Поиск: список страниц лежит отдельным файлом search.json и грузится только тогда,
-  // когда пользователь нажимает на поиск (раньше список ВСЕХ страниц вшивался в каждую страницу сайта)
+  // когда пользователь нажимает на поиск
 let wikiDatabase = null, wikiLoading = null;
 function loadWikiIndex() {
   if (wikiDatabase) return Promise.resolve(wikiDatabase);
@@ -302,7 +316,6 @@ if (searchBtn) {
   searchBtn.addEventListener("click", (e) => {
     e.stopPropagation(); // Защита, чтобы «колбаска» не закрылась при клике
     
-    // Включаем фиолетовую подсветку кнопки
     searchBtn.classList.add("active");
     
     // Список страниц начинает грузиться сразу, пока пользователь вводит запрос
@@ -313,7 +326,6 @@ if (searchBtn) {
     setTimeout(async () => {
       const query = prompt("Введите название статьи для поиска:");
       
-      // Если пользователь нажал «Отмена» или ничего не ввел
       if (!query || query.trim() === "") {
         searchBtn.classList.remove("active");
         return;
@@ -330,14 +342,11 @@ if (searchBtn) {
         return;
       }
       
-      // Ищем совпадение по заголовкам (частичное или полное)
       const result = db.find(item => item.title.includes(cleanQuery));
       
       if (result) {
-        // Если нашли статью — мгновенно переходим на неё
         window.location.href = result.url;
       } else {
-        // Если ничего не нашли, сбрасываем фиолетовый цвет и ругаемся
         searchBtn.classList.remove("active");
         alert("Статья с таким названием не найдена в Вики.");
       }
