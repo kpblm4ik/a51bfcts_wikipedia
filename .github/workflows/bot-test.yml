@@ -1,0 +1,41 @@
+name: bot-test
+
+# Запуск вручную: вкладка «Боты» в dev.html или вкладка Actions на GitHub (Run workflow)
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Адрес сайта для теста'
+        required: false
+        default: 'https://kpblm4ik.github.io/a51bfcts_wikipedia/'
+      modes:
+        description: 'Режимы бота через запятую (naive, smart, patient)'
+        required: false
+        default: 'naive,smart,patient'
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Скачивание репозитория
+        uses: actions/checkout@v4
+      - name: Установка Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Установка Playwright
+        working-directory: .github/bot
+        run: |
+          npm init -y > /dev/null
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Бот Playwright
+        working-directory: .github/bot
+        env:
+          TARGET: ${{ inputs.target }}
+          MODES: ${{ inputs.modes }}
+        run: node bot-field.mjs
