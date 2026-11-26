@@ -1,6 +1,6 @@
 # Боты на Python: selenium, uc (undetected-chromedriver), scrapy, mechanicalsoup. Выбор через env BOT.
 # selenium/uc: Chrome, режимы naive/smart/patient. scrapy/mechanicalsoup: качают сырой HTML без JS, форма в нём не должна быть видна.
-import os, re, sys, time, pathlib
+import os, re, subprocess, sys, time, pathlib
 
 BOT = os.environ.get('BOT', 'selenium')
 BASE = (os.environ.get('TARGET') or 'https://kpblm4ik.github.io/a51bfcts_wikipedia/').strip()
@@ -11,6 +11,26 @@ PAGES = ['work.html', 'ads.html']
 ACT = pathlib.Path(__file__).with_name('act.js').read_text(encoding='utf-8')
 ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--host-resolver-rules=MAP github.com 0.0.0.0']
 EP_RE = re.compile(r'FORMS_ENDPOINT\s*=\s*("([^"]*)"|null)', re.I)
+_CHROME_MAJOR = []
+
+
+def chrome_major():
+    # uc сам качает драйвер последней версии, а на раннере Chrome может быть старше: берём версию установленного браузера
+    if _CHROME_MAJOR:
+        return _CHROME_MAJOR[0]
+    ver = None
+    for b in ('google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'):
+        try:
+            out = subprocess.check_output([b, '--version'], text=True, timeout=15)
+            m = re.search(r'(\d+)\.\d+', out)
+            if m:
+                ver = int(m.group(1))
+                print(f'Chrome на раннере: {out.strip()} (драйвер берём под версию {ver})')
+                break
+        except Exception:
+            continue
+    _CHROME_MAJOR.append(ver)
+    return ver
 
 
 def make_driver():
@@ -19,7 +39,7 @@ def make_driver():
         o = uc.ChromeOptions()
         for a in ARGS:
             o.add_argument(a)
-        return uc.Chrome(options=o, headless=True, use_subprocess=True)
+        return uc.Chrome(options=o, headless=True, use_subprocess=True, version_main=chrome_major())
     from selenium import webdriver
     o = webdriver.ChromeOptions()
     o.add_argument('--headless=new')
@@ -29,7 +49,11 @@ def make_driver():
 
 
 def run_one(mode, page):
-    d = make_driver()
+    try:
+        d = make_driver()
+    except Exception as e:
+        print(f'FAIL {mode.upper()} {page}: браузер не запустился ({str(e).splitlines()[0] if str(e) else e.__class__.__name__})')
+        return False
     try:
         d.get(BASE + page)
         found = False
