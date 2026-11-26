@@ -51,13 +51,15 @@ async function btRun() {
       btn.disabled = false; return;
     }
     st.textContent = 'Запуск принят (HTTP 204), жду появления в списке…';
-    for (let i = 0; i < 30; i++) {
+    let lastErr = '', seen = 0;
+    for (let i = 0; i < 48; i++) {
       await sleep(2500);
-      let d; try { d = await gh('/actions/workflows/bot-test.yml/runs?per_page=5'); } catch (e) { continue; }
-      const run = (d.workflow_runs || []).find(x => x.id > before);
+      let d; try { d = await gh('/actions/workflows/bot-test.yml/runs?per_page=5'); } catch (e) { lastErr = 'HTTP ' + e; continue; }
+      const list = d.workflow_runs || []; seen = list.length;
+      const run = list.find(x => x.id > before);
       if (run) { btn.disabled = false; btWatch(run.id); return; }
     }
-    st.textContent = 'Запуск принят GitHub, но в списке не появился за 75 с. Проверь вкладку Actions на GitHub (возможно, Actions выключены в настройках репозитория) или переоткрой вкладку «Боты».';
+    st.textContent = 'Запуск принят GitHub, но в списке не появился за 2 мин (' + (lastErr ? 'ошибка чтения списка: ' + lastErr + ' — у токена нет права Actions: Read' : 'в списке запусков: ' + seen + ', новых нет') + '). Проверь вкладку Actions на GitHub.';
   } catch (e) { st.textContent = 'Ошибка: ' + e; }
   btn.disabled = false;
 }
@@ -91,7 +93,7 @@ async function btWatch(id) {
     if (finished && job) {
       const L = $('#bt-log');
       try {
-        const r = await fetch(API + '/actions/jobs/' + job.id + '/logs', { headers: { Authorization: 'Bearer ' + T, Accept: 'application/vnd.github+json' } });
+        const r = await fetch(API + '/actions/jobs/' + job.id + '/logs', { cache: 'no-store', headers: { Authorization: 'Bearer ' + T, Accept: 'application/vnd.github+json' } });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         L.textContent = btClean(await r.text()); L.hidden = false; L.scrollTop = L.scrollHeight;
       } catch (e) {
