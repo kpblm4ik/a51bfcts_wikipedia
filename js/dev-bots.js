@@ -34,10 +34,12 @@ async function botsInit() {
   }
 }
 
+/* Запуск ищем по id (новее того, что было до кнопки), а не по времени: часы телефона могут спешить или отставать */
 async function btRun() {
   const st = $('#bt-status'), btn = $('#bt-run');
   btn.disabled = true; st.textContent = 'Запускаю…';
-  const t0 = Date.now() - 8000;
+  let before = 0;
+  try { const d0 = await gh('/actions/workflows/bot-test.yml/runs?per_page=1'); before = ((d0.workflow_runs || [])[0] || {}).id || 0; } catch (e) {}
   try {
     const r = await fetch(API + '/actions/workflows/bot-test.yml/dispatches', {
       method: 'POST',
@@ -48,14 +50,14 @@ async function btRun() {
       st.textContent = 'Не удалось запустить: HTTP ' + r.status + (r.status === 403 || r.status === 404 || r.status === 422 ? ' (нужны права Actions: Read and write у токена, и файл .github/workflows/bot-test.yml должен быть в main)' : '');
       btn.disabled = false; return;
     }
-    st.textContent = 'Жду появления запуска…';
-    for (let i = 0; i < 20; i++) {
+    st.textContent = 'Запуск принят (HTTP 204), жду появления в списке…';
+    for (let i = 0; i < 30; i++) {
       await sleep(2500);
-      const d = await gh('/actions/workflows/bot-test.yml/runs?event=workflow_dispatch&per_page=5');
-      const run = (d.workflow_runs || []).find(x => new Date(x.created_at).getTime() >= t0);
+      let d; try { d = await gh('/actions/workflows/bot-test.yml/runs?per_page=5'); } catch (e) { continue; }
+      const run = (d.workflow_runs || []).find(x => x.id > before);
       if (run) { btn.disabled = false; btWatch(run.id); return; }
     }
-    st.textContent = 'Запуск не появился. Открой вкладку Actions на GitHub.';
+    st.textContent = 'Запуск принят GitHub, но в списке не появился за 75 с. Проверь вкладку Actions на GitHub (возможно, Actions выключены в настройках репозитория) или переоткрой вкладку «Боты».';
   } catch (e) { st.textContent = 'Ошибка: ' + e; }
   btn.disabled = false;
 }
