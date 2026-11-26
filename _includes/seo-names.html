@@ -1,0 +1,7 @@
+{%- comment -%}
+  Английское название из имени файла: speed-coil.md → «Speed Coil». Слова делятся по - и _ .
+  Вызов: {% include seo-names.html path=page.path %} → появляется переменная en_title (выводить с | strip).
+{%- endcomment -%}
+{%- assign _f = include.path | split: '/' | last | remove: '.markdown' | remove: '.md' | remove: '.html' -%}
+{%- assign _w = _f | replace: '_', ' ' | replace: '-', ' ' | split: ' ' -%}
+{%- capture en_title -%}{%- for w in _w -%}{{ w | slice: 0 | upcase }}{{ w | slice: 1, 100 }}{%- unless forloop.last %} {% endunless -%}{%- endfor -%}{%- endcapture -%}

@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ page.title | default: 'a51bfcts Вики' }}</title>
+    {% comment %}Заголовок: русское название страницы + английское из имени файла, чтобы искали на обоих языках{% endcomment %}
+    {% include seo-names.html path=page.path %}
+    {% assign seo_en = en_title | strip %}
+    {% assign seo_ru = page.title | default: 'a51bfcts Вики' %}
+    {% if page.layout == 'home' or page.url == '/' or page.url == '/index.html' or seo_en == '' or seo_ru contains seo_en %}{% assign full_title = seo_ru %}{% else %}{% assign full_title = seo_ru | append: ' — ' | append: seo_en %}{% endif %}
+    <title>{{ full_title }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ '/images/favicon.svg' | relative_url }}">
 
     <!-- Поиск: описание, canonical и Open Graph. Своё описание страницы можно задать в шапке: description: "..." (в кавычках) -->
@@ -14,7 +19,7 @@
     <link rel="canonical" href="{{ seo_url }}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="a51bfcts Вики">
-    <meta property="og:title" content="{{ page.title | default: 'a51bfcts Вики' | escape }}">
+    <meta property="og:title" content="{{ full_title | escape }}">
     <meta property="og:description" content="{{ seo_desc | escape }}">
     <meta property="og:url" content="{{ seo_url }}">
 

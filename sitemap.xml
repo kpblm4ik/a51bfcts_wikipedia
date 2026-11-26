@@ -1,0 +1,21 @@
+---
+layout: null
+sitemap: false
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Карта сайта собирается сама из всех страниц (старых и новых). Исключаются: sitemap: false, noindex: true, dev.html, файлы верификации. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- assign all_pages = site.pages | concat: site.documents -%}
+{%- for p in all_pages -%}
+{%- assign ext = p.path | split: '.' | last -%}
+{%- assign ok = true -%}
+{%- if p.sitemap == false or p.noindex or p.name == '404.html' or p.name == 'dev.html' or p.name contains 'google' or p.name contains 'yandex' -%}{%- assign ok = false -%}{%- endif -%}
+{%- unless ext == 'html' or ext == 'md' or ext == 'markdown' -%}{%- assign ok = false -%}{%- endunless -%}
+{%- if ok -%}
+{%- include seo-names.html path=p.path -%}
+{%- assign u = p.url | replace: '/index.html', '/' %}
+  <!-- RU: {{ p.title | default: '-' | replace: '--', '-' }} | EN: {{ en_title | strip }} -->
+  <url><loc>{{ u | absolute_url }}</loc>{% if p.last_modified_at %}<lastmod>{{ p.last_modified_at | date_to_xmlschema }}</lastmod>{% endif %}</url>
+{%- endif -%}
+{%- endfor %}
+</urlset>
