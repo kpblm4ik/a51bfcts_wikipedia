@@ -1,7 +1,7 @@
 ---
 layout: default
 custom_css: /css/main.css
-permalink: /tutorial-katushka.html
+permalink: /tutorialcoil.html
 title: Туториал-катушка — a51bfcts Вики
 ---
 

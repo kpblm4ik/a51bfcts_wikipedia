@@ -40,8 +40,8 @@ custom_css: /css/main.css
     <h3>Катушка пустоты</h3>
   </a>
 
-  <a href="tutorial-katushka.html" class="item-card">
-    <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/tutorial-katushka.svg" alt="Туториал-катушка">
+  <a href="tutorialcoil.html" class="item-card">
+    <img loading="lazy" decoding="async" loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/tutorialcoil.svg" alt="Туториал-катушка">
     <h3>Туториал-катушка</h3>
   </a>
 
@@ -55,8 +55,8 @@ custom_css: /css/main.css
     <h3>Очень большая катушка скорости¹</h3>
   </a>
 
-  <a href="pesochnayakatushka.html" class="item-card">
-    <img loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/pesochnayakatushka.svg" alt="Песочная катушка">
+  <a href="sandcoil.html" class="item-card">
+    <img loading="lazy" decoding="async" src="/a51bfcts_wikipedia/images/covers/sandcoil.svg" alt="Песочная катушка">
     <h3>Песочная катушка</h3>
   </a>
 </div>

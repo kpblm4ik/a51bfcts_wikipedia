@@ -1,7 +1,7 @@
 ---
 layout: default
 custom_css: /css/main.css
-permalink: /pesochnayakatushka.html
+permalink: /sandcoil.html
 title: Песочная катушка — a51bfcts Вики
 ---
 
