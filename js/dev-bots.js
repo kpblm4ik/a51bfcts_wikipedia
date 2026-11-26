@@ -1,4 +1,4 @@
-/* Вкладка «Боты» в dev.html: список парсеров + запуск выбранного бота через workflow bot-test с прогрессом и логами.
+/* Вкладка «Боты» в dev.html: список парсеров + запуск выбранного бота через workflow bot-test с прогрессом, логами и вердиктом.
    Новый парсер в список: одна строка в BOTS (5-й элемент: имя бота в workflow bot-test.yml, options у input bot).
    Использует глобальные из dev.html: $, esc, gh, API, T. */
 const BOTS = [
@@ -21,8 +21,8 @@ function botsView() {
     BOTS.map(b => `<option value="${b[4]}">${esc(b[0])} · ${esc(b[1])}</option>`).join('') + '</select>' +
     '<input id="bt-target" value="https://kpblm4ik.github.io/a51bfcts_wikipedia/">' +
     '<button id="bt-run">Запустить бота</button>' +
-    '<div class="bar"><i id="bt-bar"></i></div><div id="bt-status"><small>Загружаю последний запуск…</small></div><div id="bt-steps"></div><pre class="log" id="bt-log" hidden></pre></div>' +
-    '<div class="item"><b>Тестируй только свой сайт.</b> Все 9 ботов запускай против своего адреса, в небольшом объёме. После прогона смотри вкладки «Работа» и «Реклама»: лишних заявок быть не должно.</div>' +
+    '<div class="bar"><i id="bt-bar"></i></div><div id="bt-status"><small>Загружаю последний запуск…</small></div><div id="bt-steps"></div><pre class="log" id="bt-log" hidden></pre><div id="bt-verdict"></div></div>' +
+    '<div class="item"><b>Тестируй только свой сайт.</b> Всех ботов запускай против своего адреса, в небольшом объёме. После прогона смотри вкладки «Работа» и «Реклама»: лишних заявок быть не должно.</div>' +
     BOTS.map(b => `<div class="item"><a href="https://github.com/${b[0]}" target="_blank" rel="noopener"><b>${esc(b[0])}</b></a><span class="tag">${esc(b[1])}</span><br>${esc(b[2])}<br><small>Проверяем: ${esc(b[3])}</small></div>`).join('');
 }
 
@@ -72,6 +72,51 @@ function btClean(t) {
   return t.replace(/\x1b\[[0-9;]*m/g, '').split('\n').map(l => l.replace(/^\S+Z /, '')).filter(l => l.trim() && !l.startsWith('##[')).slice(-300).join('\n');
 }
 
+/* Вердикт по логу: какую защиту бот пробил, какую нет.
+   NAIVE = все поля сразу (скрытое поле), SMART = видимые поля сразу (ловушка по времени), PATIENT = контроль, должен отправиться. */
+function btVerdict(t) {
+  const g = { NAIVE: [], SMART: [], PATIENT: [] }, http = [], ep = [];
+  let tools = null, err = 0;
+  t.split('\n').forEach(l => {
+    let m = l.match(/^(OK|FAIL)\s+(NAIVE|SMART|PATIENT)\s+(\S+?):\s*(.*)$/);
+    if (m) { if (/ОТПРАВЛЕНО|ЗАБЛОКИРОВАНО/.test(m[4])) g[m[2]].push([m[3], /ОТПРАВЛЕНО/.test(m[4])]); else err++; return; }
+    m = l.match(/^(OK|FAIL)\s+(SCRAPY|MECHANICALSOUP|COLLY)\s+(\S+?):\s*(.*)$/);
+    if (m) { http.push([m[3], m[1] === 'FAIL']); return; }
+    m = l.match(/^HTTP (\S+?): (.*)$/);
+    if (m) { ep.push([m[1], !/не задан/.test(m[2])]); return; }
+    if (/ВНИМАНИЕ: краулер зашёл/.test(l)) tools = true;
+    else if (/краулер не заходил/.test(l)) tools = false;
+  });
+  const rows = [], pages = a => a.map(x => x[0]).join(', ');
+  const trap = (arr, title, hold, broke) => {
+    if (!arr.length) return;
+    const bad = arr.filter(x => x[1]);
+    rows.push(bad.length ? [false, title, broke + ' (' + pages(bad) + ')'] : [true, title, hold]);
+  };
+  trap(g.NAIVE, 'Скрытое поле (honeypot)', 'бот не пробил: заявка заблокирована', 'бот пробил: заявка ушла');
+  trap(g.SMART, 'Ловушка по времени (бот жмёт сразу)', 'бот не пробил: заявка заблокирована', 'бот пробил: заявка ушла');
+  if (http.length) {
+    const seen = http.filter(x => x[1]);
+    rows.push(seen.length ? [false, 'Форма скрыта от HTML-бота', 'бот увидел форму в HTML (' + pages(seen) + ')'] : [true, 'Форма скрыта от HTML-бота', 'бот формы не нашёл']);
+  }
+  if (tools !== null) rows.push(tools ? [false, 'Служебные страницы /tools', 'краулер зашёл в них'] : [true, 'Служебные страницы /tools', 'краулер не заходил']);
+  if (ep.length) {
+    const open = ep.filter(x => x[1]);
+    rows.push(open.length ? [false, 'Прямой POST на endpoint', 'endpoint открыт (' + pages(open) + '), нужна проверка на сервере'] : [true, 'Прямой POST на endpoint', 'endpoint не задан, отправить минуя форму нельзя']);
+  }
+  const broke = rows.filter(r => r[0] === false).length, total = rows.length;
+  if (g.PATIENT.length) {
+    const blocked = g.PATIENT.filter(x => !x[1]);
+    rows.push(blocked.length ? [null, 'Контроль: терпеливый бот', 'защита заблокировала и его, возможно режет живых людей (' + pages(blocked) + ')'] : [true, 'Контроль: терпеливый бот', 'заявка прошла, как у живого человека']);
+  }
+  if (err) rows.push([null, 'Ошибки теста', 'проверок не выполнено: ' + err + ' (форма не найдена или сбой бота), смотри лог']);
+  if (!rows.length) return '<small>Не удалось разобрать лог для вердикта</small>';
+  const head = broke ? '<span style="color:#ff7a8a">Бот пробил защиту: ' + broke + ' из ' + total + '</span>' : '<span style="color:#5cf2c8">Бот защиту не пробил (' + total + ' из ' + total + ' выдержали)</span>';
+  const ic = r => r[0] === true ? '✅' : r[0] === false ? '❌' : '⚠️';
+  return '<div style="margin-top:12px"><b style="color:inherit">' + head + '</b><br><small>✅ защита выдержала · ❌ бот пробил</small>' +
+    rows.map(r => `<div style="margin-top:8px">${ic(r)} <b>${esc(r[1])}</b><br><small>${esc(r[2])}</small></div>`).join('') + '</div>';
+}
+
 async function btWatch(id) {
   btRunId = id;
   const mine = id;
@@ -95,17 +140,21 @@ async function btWatch(id) {
       return `<div><small>${ic} ${esc(s.name)}</small></div>`;
     }).join('');
     if (finished && job) {
-      const L = $('#bt-log');
+      const L = $('#bt-log'), V = $('#bt-verdict');
       try {
         const r = await fetch(API + '/actions/jobs/' + job.id + '/logs', { cache: 'no-store', headers: { Authorization: 'Bearer ' + T, Accept: 'application/vnd.github+json' } });
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        L.textContent = btClean(await r.text()); L.hidden = false; L.scrollTop = L.scrollHeight;
+        const txt = btClean(await r.text());
+        L.textContent = txt; L.hidden = false; L.scrollTop = L.scrollHeight;
+        if (V) V.innerHTML = btVerdict(txt);
       } catch (e) {
         L.textContent = 'Логи не удалось загрузить в браузер (' + e.message + '). Открой запуск на GitHub по ссылке выше.'; L.hidden = false;
+        if (V) V.innerHTML = '<small>Вердикт недоступен без логов</small>';
       }
     }
     if (!finished) setTimeout(tick, 4000);
   }
   $('#bt-log').hidden = true;
+  const V0 = $('#bt-verdict'); if (V0) V0.innerHTML = '';
   tick();
 }
