@@ -9,33 +9,92 @@ on:
         required: false
         default: 'https://kpblm4ik.github.io/a51bfcts_wikipedia/'
       modes:
-        description: 'Режимы бота через запятую (naive, smart, patient)'
+        description: 'Режимы браузерных ботов через запятую (naive, smart, patient)'
         required: false
         default: 'naive,smart,patient'
+      bot:
+        description: 'Какой бот запускать'
+        required: false
+        type: choice
+        default: playwright
+        options:
+          - playwright
+          - puppeteer
+          - selenium
+          - crawlee
+          - uc
+          - puppeteer-extra
+          - scrapy
+          - mechanicalsoup
+          - colly
 
 permissions:
   contents: read
 
+env:
+  BOT: ${{ inputs.bot }}
+  TARGET: ${{ inputs.target }}
+  MODES: ${{ inputs.modes }}
+
 jobs:
-  playwright:
+  bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Скачивание репозитория
         uses: actions/checkout@v4
+
       - name: Установка Node
+        if: contains(fromJSON('["playwright","puppeteer","puppeteer-extra","crawlee"]'), inputs.bot)
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Установка Playwright
+      - name: Установка пакетов Node
+        if: contains(fromJSON('["playwright","puppeteer","puppeteer-extra","crawlee"]'), inputs.bot)
         working-directory: .github/bot
         run: |
           npm init -y > /dev/null
-          npm i --no-save playwright
-          npx playwright install --with-deps chromium
-      - name: Бот Playwright
+          case "$BOT" in
+            playwright) npm i --no-save playwright && npx playwright install --with-deps chromium ;;
+            puppeteer) npm i --no-save puppeteer ;;
+            puppeteer-extra) npm i --no-save puppeteer puppeteer-extra puppeteer-extra-plugin-stealth ;;
+            crawlee) npm i --no-save crawlee puppeteer ;;
+          esac
+      - name: Запуск бота (Node)
+        if: contains(fromJSON('["playwright","puppeteer","puppeteer-extra","crawlee"]'), inputs.bot)
         working-directory: .github/bot
-        env:
-          TARGET: ${{ inputs.target }}
-          MODES: ${{ inputs.modes }}
-        run: node bot-field.mjs
+        run: |
+          if [ "$BOT" = "playwright" ]; then node bot-field.mjs; else node chrome-bot.mjs; fi
+
+      - name: Установка Python
+        if: contains(fromJSON('["selenium","uc","scrapy","mechanicalsoup"]'), inputs.bot)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Установка пакетов Python
+        if: contains(fromJSON('["selenium","uc","scrapy","mechanicalsoup"]'), inputs.bot)
+        run: |
+          case "$BOT" in
+            selenium) pip install selenium ;;
+            uc) pip install undetected-chromedriver setuptools selenium ;;
+            scrapy) pip install scrapy ;;
+            mechanicalsoup) pip install MechanicalSoup ;;
+          esac
+      - name: Запуск бота (Python)
+        if: contains(fromJSON('["selenium","uc","scrapy","mechanicalsoup"]'), inputs.bot)
+        working-directory: .github/bot
+        run: python py-bot.py
+
+      - name: Установка Go
+        if: inputs.bot == 'colly'
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: Запуск бота (Go)
+        if: inputs.bot == 'colly'
+        working-directory: .github/bot/colly
+        run: |
+          go mod init colly-bot
+          go mod tidy
+          go run .

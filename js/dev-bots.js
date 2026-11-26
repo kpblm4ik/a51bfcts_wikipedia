@@ -1,25 +1,28 @@
-/* Вкладка «Боты» в dev.html: список чужих парсеров + запуск workflow bot-test с прогрессом и логами.
-   Новый парсер в список: одна строка в BOTS. Использует глобальные из dev.html: $, esc, gh, API, T. */
+/* Вкладка «Боты» в dev.html: список парсеров + запуск выбранного бота через workflow bot-test с прогрессом и логами.
+   Новый парсер в список: одна строка в BOTS (5-й элемент: имя бота в workflow bot-test.yml, options у input bot).
+   Использует глобальные из dev.html: $, esc, gh, API, T. */
 const BOTS = [
- ['microsoft/playwright', 'браузер + JS', 'Настоящий headless-браузер: ждёт появления полей, заполняет и жмёт как человек. Уже запускается кнопкой выше.', 'Работает ли ловушка по времени, когда бот жмёт сразу'],
- ['puppeteer/puppeteer', 'браузер + JS', 'Chrome под управлением скрипта, видит весь DOM, включая скрытые поля.', 'Honeypot: заполнит ли бот скрытое поле'],
- ['SeleniumHQ/selenium', 'браузер + JS', 'Классика автоматизации браузера, часто встречается у спам-ботов.', 'То же, что Puppeteer; известный почерк'],
- ['apify/crawlee', 'браузер + JS', 'Фреймворк краулеров на Playwright/Puppeteer: обходит все ссылки сайта.', 'Видит ли он work.html и ads.html, уходит ли в /tools, уважает ли noindex'],
- ['ultrafunkamsterdam/undetected-chromedriver', 'браузер + JS + маскировка', 'Selenium, маскирующийся под обычный Chrome. Самый непредсказуемый из списка.', 'Блокируется ли, когда бот не выдаёт себя как автомат'],
- ['berstend/puppeteer-extra', 'браузер + JS + маскировка', 'Puppeteer с плагином stealth, скрывающим признаки автоматизации.', 'То же: защита не должна опираться на признаки «это бот»'],
- ['scrapy/scrapy', 'HTTP без JS', 'Качает HTML и парсит без выполнения скриптов: форма рисуется JS, полей в HTML нет.', 'Должен не найти форму и не найти endpoint'],
- ['mechanicalsoup/MechanicalSoup', 'HTTP без JS', 'Автозаполнение форм из HTML, без браузера.', 'То же: JS-форма для него невидима'],
- ['gocolly/colly', 'HTTP без JS', 'Быстрый парсер на Go, массовый обход страниц.', 'Нагрузка и поведение при быстром обходе']
+ ['microsoft/playwright', 'браузер + JS', 'Настоящий headless-браузер: ждёт появления полей, заполняет и жмёт как человек. Запускается выбором в списке выше.', 'Работает ли ловушка по времени, когда бот жмёт сразу', 'playwright'],
+ ['puppeteer/puppeteer', 'браузер + JS', 'Chrome под управлением скрипта, видит весь DOM, включая скрытые поля.', 'Honeypot: заполнит ли бот скрытое поле', 'puppeteer'],
+ ['SeleniumHQ/selenium', 'браузер + JS', 'Классика автоматизации браузера, часто встречается у спам-ботов.', 'То же, что Puppeteer; известный почерк', 'selenium'],
+ ['apify/crawlee', 'браузер + JS', 'Фреймворк краулеров на Playwright/Puppeteer: обходит все ссылки сайта.', 'Видит ли он work.html и ads.html, уходит ли в /tools, уважает ли noindex', 'crawlee'],
+ ['ultrafunkamsterdam/undetected-chromedriver', 'браузер + JS + маскировка', 'Selenium, маскирующийся под обычный Chrome. Самый непредсказуемый из списка.', 'Блокируется ли, когда бот не выдаёт себя как автомат', 'uc'],
+ ['berstend/puppeteer-extra', 'браузер + JS + маскировка', 'Puppeteer с плагином stealth, скрывающим признаки автоматизации.', 'То же: защита не должна опираться на признаки «это бот»', 'puppeteer-extra'],
+ ['scrapy/scrapy', 'HTTP без JS', 'Качает HTML и парсит без выполнения скриптов: форма рисуется JS, полей в HTML нет.', 'Должен не найти форму и не найти endpoint', 'scrapy'],
+ ['mechanicalsoup/MechanicalSoup', 'HTTP без JS', 'Автозаполнение форм из HTML, без браузера.', 'То же: JS-форма для него невидима', 'mechanicalsoup'],
+ ['gocolly/colly', 'HTTP без JS', 'Быстрый парсер на Go, массовый обход страниц.', 'Нагрузка и поведение при быстром обходе', 'colly']
 ];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let btRunId = 0;
 
 function botsView() {
-  return '<div class="item"><b>Запуск в облаке (GitHub Actions)</b><br><small>Playwright против сайта: режимы naive, smart, patient на work.html и ads.html. Нужен токен с правом Actions: Read and write.</small>' +
+  return '<div class="item"><b>Запуск в облаке (GitHub Actions)</b><br><small>Выбери бота и запусти против сайта. Браузерные боты проходят режимы naive, smart, patient на work.html и ads.html. HTTP-боты (scrapy, MechanicalSoup, colly) ищут форму в сыром HTML. Нужен токен с правом Actions: Read and write.</small>' +
+    '<select id="bt-bot" style="width:100%;padding:13px;border-radius:12px;border:1px solid #4a3a8a;background:#0e0b16;color:#fff;font:inherit;margin:8px 0">' +
+    BOTS.map(b => `<option value="${b[4]}">${esc(b[0])} · ${esc(b[1])}</option>`).join('') + '</select>' +
     '<input id="bt-target" value="https://kpblm4ik.github.io/a51bfcts_wikipedia/">' +
-    '<button id="bt-run">Запустить Playwright</button>' +
+    '<button id="bt-run">Запустить бота</button>' +
     '<div class="bar"><i id="bt-bar"></i></div><div id="bt-status"><small>Загружаю последний запуск…</small></div><div id="bt-steps"></div><pre class="log" id="bt-log" hidden></pre></div>' +
-    '<div class="item"><b>Тестируй только свой сайт.</b> Чужие парсеры из списка ниже запускай против своего адреса, в небольшом объёме. После прогона смотри вкладки «Работа» и «Реклама»: лишних заявок быть не должно.</div>' +
+    '<div class="item"><b>Тестируй только свой сайт.</b> Все 9 ботов запускай против своего адреса, в небольшом объёме. После прогона смотри вкладки «Работа» и «Реклама»: лишних заявок быть не должно.</div>' +
     BOTS.map(b => `<div class="item"><a href="https://github.com/${b[0]}" target="_blank" rel="noopener"><b>${esc(b[0])}</b></a><span class="tag">${esc(b[1])}</span><br>${esc(b[2])}<br><small>Проверяем: ${esc(b[3])}</small></div>`).join('');
 }
 
@@ -37,20 +40,21 @@ async function botsInit() {
 /* Запуск ищем по id (новее того, что было до кнопки), а не по времени: часы телефона могут спешить или отставать */
 async function btRun() {
   const st = $('#bt-status'), btn = $('#bt-run');
-  btn.disabled = true; st.textContent = 'Запускаю…';
+  const bot = $('#bt-bot').value;
+  btn.disabled = true; st.textContent = 'Запускаю ' + bot + '…';
   let before = 0;
   try { const d0 = await gh('/actions/workflows/bot-test.yml/runs?per_page=1'); before = ((d0.workflow_runs || [])[0] || {}).id || 0; } catch (e) {}
   try {
     const r = await fetch(API + '/actions/workflows/bot-test.yml/dispatches', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + T, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: 'main', inputs: { target: $('#bt-target').value.trim() } })
+      body: JSON.stringify({ ref: 'main', inputs: { target: $('#bt-target').value.trim(), bot: bot } })
     });
     if (r.status !== 204) {
-      st.textContent = 'Не удалось запустить: HTTP ' + r.status + (r.status === 403 || r.status === 404 || r.status === 422 ? ' (нужны права Actions: Read and write у токена, и файл .github/workflows/bot-test.yml должен быть в main)' : '');
+      st.textContent = 'Не удалось запустить: HTTP ' + r.status + (r.status === 403 || r.status === 404 || r.status === 422 ? ' (нужны права Actions: Read and write у токена; файл .github/workflows/bot-test.yml должен быть в main и содержать бота «' + bot + '»)' : '');
       btn.disabled = false; return;
     }
-    st.textContent = 'Запуск принят (HTTP 204), жду появления в списке…';
+    st.textContent = 'Запуск ' + bot + ' принят (HTTP 204), жду появления в списке…';
     let lastErr = '', seen = 0;
     for (let i = 0; i < 48; i++) {
       await sleep(2500);

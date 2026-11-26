@@ -25,7 +25,7 @@ pre.log{background:#0e0b16;border-radius:12px;padding:10px;font-size:12px;max-he
 <div id="app" hidden>
 <nav id="tabs"><button data-t="page" class="on">Создать страницу</button><button data-t="logs">Логи</button><button data-t="ad">Реклама</button><button data-t="job">Работа</button><button data-t="bots">Боты</button><button onclick="logout()">Выйти</button></nav>
 <main id="view"></main></div>
-<script src="js/dev-bots.js?v=20261126c"></script>
+<script>document.write('<script src="js/dev-bots.js?t='+Date.now()+'"><\/script>')</script>
 <script>
 const REPO='kpblm4ik/a51bfcts_wikipedia',API='https://api.github.com/repos/'+REPO;
 const $=s=>document.querySelector(s);
