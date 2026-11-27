@@ -20,3 +20,26 @@
   opacity: .5;
   cursor: default;
 }
+
+/* Кнопки редакторов (.ed-btn: режим обложки, Простой/Продвинутый, формат текста и т.д.).
+   Их собственные стили лежат в <style> страницы и не задавали ни наведение, ни анимацию, поэтому
+   выглядели «мёртвыми». Здесь им дан тот же отклик, что у .lang-btn, плюс эффект нажатия.
+   Выбранная кнопка (.on) проигрывает вспышку при появлении: редакторы перерисовывают ряд кнопок целиком,
+   и одной transition для этого мало. */
+.ed-btn { transition: background .2s, border-color .2s, box-shadow .2s, transform .15s; }
+.ed-card .ed-btn:hover:not(:disabled) {
+  background: rgba(var(--neon-rgb, 160, 102, 255), .28);
+  border-color: var(--neon, #a066ff);
+  box-shadow: 0 0 10px rgba(var(--neon-rgb, 160, 102, 255), .45);
+}
+.ed-card .ed-btn.on:hover:not(:disabled) { background: rgba(var(--neon-rgb, 160, 102, 255), .55); }
+.ed-card .ed-btn:active:not(:disabled) { transform: scale(.95); }
+.ed-card .ed-btn.on { animation: edBtnOn .35s ease-out; }
+@keyframes edBtnOn {
+  from { transform: scale(.9); }
+  55%  { transform: scale(1.04); }
+  to   { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ed-btn, .ed-card .ed-btn.on { transition: none; animation: none; }
+}
