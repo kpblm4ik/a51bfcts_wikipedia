@@ -23,9 +23,9 @@ pre.log{background:#0e0b16;border-radius:12px;padding:10px;font-size:12px;max-he
 <div id="login"><h2>Введите токен</h2><input id="tk" type="password" placeholder="Токен" autocomplete="off">
 <button onclick="login()">Войти</button><p id="err"></p></div>
 <div id="app" hidden>
-<nav id="tabs"><button data-t="page" class="on">Создать страницу</button><button data-t="ren">Файлы</button><button data-t="logs">Логи</button><button data-t="ad">Реклама</button><button data-t="job">Работа</button><button data-t="bots">Боты</button><button onclick="logout()">Выйти</button></nav>
+<nav id="tabs"><button data-t="page" class="on">Создать страницу</button><button data-t="news">Новости</button><button data-t="ren">Файлы</button><button data-t="logs">Логи</button><button data-t="ad">Реклама</button><button data-t="job">Работа</button><button data-t="bots">Боты</button><button onclick="logout()">Выйти</button></nav>
 <main id="view"></main></div>
-<script>['dev-bots','dev-rename'].forEach(n=>document.write('<script src="js/'+n+'.js?t='+Date.now()+'"><\/script>'))</script>
+<script>['dev-bots','dev-rename','dev-news'].forEach(n=>document.write('<script src="js/'+n+'.js?t='+Date.now()+'"><\/script>'))</script>
 <script>
 const REPO='kpblm4ik/a51bfcts_wikipedia',API='https://api.github.com/repos/'+REPO;
 const $=s=>document.querySelector(s);
@@ -50,6 +50,7 @@ async function show(t){
     const f=v.firstChild; f.onload=()=>{try{const s=f.contentDocument.createElement('script');s.src='js/autocorrect.js?t='+Date.now();f.contentDocument.body.appendChild(s)}catch(e){}};
     return;
   }
+  if(t==='news'){ v.innerHTML=newsView(); newsInit(); return; }
   if(t==='ren'){ v.innerHTML=renView(); renInit(); return; }
   if(t==='bots'){ v.innerHTML=botsView(); botsInit(); return; }
   v.innerHTML='<p>Загрузка…</p>';

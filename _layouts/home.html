@@ -27,16 +27,22 @@ layout: default
   </div>
 </div></section>
 
+{% comment %}Новости: статьи из news/ (layout: article), свежие первыми. Дата берётся из pub, который ставит вкладка «Новости» в момент публикации.{% endcomment %}
+{% assign arts = site.pages | where: 'layout', 'article' | sort: 'pub' | reverse %}
 <section id="news">
   <div class="wrap"><div class="head"><h2>Новости.</h2></div></div>
+  {% if arts.size > 0 %}
   <div class="rail" id="rail" tabindex="0" aria-label="Новости">
-    {% for n in page.news %}<article class="slide"><div class="t"><small>{{ n.tag }}</small><h3>{{ n.title }}</h3></div><img src="{{ im }}{{ n.img }}" alt="" loading="lazy" decoding="async"></article>
+    {% for n in arts limit: 8 %}<article class="slide"><div class="t"><small>{{ n.date_ru }}</small><h3><a href="{{ n.url | relative_url }}" style="color:inherit;text-decoration:none">{{ n.title }}</a></h3></div><img src="{{ im }}{{ n.img }}" alt="" loading="lazy" decoding="async"></article>
     {% endfor %}
   </div>
   <div class="ctrl">
     <div class="dots" id="dots"></div>
     <button class="pp" id="pp" aria-label="Пауза"><svg class="b" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg><svg class="a" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></button>
   </div>
+  {% else %}
+  <div class="wrap"><p>Пока новостей нет.</p></div>
+  {% endif %}
 </section>
 
 <section><div class="wrap">
